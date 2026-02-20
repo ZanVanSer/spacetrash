@@ -1,1 +1,46 @@
-[]
+[
+  {
+    "id": "damage_boost",
+    "name": "Damage +10%",
+    "description": "Increase all weapon damage",
+    "rarity": 100,
+    "effect": {
+      "type": "stat_mult",
+      "stat": "damage",
+      "value": 1.1
+    }
+  },
+  {
+    "id": "fire_rate_boost",
+    "name": "Fire Rate +15%",
+    "description": "Weapons fire faster",
+    "rarity": 100,
+    "effect": {
+      "type": "stat_mult",
+      "stat": "fireRate",
+      "value": 0.85
+    }
+  },
+  {
+    "id": "speed_boost",
+    "name": "Speed +20%",
+    "description": "Move faster",
+    "rarity": 100,
+    "effect": {
+      "type": "stat_mult",
+      "stat": "speed",
+      "value": 1.2
+    }
+  },
+  {
+    "id": "max_health_boost",
+    "name": "Max Health +20",
+    "description": "Increase maximum health",
+    "rarity": 80,
+    "effect": {
+      "type": "stat_add",
+      "stat": "maxHealth",
+      "value": 20
+    }
+  }
+]
