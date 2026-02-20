@@ -29,6 +29,11 @@ function state:update(dt)
                 if checkCircleCollision(b.x, b.y, 4, e.x, e.y, e.radius) then
                     e:takeDamage(b.weaponData.damage)
                     b.isDead = true
+                    
+                    if e.isDead and not e.xpGiven then
+                        self.player:addXP(e.xpValue)
+                        e.xpGiven = true
+                    end
                 end
             end
         end
@@ -49,8 +54,33 @@ function state:draw()
     love.graphics.clear(0.05, 0.05, 0.1)
     self.player:draw()
     self.enemySpawner:draw()
+    
+    -- UI
     love.graphics.setColor(1, 1, 1)
-    love.graphics.print("HP: " .. self.player.hp, 10, 10)
+    love.graphics.print("HP: " .. self.player.hp, 10, 50)
+    
+    -- XP Bar
+    local barWidth = 400
+    local barHeight = 20
+    local barX = (love.graphics.getWidth() - barWidth) / 2
+    local barY = 10
+
+    -- Background
+    love.graphics.setColor(0.2, 0.2, 0.2)
+    love.graphics.rectangle('fill', barX, barY, barWidth, barHeight)
+
+    -- XP Fill
+    local fillPercent = self.player.xp / self.player.xpToNext
+    love.graphics.setColor(0.3, 0.8, 0.3)
+    love.graphics.rectangle('fill', barX, barY, barWidth * fillPercent, barHeight)
+
+    -- Border
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.rectangle('line', barX, barY, barWidth, barHeight)
+
+    -- Level text
+    love.graphics.print("Level: " .. self.player.level, 10, 10)
+    love.graphics.print("XP: " .. self.player.xp .. "/" .. self.player.xpToNext, 10, 30)
 end
 
 return state

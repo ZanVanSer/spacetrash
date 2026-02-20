@@ -12,7 +12,24 @@ function Player.new(shipData)
     self.radius = 15
     self.ws = WS.new()
     self.ws:equipWeapon(shipData.startWeapon)
+    self.xp = 0
+    self.level = 1
+    self.xpToNext = 10
     return self
+end
+
+function Player:addXP(amount)
+    self.xp = self.xp + amount
+    if self.xp >= self.xpToNext then
+        self:levelUp()
+    end
+end
+
+function Player:levelUp()
+    self.level = self.level + 1
+    self.xp = self.xp - self.xpToNext
+    self.xpToNext = math.floor(self.xpToNext * 1.5)
+    return true
 end
 
 function Player:update(dt)
