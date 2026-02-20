@@ -1,12 +1,15 @@
 local Player = require "entities/player"
 local Spawner = require "systems/enemy_spawner"
 local dl = require "systems/dataloader"
+local UpgradeMenu = require "ui/upgrade_menu"
 local state = {}
 
 function state:enter()
     local shipData = dl.getShips()[1]
     self.player = Player.new(shipData)
     self.enemySpawner = Spawner.new()
+    self.isPaused = false
+    self.upgradeMenu = nil
 end
 
 local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
@@ -15,6 +18,9 @@ local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
 end
 
 function state:update(dt)
+    if self.isPaused then return end
+
+    local oldLevel = self.player.level
     self.player:update(dt)
     self.enemySpawner:update(dt)
 
@@ -46,6 +52,42 @@ function state:update(dt)
                 self.player.hp = self.player.hp - 10
                 e.isDead = true
             end
+        end
+    end
+
+    if self.player.level > oldLevel then
+        self.isPaused = true
+        self.upgradeMenu = UpgradeMenu.new()
+    end
+end
+
+function state:keypressed(key)
+    if self.isPaused and self.upgradeMenu then
+        local selectedUpgrade = self.upgradeMenu:keypressed(key)
+        if selectedUpgrade then
+            self:applyUpgrade(selectedUpgrade)
+            self.isPaused = false
+            self.upgradeMenu = nil
+        end
+    end
+end
+
+function state:applyUpgrade(upgrade)
+    local effect = upgrade.effect
+    local p = self.player
+    
+    if effect.type == "stat_mult" then
+        if effect.stat == "damage" then
+            p.damageMult = (p.damageMult or 1) * effect.value
+        elseif effect.stat == "fireRate" then
+            p.fireRateMult = (p.fireRateMult or 1) * effect.value
+        elseif effect.stat == "speed" then
+            p.speed = p.speed * effect.value
+        end
+    elseif effect.type == "stat_add" then
+        if effect.stat == "maxHealth" then
+            p.maxHp = p.maxHp + effect.value
+            p.hp = p.hp + effect.value
         end
     end
 end
@@ -81,6 +123,10 @@ function state:draw()
     -- Level text
     love.graphics.print("Level: " .. self.player.level, 10, 10)
     love.graphics.print("XP: " .. self.player.xp .. "/" .. self.player.xpToNext, 10, 30)
+
+    if self.isPaused and self.upgradeMenu then
+        self.upgradeMenu:draw()
+    end
 end
 
 return state
