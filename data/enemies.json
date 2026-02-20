@@ -1,0 +1,9 @@
+[
+  {
+    "id": "basic_drone",
+    "hp": 10,
+    "speed": 100,
+    "xp": 1,
+    "behavior": "straight_down"
+  }
+]

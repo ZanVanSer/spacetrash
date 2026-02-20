@@ -1,0 +1,10 @@
+[
+  {
+    "id": "basic_laser",
+    "name": "Basic Laser",
+    "damage": 10,
+    "fireRate": 0.3,
+    "bulletSpeed": 400,
+    "pattern": "straight"
+  }
+]

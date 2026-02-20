@@ -1,0 +1,9 @@
+[
+  {
+    "id": "falcon",
+    "name": "Falcon",
+    "hp": 100,
+    "speed": 200,
+    "startWeapon": "basic_laser"
+  }
+]
