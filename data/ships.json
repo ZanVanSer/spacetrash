@@ -5,5 +5,12 @@
     "hp": 100,
     "speed": 200,
     "startWeapon": "basic_laser"
+  },
+  {
+    "id": "test",
+    "name": "test",
+    "hp": 1000,
+    "speed": 500,
+    "startWeapon": "basic_laser"
   }
 ]
