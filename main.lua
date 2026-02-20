@@ -5,9 +5,8 @@ function love.load()
     local weapons = dl.getWeapons()
     local ships = dl.getShips()
 
-    sm.register("test1", require "states/test1")
-    sm.register("test2", require "states/test2")
-    sm.switch("test1")
+    sm.register("game", require "states/game_state")
+    sm.switch("game")
 end
 
 function love.update(dt)
