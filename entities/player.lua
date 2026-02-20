@@ -15,6 +15,8 @@ function Player.new(shipData)
     self.xp = 0
     self.level = 1
     self.xpToNext = 10
+    self.damageMult = 1
+    self.fireRateMult = 1
     return self
 end
 
@@ -40,7 +42,7 @@ function Player:update(dt)
     end
     
     self.x = math.max(self.radius, math.min(love.graphics.getWidth() - self.radius, self.x))
-    self.ws:update(dt, self.x, self.y)
+    self.ws:update(dt, self.x, self.y, self.damageMult, self.fireRateMult)
 end
 
 function Player:draw()
