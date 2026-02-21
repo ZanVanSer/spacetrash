@@ -23,7 +23,7 @@ function state:update(dt)
     if self.isPaused then return end
 
     self.gameTime = self.gameTime + dt
-    if self.gameTime >= 10 and not self.bossSpawned then
+    if self.gameTime >= 180 and not self.bossSpawned then
         -- Trigger boss spawn
         self.bossSpawned = true
         self.enemySpawner:stop()
