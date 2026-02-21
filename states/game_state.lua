@@ -27,7 +27,7 @@ function state:update(dt)
 
     self.gameTime = self.gameTime + dt
     -- Trigger boss spawn (reduced to 10s for testing as per current file state, or use 180s)
-    if self.gameTime >= 5 and not self.bossSpawned then
+    if self.gameTime >= 180 and not self.bossSpawned then
         local bossData = dl.getBosses()[1]
         self.boss = Boss.new(love.graphics.getWidth() / 2, 80, bossData)
         self.bossSpawned = true
