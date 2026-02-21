@@ -15,17 +15,17 @@ function Spawner.new()
 end
 
 function Spawner:update(dt)
-    if not self.active then return end
-    
-    self.spawnTimer = self.spawnTimer + dt
-    if self.spawnTimer >= self.spawnInterval then
-        local enemyTypes = dl.getEnemies()
-        if #enemyTypes > 0 then
-            local data = enemyTypes[love.math.random(#enemyTypes)]
-            local x = love.math.random(20, love.graphics.getWidth() - 20)
-            table.insert(self.enemies, Enemy.new(x, -20, data))
+    if self.active then
+        self.spawnTimer = self.spawnTimer + dt
+        if self.spawnTimer >= self.spawnInterval then
+            local enemyTypes = dl.getEnemies()
+            if #enemyTypes > 0 then
+                local data = enemyTypes[love.math.random(#enemyTypes)]
+                local x = love.math.random(20, love.graphics.getWidth() - 20)
+                table.insert(self.enemies, Enemy.new(x, -20, data))
+            end
+            self.spawnTimer = 0
         end
-        self.spawnTimer = 0
     end
     
     for i = #self.enemies, 1, -1 do

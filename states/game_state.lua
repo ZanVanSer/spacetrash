@@ -10,6 +10,8 @@ function state:enter()
     self.enemySpawner = Spawner.new()
     self.isPaused = false
     self.upgradeMenu = nil
+    self.gameTime = 0
+    self.bossSpawned = false
 end
 
 local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
@@ -19,6 +21,13 @@ end
 
 function state:update(dt)
     if self.isPaused then return end
+
+    self.gameTime = self.gameTime + dt
+    if self.gameTime >= 10 and not self.bossSpawned then
+        -- Trigger boss spawn
+        self.bossSpawned = true
+        self.enemySpawner:stop()
+    end
 
     local oldLevel = self.player.level
     self.player:update(dt)
@@ -123,6 +132,12 @@ function state:draw()
     -- Level text
     love.graphics.print("Level: " .. self.player.level, 10, 10)
     love.graphics.print("XP: " .. self.player.xp .. "/" .. self.player.xpToNext, 10, 30)
+
+    -- Game Timer
+    local minutes = math.floor(self.gameTime / 60)
+    local seconds = math.floor(self.gameTime % 60)
+    local timerStr = string.format("Time: %02d:%02d", minutes, seconds)
+    love.graphics.print(timerStr, love.graphics.getWidth() - 100, 10)
 
     if self.isPaused and self.upgradeMenu then
         self.upgradeMenu:draw()
