@@ -2,11 +2,12 @@ local sm = require "states/statemanager"
 local dl = require "systems/dataloader"
 
 function love.load()
-    local weapons = dl.getWeapons()
-    local ships = dl.getShips()
-
+    -- Register all states
+    sm.register("main_menu", require "states/main_menu")
     sm.register("game", require "states/game_state")
-    sm.switch("game")
+    
+    -- Start with main menu
+    sm.switch("main_menu")
 end
 
 function love.update(dt)
