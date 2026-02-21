@@ -14,6 +14,7 @@ function state:enter()
     self.gameTime = 0
     self.bossSpawned = false
     self.boss = nil
+    self.isVictory = false
 end
 
 local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
@@ -22,10 +23,11 @@ local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
 end
 
 function state:update(dt)
-    if self.isPaused then return end
+    if self.isPaused or self.isVictory then return end
 
     self.gameTime = self.gameTime + dt
-    if self.gameTime >= 10 and not self.bossSpawned then
+    -- Trigger boss spawn (reduced to 10s for testing as per current file state, or use 180s)
+    if self.gameTime >= 5 and not self.bossSpawned then
         local bossData = dl.getBosses()[1]
         self.boss = Boss.new(love.graphics.getWidth() / 2, 80, bossData)
         self.bossSpawned = true
@@ -38,6 +40,9 @@ function state:update(dt)
     
     if self.boss then
         self.boss:update(dt)
+        if self.boss.isDead then
+            self.isVictory = true
+        end
     end
 
     local bullets = self.player:getBullets()
@@ -47,7 +52,6 @@ function state:update(dt)
     for _, b in ipairs(bullets) do
         for _, e in ipairs(enemies) do
             if not b.isDead and not e.isDead then
-                -- Bullets are 4x10 rectangles, treating as 4r circle for simplicity or use point
                 if checkCircleCollision(b.x, b.y, 4, e.x, e.y, e.radius) then
                     e:takeDamage(b.weaponData.damage)
                     b.isDead = true
@@ -136,11 +140,30 @@ function state:draw()
     
     if self.boss then
         self.boss:draw()
+        
+        -- Global Boss Health Bar
+        if not self.boss.isDead then
+            local barWidth = 600
+            local barHeight = 20
+            local barX = (love.graphics.getWidth() - barWidth) / 2
+            local barY = 40
+            
+            love.graphics.setColor(0.2, 0, 0)
+            love.graphics.rectangle("fill", barX, barY, barWidth, barHeight)
+            
+            local fillPercent = math.max(0, self.boss.health / self.boss.maxHealth)
+            love.graphics.setColor(1, 0, 0)
+            love.graphics.rectangle("fill", barX, barY, barWidth * fillPercent, barHeight)
+            
+            love.graphics.setColor(1, 1, 1)
+            love.graphics.rectangle("line", barX, barY, barWidth, barHeight)
+            love.graphics.printf(self.boss.bossData.name, barX, barY + 2, barWidth, "center")
+        end
     end
     
     -- UI
     love.graphics.setColor(1, 1, 1)
-    love.graphics.print("HP: " .. self.player.hp, 10, 50)
+    love.graphics.print("HP: " .. math.ceil(self.player.hp), 10, 50)
     
     -- XP Bar
     local barWidth = 400
@@ -148,22 +171,18 @@ function state:draw()
     local barX = (love.graphics.getWidth() - barWidth) / 2
     local barY = 10
 
-    -- Background
     love.graphics.setColor(0.2, 0.2, 0.2)
     love.graphics.rectangle('fill', barX, barY, barWidth, barHeight)
 
-    -- XP Fill
     local fillPercent = self.player.xp / self.player.xpToNext
     love.graphics.setColor(0.3, 0.8, 0.3)
     love.graphics.rectangle('fill', barX, barY, barWidth * fillPercent, barHeight)
 
-    -- Border
     love.graphics.setColor(1, 1, 1)
     love.graphics.rectangle('line', barX, barY, barWidth, barHeight)
 
-    -- Level text
     love.graphics.print("Level: " .. self.player.level, 10, 10)
-    love.graphics.print("XP: " .. self.player.xp .. "/" .. self.player.xpToNext, 10, 30)
+    love.graphics.print("XP: " .. math.floor(self.player.xp) .. "/" .. self.player.xpToNext, 10, 30)
 
     -- Game Timer
     local minutes = math.floor(self.gameTime / 60)
@@ -173,6 +192,13 @@ function state:draw()
 
     if self.isPaused and self.upgradeMenu then
         self.upgradeMenu:draw()
+    end
+
+    if self.isVictory then
+        love.graphics.setColor(1, 1, 0)
+        local font = love.graphics.getFont()
+        local text = "VICTORY!"
+        love.graphics.print(text, (love.graphics.getWidth() - font:getWidth(text)) / 2, love.graphics.getHeight() / 2)
     end
 end
 
