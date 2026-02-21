@@ -21,6 +21,16 @@ function state:enter()
     self.isPausedByPlayer = false
     self.pauseMenu = nil
     self.enemiesKilled = 0
+
+    -- Stars initialization
+    self.stars = {}
+    for i = 1, 100 do
+        table.insert(self.stars, {
+            x = math.random(0, love.graphics.getWidth()),
+            y = math.random(0, love.graphics.getHeight()),
+            speed = math.random(20, 50)
+        })
+    end
 end
 
 local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
@@ -29,6 +39,15 @@ local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
 end
 
 function state:update(dt)
+    -- Always update stars, even when paused
+    for _, s in ipairs(self.stars) do
+        s.y = s.y + s.speed * dt
+        if s.y > love.graphics.getHeight() then
+            s.y = 0
+            s.x = math.random(0, love.graphics.getWidth())
+        end
+    end
+
     if self.isPaused or self.isPausedByPlayer or self.isVictory then return end
 
     self.gameTime = self.gameTime + dt
@@ -190,7 +209,13 @@ function state:applyUpgrade(upgrade)
 end
 
 function state:draw()
-    love.graphics.clear(0.05, 0.05, 0.1)
+    -- Background and Stars
+    love.graphics.clear(0.02, 0.02, 0.05)
+    love.graphics.setColor(1, 1, 1, 0.5)
+    for _, s in ipairs(self.stars) do
+        love.graphics.circle("fill", s.x, s.y, 1)
+    end
+
     self.player:draw()
     self.enemySpawner:draw()
     
