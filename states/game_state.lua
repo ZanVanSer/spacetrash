@@ -19,6 +19,7 @@ function state:enter()
     self.isVictory = false
     self.isPausedByPlayer = false
     self.pauseMenu = nil
+    self.enemiesKilled = 0
 end
 
 local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
@@ -46,6 +47,7 @@ function state:update(dt)
         self.boss:update(dt)
         if self.boss.isDead then
             self.isVictory = true
+            self.enemiesKilled = self.enemiesKilled + 1
         end
     end
 
@@ -63,6 +65,7 @@ function state:update(dt)
                     if e.isDead and not e.xpGiven then
                         self.player:addXP(e.xpValue)
                         e.xpGiven = true
+                        self.enemiesKilled = self.enemiesKilled + 1
                     end
                 end
             end
@@ -98,6 +101,17 @@ function state:update(dt)
                 end
             end
         end
+    end
+
+    -- Death Detection
+    if self.player.hp <= 0 then
+        local stats = {
+            timeSurvived = self.gameTime,
+            level = self.player.level,
+            enemiesKilled = self.enemiesKilled
+        }
+        sm.switch("gameover", stats)
+        return
     end
 
     if self.player.level > oldLevel then

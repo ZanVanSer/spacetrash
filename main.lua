@@ -5,6 +5,7 @@ function love.load()
     -- Register all states
     sm.register("main_menu", require "states/main_menu")
     sm.register("game", require "states/game_state")
+    sm.register("gameover", require "states/gameover_state")
     
     -- Start with main menu
     sm.switch("main_menu")
