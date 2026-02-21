@@ -3,6 +3,8 @@ local Spawner = require "systems/enemy_spawner"
 local dl = require "systems/dataloader"
 local UpgradeMenu = require "ui/upgrade_menu"
 local Boss = require "entities/boss"
+local Menu = require "ui/menu"
+local sm = require "states/statemanager"
 local state = {}
 
 function state:enter()
@@ -15,6 +17,8 @@ function state:enter()
     self.bossSpawned = false
     self.boss = nil
     self.isVictory = false
+    self.isPausedByPlayer = false
+    self.pauseMenu = nil
 end
 
 local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
@@ -23,7 +27,7 @@ local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
 end
 
 function state:update(dt)
-    if self.isPaused or self.isVictory then return end
+    if self.isPaused or self.isPausedByPlayer or self.isVictory then return end
 
     self.gameTime = self.gameTime + dt
     -- Trigger boss spawn (reduced to 10s for testing as per current file state, or use 180s)
@@ -103,6 +107,29 @@ function state:update(dt)
 end
 
 function state:keypressed(key)
+    if key == "escape" or key == "p" then
+        self.isPausedByPlayer = not self.isPausedByPlayer
+        if self.isPausedByPlayer then
+            self.pauseMenu = Menu.new({"Resume", "Restart", "Main Menu"})
+        else
+            self.pauseMenu = nil
+        end
+        return
+    end
+
+    if self.isPausedByPlayer and self.pauseMenu then
+        local selection = self.pauseMenu:keypressed(key)
+        if selection == 1 then -- Resume
+            self.isPausedByPlayer = false
+            self.pauseMenu = nil
+        elseif selection == 2 then -- Restart
+            sm.switch("game")
+        elseif selection == 3 then -- Main Menu
+            sm.switch("main_menu")
+        end
+        return
+    end
+
     if self.isPaused and self.upgradeMenu then
         local selectedUpgrade = self.upgradeMenu:keypressed(key)
         if selectedUpgrade then
@@ -199,6 +226,20 @@ function state:draw()
         local font = love.graphics.getFont()
         local text = "VICTORY!"
         love.graphics.print(text, (love.graphics.getWidth() - font:getWidth(text)) / 2, love.graphics.getHeight() / 2)
+    end
+
+    if self.isPausedByPlayer and self.pauseMenu then
+        -- Semi-transparent dark overlay
+        love.graphics.setColor(0, 0, 0, 0.7)
+        love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+        
+        -- "PAUSED" text at top
+        love.graphics.setColor(1, 1, 1)
+        local font = love.graphics.getFont()
+        local text = "PAUSED"
+        love.graphics.printf(text, 0, 100, love.graphics.getWidth(), "center")
+        
+        self.pauseMenu:draw(love.graphics.getWidth() / 2, love.graphics.getHeight() / 2)
     end
 end
 
