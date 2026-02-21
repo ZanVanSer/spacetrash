@@ -2,6 +2,7 @@ local Player = require "entities/player"
 local Spawner = require "systems/enemy_spawner"
 local dl = require "systems/dataloader"
 local UpgradeMenu = require "ui/upgrade_menu"
+local Boss = require "entities/boss"
 local state = {}
 
 function state:enter()
@@ -12,6 +13,7 @@ function state:enter()
     self.upgradeMenu = nil
     self.gameTime = 0
     self.bossSpawned = false
+    self.boss = nil
 end
 
 local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
@@ -23,8 +25,9 @@ function state:update(dt)
     if self.isPaused then return end
 
     self.gameTime = self.gameTime + dt
-    if self.gameTime >= 180 and not self.bossSpawned then
-        -- Trigger boss spawn
+    if self.gameTime >= 10 and not self.bossSpawned then
+        local bossData = dl.getBosses()[1]
+        self.boss = Boss.new(love.graphics.getWidth() / 2, 80, bossData)
         self.bossSpawned = true
         self.enemySpawner:stop()
     end
@@ -32,6 +35,10 @@ function state:update(dt)
     local oldLevel = self.player.level
     self.player:update(dt)
     self.enemySpawner:update(dt)
+    
+    if self.boss then
+        self.boss:update(dt)
+    end
 
     local bullets = self.player:getBullets()
     local enemies = self.enemySpawner:getEnemies()
@@ -52,6 +59,14 @@ function state:update(dt)
                 end
             end
         end
+
+        -- Bullet-Boss Collisions
+        if self.boss and not self.boss.isDead and not b.isDead then
+            if checkCircleCollision(b.x, b.y, 4, self.boss.x, self.boss.y, self.boss.radius) then
+                self.boss:takeDamage(b.weaponData.damage)
+                b.isDead = true
+            end
+        end
     end
 
     -- Enemy-Player Collisions
@@ -60,6 +75,19 @@ function state:update(dt)
             if checkCircleCollision(self.player.x, self.player.y, self.player.radius, e.x, e.y, e.radius) then
                 self.player.hp = self.player.hp - 10
                 e.isDead = true
+            end
+        end
+    end
+
+    -- Boss Bullet-Player Collisions
+    if self.boss and not self.boss.isDead then
+        local bBullets = self.boss:getBullets()
+        for _, bb in ipairs(bBullets) do
+            if not bb.isDead then
+                if checkCircleCollision(bb.x, bb.y, bb.radius or 8, self.player.x, self.player.y, self.player.radius) then
+                    self.player.hp = self.player.hp - bb.damage
+                    bb.isDead = true
+                end
             end
         end
     end
@@ -105,6 +133,10 @@ function state:draw()
     love.graphics.clear(0.05, 0.05, 0.1)
     self.player:draw()
     self.enemySpawner:draw()
+    
+    if self.boss then
+        self.boss:draw()
+    end
     
     -- UI
     love.graphics.setColor(1, 1, 1)

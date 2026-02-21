@@ -1,0 +1,105 @@
+local Boss = {}
+Boss.__index = Boss
+
+function Boss.new(x, y, bossData)
+    local self = setmetatable({}, Boss)
+    self.bossData = bossData
+    self.x = x or love.graphics.getWidth() / 2
+    self.y = y or 100
+    self.health = bossData.health
+    self.maxHealth = bossData.health
+    self.speed = bossData.speed
+    self.radius = bossData.radius
+    self.direction = 1 -- Default direction for behaviors like side_to_side
+    self.isDead = false
+    self.shootTimer = 0
+    self.bullets = {}
+    return self
+end
+
+function Boss:update(dt)
+    if self.isDead then return end
+
+    -- Load and run behavior
+    local behavior = require("behaviors/" .. self.bossData.behavior)
+    if behavior and behavior.update then
+        behavior.update(self, dt)
+    end
+
+    -- Shooting logic
+    self.shootTimer = self.shootTimer + dt
+    if self.shootTimer >= self.bossData.shootInterval then
+        local pattern = require("patterns/boss_" .. self.bossData.shootPattern)
+        if pattern and pattern.createBullets then
+            local newBullets = pattern.createBullets(self.x, self.y, self.bossData)
+            for _, b in ipairs(newBullets) do
+                table.insert(self.bullets, b)
+            end
+        end
+        self.shootTimer = 0
+    end
+
+    -- Update bullets
+    for i = #self.bullets, 1, -1 do
+        local b = self.bullets[i]
+        b.x = b.x + (b.vx or 0) * dt
+        b.y = b.y + (b.vy or 0) * dt
+
+        -- Remove off-screen bullets
+        if b.y > love.graphics.getHeight() + 50 or b.y < -50 or 
+           b.x < -50 or b.x > love.graphics.getWidth() + 50 or b.isDead then
+            table.remove(self.bullets, i)
+        end
+    end
+end
+
+function Boss:takeDamage(amount)
+    self.health = self.health - amount
+    if self.health <= 0 then
+        self.health = 0
+        self.isDead = true
+    end
+end
+
+function Boss:getBullets()
+    return self.bullets
+end
+
+function Boss:draw()
+    if self.isDead then return end
+
+    -- Draw Boss: Red triangle pointing down
+    love.graphics.setColor(1, 0, 0)
+    love.graphics.polygon("fill", 
+        self.x - self.radius, self.y - self.radius, -- Top left
+        self.x + self.radius, self.y - self.radius, -- Top right
+        self.x, self.y + self.radius                 -- Bottom center
+    )
+
+    -- Draw Health Bar
+    local barWidth = self.radius * 2
+    local barHeight = 8
+    local barX = self.x - self.radius
+    local barY = self.y - self.radius - 15
+
+    -- Background
+    love.graphics.setColor(0.2, 0.2, 0.2)
+    love.graphics.rectangle("fill", barX, barY, barWidth, barHeight)
+
+    -- Fill
+    local fillPercent = math.max(0, self.health / self.maxHealth)
+    love.graphics.setColor(1, 0, 0)
+    love.graphics.rectangle("fill", barX, barY, barWidth * fillPercent, barHeight)
+
+    -- Border
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.rectangle("line", barX, barY, barWidth, barHeight)
+
+    -- Draw Bullets
+    love.graphics.setColor(1, 0.2, 0.2)
+    for _, b in ipairs(self.bullets) do
+        love.graphics.circle("fill", b.x, b.y, b.radius or 8)
+    end
+end
+
+return Boss
