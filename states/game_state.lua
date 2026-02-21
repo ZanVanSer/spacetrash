@@ -17,6 +17,7 @@ function state:enter()
     self.bossSpawned = false
     self.boss = nil
     self.isVictory = false
+    self.victoryStats = nil
     self.isPausedByPlayer = false
     self.pauseMenu = nil
     self.enemiesKilled = 0
@@ -31,7 +32,7 @@ function state:update(dt)
     if self.isPaused or self.isPausedByPlayer or self.isVictory then return end
 
     self.gameTime = self.gameTime + dt
-    -- Trigger boss spawn (reduced to 10s for testing as per current file state, or use 180s)
+    -- Trigger boss spawn
     if self.gameTime >= 180 and not self.bossSpawned then
         local bossData = dl.getBosses()[1]
         self.boss = Boss.new(love.graphics.getWidth() / 2, 80, bossData)
@@ -48,6 +49,11 @@ function state:update(dt)
         if self.boss.isDead then
             self.isVictory = true
             self.enemiesKilled = self.enemiesKilled + 1
+            self.victoryStats = {
+                timeSurvived = self.gameTime,
+                level = self.player.level,
+                enemiesKilled = self.enemiesKilled
+            }
         end
     end
 
@@ -121,6 +127,15 @@ function state:update(dt)
 end
 
 function state:keypressed(key)
+    if self.isVictory then
+        if key == "r" then
+            sm.switch("game")
+        elseif key == "m" then
+            sm.switch("main_menu")
+        end
+        return
+    end
+
     if key == "escape" or key == "p" then
         self.isPausedByPlayer = not self.isPausedByPlayer
         if self.isPausedByPlayer then
@@ -236,10 +251,29 @@ function state:draw()
     end
 
     if self.isVictory then
-        love.graphics.setColor(1, 1, 0)
-        local font = love.graphics.getFont()
-        local text = "VICTORY!"
-        love.graphics.print(text, (love.graphics.getWidth() - font:getWidth(text)) / 2, love.graphics.getHeight() / 2)
+        -- Semi-transparent gold overlay
+        love.graphics.setColor(0.1, 0.1, 0, 0.8)
+        love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+        
+        love.graphics.setColor(1, 0.8, 0)
+        local font = love.graphics.newFont(64)
+        local oldFont = love.graphics.getFont()
+        love.graphics.setFont(font)
+        love.graphics.printf("VICTORY!", 0, love.graphics.getHeight() * 0.2, love.graphics.getWidth(), "center")
+        
+        love.graphics.setFont(oldFont)
+        love.graphics.setColor(1, 1, 1)
+        if self.victoryStats then
+            local statsY = love.graphics.getHeight() * 0.4
+            local mins = math.floor(self.victoryStats.timeSurvived / 60)
+            local secs = math.floor(self.victoryStats.timeSurvived % 60)
+            love.graphics.printf(string.format("Time: %02d:%02d", mins, secs), 0, statsY, love.graphics.getWidth(), "center")
+            love.graphics.printf("Level: " .. self.victoryStats.level, 0, statsY + 30, love.graphics.getWidth(), "center")
+            love.graphics.printf("Enemies Killed: " .. self.victoryStats.enemiesKilled, 0, statsY + 60, love.graphics.getWidth(), "center")
+        end
+        
+        love.graphics.setColor(0.8, 0.8, 0.8)
+        love.graphics.printf("Press R to Restart | Press M for Main Menu", 0, love.graphics.getHeight() * 0.7, love.graphics.getWidth(), "center")
     end
 
     if self.isPausedByPlayer and self.pauseMenu then
