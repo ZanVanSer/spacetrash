@@ -9,7 +9,7 @@ end
 function state:keypressed(key)
     local selection = self.menu:keypressed(key)
     if selection == 1 then
-        sm.switch("game")
+        sm.switch("save_select")
     elseif selection == 2 then
         print("Settings - coming soon")
     elseif selection == 3 then
