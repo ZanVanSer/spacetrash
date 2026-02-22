@@ -34,7 +34,15 @@ function BackgroundLayer.new(layerData)
 end
 
 function BackgroundLayer:update(dt)
-    if self.scrollDirection == "down" then
+    if self.type == "stars" then
+        for _, star in ipairs(self.stars) do
+            star.y = star.y + self.speed * 100 * dt
+            if star.y > self.height then
+                star.y = -10
+                star.x = math.random(0, self.width)
+            end
+        end
+    elseif self.scrollDirection == "down" then
         self.yOffset = self.yOffset + self.speed * 100 * dt
         if self.yOffset >= self.height then
             self.yOffset = self.yOffset - self.height
@@ -49,8 +57,7 @@ function BackgroundLayer:draw()
     elseif self.type == "stars" then
         love.graphics.setColor(1, 1, 1)
         for _, star in ipairs(self.stars) do
-            local drawY = (star.y + self.yOffset) % self.height
-            love.graphics.circle("fill", star.x, drawY, star.size)
+            love.graphics.circle("fill", star.x, star.y, star.size)
         end
     elseif self.type == "image" then
         -- Placeholder for image drawing
