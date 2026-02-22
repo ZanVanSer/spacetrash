@@ -12,6 +12,13 @@ function BackgroundLayer.new(layerData)
     self.width = 800
     self.height = 600
     
+    -- Positioning and Style
+    self.position = layerData.position or "fill"
+    self.offsetX = layerData.offsetX or 0
+    self.offsetY = layerData.offsetY or 0
+    self.scale = layerData.scale or 1.0
+    self.opacity = layerData.opacity or 1.0
+    
     if self.type == "fill" then
         self.color = layerData.color or {0, 0, 0}
     elseif self.type == "stars" then
@@ -83,38 +90,53 @@ function BackgroundLayer:update(dt)
 end
 
 function BackgroundLayer:draw()
+    local r, g, b = 1, 1, 1
     if self.type == "fill" then
-        love.graphics.setColor(unpack(self.color))
-        love.graphics.rectangle("fill", 0, 0, self.width, self.height)
+        r, g, b = unpack(self.color)
+    end
+    love.graphics.setColor(r, g, b, self.opacity)
+    
+    local drawX = self.offsetX
+    local drawY = self.offsetY
+    
+    if self.type == "fill" then
+        love.graphics.rectangle("fill", drawX, drawY, self.width, self.height)
     elseif self.type == "stars" then
-        love.graphics.setColor(1, 1, 1)
         for _, star in ipairs(self.stars) do
-            love.graphics.circle("fill", star.x, star.y, star.size)
+            love.graphics.circle("fill", star.x + drawX, star.y + drawY, star.size)
         end
     elseif self.type == "image" then
         if self.image then
-            love.graphics.setColor(1, 1, 1)
+            local baseY = 0
+            if self.position == "top" then
+                baseY = 0
+            elseif self.position == "bottom" then
+                baseY = self.height - (self.imgHeight * self.scale)
+            elseif self.position == "center" then
+                baseY = (self.height - (self.imgHeight * self.scale)) / 2
+            end
+            
             if self.repeatFlag then
-                local y = self.yOffset - self.imgHeight
+                local y = (self.yOffset % self.imgHeight) - self.imgHeight
                 while y < self.height do
-                    love.graphics.draw(self.image, 0, y)
-                    y = y + self.imgHeight
+                    love.graphics.draw(self.image, drawX, y + drawY, 0, self.scale, self.scale)
+                    y = y + (self.imgHeight * self.scale)
                 end
             else
-                love.graphics.draw(self.image, 0, self.yOffset)
+                love.graphics.draw(self.image, drawX, baseY + self.yOffset + drawY, 0, self.scale, self.scale)
             end
         end
     elseif self.type == "prop" then
         if self.spawnArea == "sky" then
-            love.graphics.setColor(0.4, 0.6, 1.0, 0.5)
+            love.graphics.setColor(0.4, 0.6, 1.0, self.opacity * 0.5)
         elseif self.spawnArea == "ground" then
-            love.graphics.setColor(0.5, 0.3, 0.1, 0.5)
+            love.graphics.setColor(0.5, 0.3, 0.1, self.opacity * 0.5)
         else
-            love.graphics.setColor(1, 1, 1, 0.3)
+            love.graphics.setColor(1, 1, 1, self.opacity * 0.3)
         end
         
         for _, prop in ipairs(self.props) do
-            love.graphics.circle("fill", prop.x, prop.y, prop.radius)
+            love.graphics.circle("fill", prop.x + drawX, prop.y + drawY, prop.radius * self.scale)
         end
     end
 end
