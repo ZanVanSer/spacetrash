@@ -1,5 +1,6 @@
 local sm = require "states/statemanager"
 local savemanager = require "systems/savemanager"
+local dl = require "systems/dataloader"
 local Menu = require "ui/menu"
 
 local state = {}
@@ -13,10 +14,12 @@ function state:enter()
         self.saves[i] = data
         
         local label = "Slot " .. i .. ": "
-        if data then
-            local mins = math.floor(data.totalPlayTime / 60)
-            local secs = data.totalPlayTime % 60
-            label = label .. "Level " .. data.level .. " - " .. string.format("%02d:%02d", mins, secs)
+        if data and data.statistics then
+            local stats = data.statistics
+            local mins = math.floor(stats.totalPlayTime / 60)
+            local hours = math.floor(mins / 60)
+            mins = mins % 60
+            label = label .. "Lvl " .. (stats.highestLevel or 1) .. " - " .. string.format("%dh %02dm", hours, mins)
         else
             label = label .. "Empty"
         end
@@ -62,23 +65,34 @@ function state:draw()
     local titleFont = love.graphics.newFont(48)
     local oldFont = love.graphics.getFont()
     love.graphics.setFont(titleFont)
-    love.graphics.printf("SELECT SAVE SLOT", 0, screenHeight * 0.15, screenWidth, "center")
+    love.graphics.printf("SELECT SAVE SLOT", 0, screenHeight * 0.1, screenWidth, "center")
     
     -- Menu
     love.graphics.setFont(oldFont)
-    self.menu:draw(screenWidth / 2, screenHeight / 2)
+    self.menu:draw(screenWidth / 2, screenHeight / 2 - 50)
     
     -- Additional info for highlighted slot
     local idx = self.menu.selectedIndex
     if idx <= 3 then
         local data = self.saves[idx]
-        local infoY = screenHeight * 0.7
-        if data then
+        local infoY = screenHeight * 0.55
+        if data and data.statistics then
+            local stats = data.statistics
+            local hours = math.floor(stats.totalPlayTime / 3600)
+            local mins = math.floor((stats.totalPlayTime % 3600) / 60)
+            
+            local totalShips = #dl.getShips()
+            local totalStages = #dl.getStages()
+            if totalStages == 0 then totalStages = 1 end -- Default for display if empty
+            
             love.graphics.setColor(0.8, 0.8, 1)
-            love.graphics.printf("XP: " .. data.xp, 0, infoY, screenWidth, "center")
-            love.graphics.printf("Ships Unlocked: " .. #data.unlockedShips, 0, infoY + 25, screenWidth, "center")
-            love.graphics.printf("Weapons Unlocked: " .. #data.unlockedWeapons, 0, infoY + 50, screenWidth, "center")
-            love.graphics.printf("Stages Completed: " .. #data.completedStages, 0, infoY + 75, screenWidth, "center")
+            love.graphics.printf("Total Runs: " .. (stats.totalRuns or 0), 0, infoY, screenWidth, "center")
+            love.graphics.printf("Total Playtime: " .. string.format("%d hours %d minutes", hours, mins), 0, infoY + 25, screenWidth, "center")
+            love.graphics.printf("Total Kills: " .. (stats.totalKills or 0), 0, infoY + 50, screenWidth, "center")
+            love.graphics.printf("Bosses Defeated: " .. (stats.bossesDefeated or 0), 0, infoY + 75, screenWidth, "center")
+            love.graphics.printf("Highest Level Reached: " .. (stats.highestLevel or 0), 0, infoY + 100, screenWidth, "center")
+            love.graphics.printf("Unlocked Ships: " .. #data.unlockedShips .. "/" .. totalShips, 0, infoY + 125, screenWidth, "center")
+            love.graphics.printf("Completed Stages: " .. #data.completedStages .. "/" .. totalStages, 0, infoY + 150, screenWidth, "center")
         else
             love.graphics.setColor(0.6, 0.6, 0.6)
             love.graphics.printf("Create New Save", 0, infoY, screenWidth, "center")

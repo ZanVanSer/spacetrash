@@ -9,8 +9,9 @@ local savemanager = require "systems/savemanager"
 local state = {}
 
 function state:enter(saveSlot, saveData)
-    self.currentSaveSlot = saveSlot
-    self.currentSaveData = saveData
+    -- Use parameters if provided, otherwise fall back to global state (important for Restarts)
+    self.currentSaveSlot = saveSlot or _G.currentSaveSlot
+    self.currentSaveData = saveData or _G.currentSaveData
     
     local shipData = dl.getShips()[1]
     self.player = Player.new(shipData)
@@ -55,15 +56,26 @@ function state:saveProgress(isTerminal)
     if not (self.currentSaveSlot and self.currentSaveData) then return end
     
     if isTerminal then
-        local stats = self.currentSaveData.statistics
-        if stats then
-            stats.totalKills = (stats.totalKills or 0) + self.runStatistics.kills
-            stats.totalDamageDealt = (stats.totalDamageDealt or 0) + self.runStatistics.damageDealt
-            stats.totalPlayTime = (stats.totalPlayTime or 0) + self.runStatistics.runTime
-            stats.totalRuns = (stats.totalRuns or 0) + 1
-            stats.bossesDefeated = (stats.bossesDefeated or 0) + self.runStatistics.bossesDefeated
-            stats.highestLevel = math.max(stats.highestLevel or 0, self.runStatistics.highestLevel)
+        -- Ensure statistics table exists (for backward compatibility/robustness)
+        if not self.currentSaveData.statistics then
+            self.currentSaveData.statistics = {
+                totalPlayTime = 0,
+                totalRuns = 0,
+                totalKills = 0,
+                bossesDefeated = 0,
+                totalDamageDealt = 0,
+                highestLevel = 0
+            }
         end
+
+        local stats = self.currentSaveData.statistics
+        stats.totalKills = (stats.totalKills or 0) + self.runStatistics.kills
+        stats.totalDamageDealt = (stats.totalDamageDealt or 0) + self.runStatistics.damageDealt
+        stats.totalPlayTime = (stats.totalPlayTime or 0) + self.runStatistics.runTime
+        stats.totalRuns = (stats.totalRuns or 0) + 1
+        stats.bossesDefeated = (stats.bossesDefeated or 0) + self.runStatistics.bossesDefeated
+        stats.highestLevel = math.max(stats.highestLevel or 0, self.runStatistics.highestLevel)
+        
         savemanager.createSave(self.currentSaveSlot, self.currentSaveData)
     end
 end
@@ -89,7 +101,7 @@ function state:update(dt)
     end
 
     -- Trigger boss spawn
-    if self.gameTime >= 180 and not self.bossSpawned then
+    if self.gameTime >= 15 and not self.bossSpawned then
         local bossData = dl.getBosses()[1]
         self.boss = Boss.new(love.graphics.getWidth() / 2, 80, bossData)
         self.bossSpawned = true
