@@ -37,7 +37,7 @@ function state:enter(saveSlot, saveData)
         bossesDefeated = 0
     }
 
-    self.background = Background.new("space_basic")
+    self.background = Background.new("space_complete")
 end
 
 local function checkCircleCollision(x1, y1, r1, x2, y2, r2)

@@ -35,5 +35,42 @@
         "zIndex": 4
       }
     ]
+  },
+  {
+    "id": "space_complete",
+    "name": "Complete Space Test",
+    "layers": [
+      {
+        "type": "fill",
+        "color": [0.05, 0.05, 0.15],
+        "zIndex": 0
+      },
+      {
+        "type": "stars",
+        "count": 150,
+        "speed": 0.15,
+        "zIndex": 1
+      },
+      {
+        "type": "stars",
+        "count": 80,
+        "speed": 0.4,
+        "zIndex": 2
+      },
+      {
+        "type": "stars",
+        "count": 40,
+        "speed": 0.8,
+        "zIndex": 3
+      },
+      {
+        "type": "prop",
+        "spawnCount": 3,
+        "speed": 0.5,
+        "spawnArea": "full",
+        "zIndex": 4,
+        "color": [0.3, 0.3, 0.5]
+      }
+    ]
   }
 ]
