@@ -26,6 +26,15 @@ function state:enter(saveSlot, saveData)
     self.isPausedByPlayer = false
     self.pauseMenu = nil
     self.enemiesKilled = 0
+    
+    -- Run statistics
+    self.runStatistics = {
+        kills = 0,
+        damageDealt = 0,
+        runTime = 0,
+        highestLevel = 1,
+        bossesDefeated = 0
+    }
 
     -- Stars initialization
     self.stars = {}
@@ -68,6 +77,12 @@ function state:update(dt)
     self.gameTime = self.gameTime + dt
     self.saveTimer = self.saveTimer + dt
     
+    -- Track run statistics
+    self.runStatistics.runTime = self.runStatistics.runTime + dt
+    if self.player.level > self.runStatistics.highestLevel then
+        self.runStatistics.highestLevel = self.player.level
+    end
+    
     -- Auto-save every 30 seconds
     if self.saveTimer >= 30 then
         self:saveProgress()
@@ -91,6 +106,8 @@ function state:update(dt)
         if self.boss.isDead then
             self.isVictory = true
             self.enemiesKilled = self.enemiesKilled + 1
+            self.runStatistics.kills = self.runStatistics.kills + 1
+            self.runStatistics.bossesDefeated = self.runStatistics.bossesDefeated + 1
             self.victoryStats = {
                 timeSurvived = self.gameTime,
                 level = self.player.level,
@@ -108,13 +125,16 @@ function state:update(dt)
         for _, e in ipairs(enemies) do
             if not b.isDead and not e.isDead then
                 if checkCircleCollision(b.x, b.y, 4, e.x, e.y, e.radius) then
-                    e:takeDamage(b.weaponData.damage)
+                    local damage = b.weaponData.damage
+                    e:takeDamage(damage)
+                    self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
                     b.isDead = true
                     
                     if e.isDead and not e.xpGiven then
                         self.player:addXP(e.xpValue)
                         e.xpGiven = true
                         self.enemiesKilled = self.enemiesKilled + 1
+                        self.runStatistics.kills = self.runStatistics.kills + 1
                     end
                 end
             end
@@ -123,7 +143,9 @@ function state:update(dt)
         -- Bullet-Boss Collisions
         if self.boss and not self.boss.isDead and not b.isDead then
             if checkCircleCollision(b.x, b.y, 4, self.boss.x, self.boss.y, self.boss.radius) then
-                self.boss:takeDamage(b.weaponData.damage)
+                local damage = b.weaponData.damage
+                self.boss:takeDamage(damage)
+                self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
                 b.isDead = true
             end
         end
