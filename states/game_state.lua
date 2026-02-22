@@ -5,9 +5,14 @@ local UpgradeMenu = require "ui/upgrade_menu"
 local Boss = require "entities/boss"
 local Menu = require "ui/menu"
 local sm = require "states/statemanager"
+local savemanager = require "systems/savemanager"
 local state = {}
 
-function state:enter()
+function state:enter(saveSlot, saveData)
+    -- Use parameters if provided, otherwise fall back to global state (important for Restarts)
+    self.currentSaveSlot = saveSlot or _G.currentSaveSlot
+    self.currentSaveData = saveData or _G.currentSaveData
+    
     local shipData = dl.getShips()[1]
     self.player = Player.new(shipData)
     self.enemySpawner = Spawner.new()
@@ -21,6 +26,15 @@ function state:enter()
     self.isPausedByPlayer = false
     self.pauseMenu = nil
     self.enemiesKilled = 0
+    
+    -- Run statistics
+    self.runStatistics = {
+        kills = 0,
+        damageDealt = 0,
+        runTime = 0,
+        highestLevel = 1,
+        bossesDefeated = 0
+    }
 
     -- Stars initialization
     self.stars = {}
@@ -38,6 +52,34 @@ local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
     return distSq <= (r1 + r2)^2
 end
 
+function state:saveProgress(isTerminal)
+    if not (self.currentSaveSlot and self.currentSaveData) then return end
+    
+    if isTerminal then
+        -- Ensure statistics table exists (for backward compatibility/robustness)
+        if not self.currentSaveData.statistics then
+            self.currentSaveData.statistics = {
+                totalPlayTime = 0,
+                totalRuns = 0,
+                totalKills = 0,
+                bossesDefeated = 0,
+                totalDamageDealt = 0,
+                highestLevel = 0
+            }
+        end
+
+        local stats = self.currentSaveData.statistics
+        stats.totalKills = (stats.totalKills or 0) + self.runStatistics.kills
+        stats.totalDamageDealt = (stats.totalDamageDealt or 0) + self.runStatistics.damageDealt
+        stats.totalPlayTime = (stats.totalPlayTime or 0) + self.runStatistics.runTime
+        stats.totalRuns = (stats.totalRuns or 0) + 1
+        stats.bossesDefeated = (stats.bossesDefeated or 0) + self.runStatistics.bossesDefeated
+        stats.highestLevel = math.max(stats.highestLevel or 0, self.runStatistics.highestLevel)
+        
+        savemanager.createSave(self.currentSaveSlot, self.currentSaveData)
+    end
+end
+
 function state:update(dt)
     -- Always update stars, even when paused
     for _, s in ipairs(self.stars) do
@@ -51,8 +93,15 @@ function state:update(dt)
     if self.isPaused or self.isPausedByPlayer or self.isVictory then return end
 
     self.gameTime = self.gameTime + dt
+    
+    -- Track run statistics
+    self.runStatistics.runTime = self.runStatistics.runTime + dt
+    if self.player.level > self.runStatistics.highestLevel then
+        self.runStatistics.highestLevel = self.player.level
+    end
+
     -- Trigger boss spawn
-    if self.gameTime >= 180 and not self.bossSpawned then
+    if self.gameTime >= 15 and not self.bossSpawned then
         local bossData = dl.getBosses()[1]
         self.boss = Boss.new(love.graphics.getWidth() / 2, 80, bossData)
         self.bossSpawned = true
@@ -68,11 +117,14 @@ function state:update(dt)
         if self.boss.isDead then
             self.isVictory = true
             self.enemiesKilled = self.enemiesKilled + 1
+            self.runStatistics.kills = self.runStatistics.kills + 1
+            self.runStatistics.bossesDefeated = self.runStatistics.bossesDefeated + 1
             self.victoryStats = {
                 timeSurvived = self.gameTime,
                 level = self.player.level,
                 enemiesKilled = self.enemiesKilled
             }
+            self:saveProgress(true)
         end
     end
 
@@ -84,13 +136,16 @@ function state:update(dt)
         for _, e in ipairs(enemies) do
             if not b.isDead and not e.isDead then
                 if checkCircleCollision(b.x, b.y, 4, e.x, e.y, e.radius) then
-                    e:takeDamage(b.weaponData.damage)
+                    local damage = b.weaponData.damage
+                    e:takeDamage(damage)
+                    self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
                     b.isDead = true
                     
                     if e.isDead and not e.xpGiven then
                         self.player:addXP(e.xpValue)
                         e.xpGiven = true
                         self.enemiesKilled = self.enemiesKilled + 1
+                        self.runStatistics.kills = self.runStatistics.kills + 1
                     end
                 end
             end
@@ -99,7 +154,9 @@ function state:update(dt)
         -- Bullet-Boss Collisions
         if self.boss and not self.boss.isDead and not b.isDead then
             if checkCircleCollision(b.x, b.y, 4, self.boss.x, self.boss.y, self.boss.radius) then
-                self.boss:takeDamage(b.weaponData.damage)
+                local damage = b.weaponData.damage
+                self.boss:takeDamage(damage)
+                self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
                 b.isDead = true
             end
         end
@@ -135,6 +192,7 @@ function state:update(dt)
             level = self.player.level,
             enemiesKilled = self.enemiesKilled
         }
+        self:saveProgress(true)
         sm.switch("gameover", stats)
         return
     end
