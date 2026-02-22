@@ -9,16 +9,23 @@
         "zIndex": 0
       },
       {
+        "type": "image",
+        "imagePath": "backgrounds/space/nebula.png",
+        "speed": 0.1,
+        "repeat": true,
+        "zIndex": 1
+      },
+      {
         "type": "stars",
         "count": 100,
         "speed": 0.2,
-        "zIndex": 1
+        "zIndex": 2
       },
       {
         "type": "stars",
         "count": 50,
         "speed": 0.5,
-        "zIndex": 2
+        "zIndex": 3
       }
     ]
   }

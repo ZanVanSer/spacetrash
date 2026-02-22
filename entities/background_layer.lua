@@ -25,7 +25,13 @@ function BackgroundLayer.new(layerData)
             })
         end
     elseif self.type == "image" then
-        -- Handle later
+        self.imagePath = layerData.imagePath
+        self.repeatFlag = layerData["repeat"] or false
+        if self.imagePath and love.filesystem.getInfo(self.imagePath) then
+            self.image = love.graphics.newImage(self.imagePath)
+            self.imgWidth = self.image:getWidth()
+            self.imgHeight = self.image:getHeight()
+        end
     elseif self.type == "prop" then
         -- Handle later
     end
@@ -42,10 +48,18 @@ function BackgroundLayer:update(dt)
                 star.x = math.random(0, self.width)
             end
         end
-    elseif self.scrollDirection == "down" then
-        self.yOffset = self.yOffset + self.speed * 100 * dt
-        if self.yOffset >= self.height then
-            self.yOffset = self.yOffset - self.height
+    else
+        if self.scrollDirection == "down" then
+            self.yOffset = self.yOffset + self.speed * 100 * dt
+            
+            local wrapHeight = self.height
+            if self.type == "image" and self.imgHeight then
+                wrapHeight = self.imgHeight
+            end
+            
+            if self.yOffset >= wrapHeight then
+                self.yOffset = self.yOffset - wrapHeight
+            end
         end
     end
 end
@@ -60,7 +74,18 @@ function BackgroundLayer:draw()
             love.graphics.circle("fill", star.x, star.y, star.size)
         end
     elseif self.type == "image" then
-        -- Placeholder for image drawing
+        if self.image then
+            love.graphics.setColor(1, 1, 1)
+            if self.repeatFlag then
+                local y = self.yOffset - self.imgHeight
+                while y < self.height do
+                    love.graphics.draw(self.image, 0, y)
+                    y = y + self.imgHeight
+                end
+            else
+                love.graphics.draw(self.image, 0, self.yOffset)
+            end
+        end
     elseif self.type == "prop" then
         -- Placeholder for prop drawing
     end
