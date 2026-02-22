@@ -11,7 +11,6 @@ local state = {}
 function state:enter(saveSlot, saveData)
     self.currentSaveSlot = saveSlot
     self.currentSaveData = saveData
-    self.saveTimer = 0
     
     local shipData = dl.getShips()[1]
     self.player = Player.new(shipData)
@@ -52,12 +51,19 @@ local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
     return distSq <= (r1 + r2)^2
 end
 
-function state:saveProgress()
-    if self.currentSaveSlot and self.currentSaveData then
-        self.currentSaveData.level = self.player.level
-        self.currentSaveData.xp = self.player.xp
-        self.currentSaveData.totalPlayTime = (self.currentSaveData.totalPlayTime or 0) + self.gameTime
-        
+function state:saveProgress(isTerminal)
+    if not (self.currentSaveSlot and self.currentSaveData) then return end
+    
+    if isTerminal then
+        local stats = self.currentSaveData.statistics
+        if stats then
+            stats.totalKills = (stats.totalKills or 0) + self.runStatistics.kills
+            stats.totalDamageDealt = (stats.totalDamageDealt or 0) + self.runStatistics.damageDealt
+            stats.totalPlayTime = (stats.totalPlayTime or 0) + self.runStatistics.runTime
+            stats.totalRuns = (stats.totalRuns or 0) + 1
+            stats.bossesDefeated = (stats.bossesDefeated or 0) + self.runStatistics.bossesDefeated
+            stats.highestLevel = math.max(stats.highestLevel or 0, self.runStatistics.highestLevel)
+        end
         savemanager.createSave(self.currentSaveSlot, self.currentSaveData)
     end
 end
@@ -75,18 +81,11 @@ function state:update(dt)
     if self.isPaused or self.isPausedByPlayer or self.isVictory then return end
 
     self.gameTime = self.gameTime + dt
-    self.saveTimer = self.saveTimer + dt
     
     -- Track run statistics
     self.runStatistics.runTime = self.runStatistics.runTime + dt
     if self.player.level > self.runStatistics.highestLevel then
         self.runStatistics.highestLevel = self.player.level
-    end
-    
-    -- Auto-save every 30 seconds
-    if self.saveTimer >= 30 then
-        self:saveProgress()
-        self.saveTimer = 0
     end
 
     -- Trigger boss spawn
@@ -113,7 +112,7 @@ function state:update(dt)
                 level = self.player.level,
                 enemiesKilled = self.enemiesKilled
             }
-            self:saveProgress()
+            self:saveProgress(true)
         end
     end
 
@@ -181,6 +180,7 @@ function state:update(dt)
             level = self.player.level,
             enemiesKilled = self.enemiesKilled
         }
+        self:saveProgress(true)
         sm.switch("gameover", stats)
         return
     end
