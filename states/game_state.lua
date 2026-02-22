@@ -5,9 +5,14 @@ local UpgradeMenu = require "ui/upgrade_menu"
 local Boss = require "entities/boss"
 local Menu = require "ui/menu"
 local sm = require "states/statemanager"
+local savemanager = require "systems/savemanager"
 local state = {}
 
-function state:enter()
+function state:enter(saveSlot, saveData)
+    self.currentSaveSlot = saveSlot
+    self.currentSaveData = saveData
+    self.saveTimer = 0
+    
     local shipData = dl.getShips()[1]
     self.player = Player.new(shipData)
     self.enemySpawner = Spawner.new()
@@ -38,6 +43,16 @@ local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
     return distSq <= (r1 + r2)^2
 end
 
+function state:saveProgress()
+    if self.currentSaveSlot and self.currentSaveData then
+        self.currentSaveData.level = self.player.level
+        self.currentSaveData.xp = self.player.xp
+        self.currentSaveData.totalPlayTime = (self.currentSaveData.totalPlayTime or 0) + self.gameTime
+        
+        savemanager.createSave(self.currentSaveSlot, self.currentSaveData)
+    end
+end
+
 function state:update(dt)
     -- Always update stars, even when paused
     for _, s in ipairs(self.stars) do
@@ -51,6 +66,14 @@ function state:update(dt)
     if self.isPaused or self.isPausedByPlayer or self.isVictory then return end
 
     self.gameTime = self.gameTime + dt
+    self.saveTimer = self.saveTimer + dt
+    
+    -- Auto-save every 30 seconds
+    if self.saveTimer >= 30 then
+        self:saveProgress()
+        self.saveTimer = 0
+    end
+
     -- Trigger boss spawn
     if self.gameTime >= 180 and not self.bossSpawned then
         local bossData = dl.getBosses()[1]
@@ -73,6 +96,7 @@ function state:update(dt)
                 level = self.player.level,
                 enemiesKilled = self.enemiesKilled
             }
+            self:saveProgress()
         end
     end
 
