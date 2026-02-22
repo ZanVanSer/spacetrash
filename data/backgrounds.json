@@ -1,0 +1,25 @@
+[
+  {
+    "id": "space_basic",
+    "name": "Deep Space",
+    "layers": [
+      {
+        "type": "fill",
+        "color": [0.05, 0.05, 0.15],
+        "zIndex": 0
+      },
+      {
+        "type": "stars",
+        "count": 100,
+        "speed": 0.2,
+        "zIndex": 1
+      },
+      {
+        "type": "stars",
+        "count": 50,
+        "speed": 0.5,
+        "zIndex": 2
+      }
+    ]
+  }
+]
