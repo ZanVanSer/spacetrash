@@ -31,7 +31,7 @@ local function createGetter(name)
     end
 end
 
-local types = {"weapons", "ships", "enemies", "bosses", "stages", "upgrades"}
+local types = {"weapons", "ships", "enemies", "bosses", "stages", "upgrades", "backgrounds"}
 for _, t in ipairs(types) do createGetter(t) end
 
 return dl

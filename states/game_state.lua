@@ -6,6 +6,7 @@ local Boss = require "entities/boss"
 local Menu = require "ui/menu"
 local sm = require "states/statemanager"
 local savemanager = require "systems/savemanager"
+local Background = require "entities/background"
 local state = {}
 
 function state:enter(saveSlot, saveData)
@@ -36,15 +37,7 @@ function state:enter(saveSlot, saveData)
         bossesDefeated = 0
     }
 
-    -- Stars initialization
-    self.stars = {}
-    for i = 1, 100 do
-        table.insert(self.stars, {
-            x = math.random(0, love.graphics.getWidth()),
-            y = math.random(0, love.graphics.getHeight()),
-            speed = math.random(20, 50)
-        })
-    end
+    self.background = Background.new("space_complete")
 end
 
 local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
@@ -81,14 +74,8 @@ function state:saveProgress(isTerminal)
 end
 
 function state:update(dt)
-    -- Always update stars, even when paused
-    for _, s in ipairs(self.stars) do
-        s.y = s.y + s.speed * dt
-        if s.y > love.graphics.getHeight() then
-            s.y = 0
-            s.x = math.random(0, love.graphics.getWidth())
-        end
-    end
+    -- Always update background, even when paused
+    self.background:update(dt)
 
     if self.isPaused or self.isPausedByPlayer or self.isVictory then return end
 
@@ -101,7 +88,7 @@ function state:update(dt)
     end
 
     -- Trigger boss spawn
-    if self.gameTime >= 15 and not self.bossSpawned then
+    if self.gameTime >= 180 and not self.bossSpawned then
         local bossData = dl.getBosses()[1]
         self.boss = Boss.new(love.graphics.getWidth() / 2, 80, bossData)
         self.bossSpawned = true
@@ -267,12 +254,7 @@ function state:applyUpgrade(upgrade)
 end
 
 function state:draw()
-    -- Background and Stars
-    love.graphics.clear(0.02, 0.02, 0.05)
-    love.graphics.setColor(1, 1, 1, 0.5)
-    for _, s in ipairs(self.stars) do
-        love.graphics.circle("fill", s.x, s.y, 1)
-    end
+    self.background:draw()
 
     self.player:draw()
     self.enemySpawner:draw()
