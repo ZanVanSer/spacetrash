@@ -38,6 +38,22 @@ function BackgroundLayer.new(layerData)
             self.image = love.graphics.newImage(self.imagePath)
             self.imgWidth = self.image:getWidth()
             self.imgHeight = self.image:getHeight()
+        else
+            -- Generate procedural placeholder
+            self.imgWidth = 256
+            self.imgHeight = 256
+            local canvas = love.graphics.newCanvas(self.imgWidth, self.imgHeight)
+            love.graphics.setCanvas(canvas)
+            love.graphics.clear(0, 0, 0, 0)
+            
+            -- Simple nebula-like pattern
+            for i = 1, 10 do
+                love.graphics.setColor(math.random(), math.random(), math.random(), 0.2)
+                love.graphics.circle("fill", math.random(0, self.imgWidth), math.random(0, self.imgHeight), math.random(20, 80))
+            end
+            
+            love.graphics.setCanvas()
+            self.image = canvas
         end
     elseif self.type == "prop" then
         self.props = {}
@@ -79,7 +95,7 @@ function BackgroundLayer:update(dt)
             
             local wrapHeight = self.height
             if self.type == "image" and self.imgHeight then
-                wrapHeight = self.imgHeight
+                wrapHeight = self.imgHeight * self.scale
             end
             
             if self.yOffset >= wrapHeight then
@@ -107,20 +123,21 @@ function BackgroundLayer:draw()
         end
     elseif self.type == "image" then
         if self.image then
+            local scaledHeight = self.imgHeight * self.scale
             local baseY = 0
             if self.position == "top" then
                 baseY = 0
             elseif self.position == "bottom" then
-                baseY = self.height - (self.imgHeight * self.scale)
+                baseY = self.height - scaledHeight
             elseif self.position == "center" then
-                baseY = (self.height - (self.imgHeight * self.scale)) / 2
+                baseY = (self.height - scaledHeight) / 2
             end
             
             if self.repeatFlag then
-                local y = (self.yOffset % self.imgHeight) - self.imgHeight
+                local y = (self.yOffset % scaledHeight) - scaledHeight
                 while y < self.height do
                     love.graphics.draw(self.image, drawX, y + drawY, 0, self.scale, self.scale)
-                    y = y + (self.imgHeight * self.scale)
+                    y = y + scaledHeight
                 end
             else
                 love.graphics.draw(self.image, drawX, baseY + self.yOffset + drawY, 0, self.scale, self.scale)
