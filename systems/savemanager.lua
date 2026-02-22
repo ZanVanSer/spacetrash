@@ -29,12 +29,18 @@ end
 
 function SaveManager.getDefaultSave()
     return {
-        level = 1,
-        xp = 0,
         unlockedShips = {"vanguard"},
-        unlockedWeapons = {"basic_laser"},
+        unlockedWeapons = {"plasma_lance"},
+        unlockedPassives = {},
         completedStages = {},
-        totalPlayTime = 0
+        statistics = {
+            totalPlayTime = 0,
+            totalRuns = 0,
+            totalKills = 0,
+            bossesDefeated = 0,
+            totalDamageDealt = 0,
+            highestLevel = 0
+        }
     }
 end
 
