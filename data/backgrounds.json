@@ -26,6 +26,13 @@
         "count": 50,
         "speed": 0.5,
         "zIndex": 3
+      },
+      {
+        "type": "prop",
+        "spawnCount": 5,
+        "speed": 0.8,
+        "spawnArea": "ground",
+        "zIndex": 4
       }
     ]
   }

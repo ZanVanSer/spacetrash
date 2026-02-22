@@ -33,7 +33,17 @@ function BackgroundLayer.new(layerData)
             self.imgHeight = self.image:getHeight()
         end
     elseif self.type == "prop" then
-        -- Handle later
+        self.props = {}
+        self.spawnArea = layerData.spawnArea or "full"
+        local spawnCount = layerData.spawnCount or 5
+        for i = 1, spawnCount do
+            table.insert(self.props, {
+                x = math.random(0, self.width),
+                y = math.random(0, self.height),
+                speed = self.speed,
+                radius = math.random(10, 30)
+            })
+        end
     end
     
     return self
@@ -46,6 +56,14 @@ function BackgroundLayer:update(dt)
             if star.y > self.height then
                 star.y = -10
                 star.x = math.random(0, self.width)
+            end
+        end
+    elseif self.type == "prop" then
+        for _, prop in ipairs(self.props) do
+            prop.y = prop.y + prop.speed * 100 * dt
+            if prop.y > self.height then
+                prop.y = -50
+                prop.x = math.random(0, self.width)
             end
         end
     else
@@ -87,7 +105,17 @@ function BackgroundLayer:draw()
             end
         end
     elseif self.type == "prop" then
-        -- Placeholder for prop drawing
+        if self.spawnArea == "sky" then
+            love.graphics.setColor(0.4, 0.6, 1.0, 0.5)
+        elseif self.spawnArea == "ground" then
+            love.graphics.setColor(0.5, 0.3, 0.1, 0.5)
+        else
+            love.graphics.setColor(1, 1, 1, 0.3)
+        end
+        
+        for _, prop in ipairs(self.props) do
+            love.graphics.circle("fill", prop.x, prop.y, prop.radius)
+        end
     end
 end
 
