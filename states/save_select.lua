@@ -45,8 +45,8 @@ function state:keypressed(key)
         _G.currentSaveSlot = selection
         _G.currentSaveData = data
         
-        -- Note: ship_select state will be created in Phase 10
-        sm.switch("ship_select")
+        -- Switch directly to game state for now
+        sm.switch("game", selection, data)
     end
 end
 
