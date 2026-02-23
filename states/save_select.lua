@@ -48,8 +48,8 @@ function state:keypressed(key)
         _G.currentSaveSlot = selection
         _G.currentSaveData = data
         
-        -- Switch directly to game state for now
-        sm.switch("game", selection, data)
+        -- Switch to stage select
+        sm.switch("stage_select", data)
     end
 end
 
