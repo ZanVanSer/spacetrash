@@ -31,12 +31,12 @@ function state:draw()
     local titleFont = love.graphics.newFont(48)
     local oldFont = love.graphics.getFont()
     love.graphics.setFont(titleFont)
-    love.graphics.printf("SPACE SURVIVORS", 0, screenHeight * 0.2, screenWidth, "center")
+    love.graphics.printf("SPACE TRASH", 0, screenHeight * 0.2, screenWidth, "center")
     
     -- Subtitle
     local subtitleFont = love.graphics.newFont(24)
     love.graphics.setFont(subtitleFont)
-    love.graphics.printf("A Bullet Hell Roguelike", 0, screenHeight * 0.3, screenWidth, "center")
+    love.graphics.printf("A Bullet Hell Trash Roguelike", 0, screenHeight * 0.3, screenWidth, "center")
     
     -- Menu
     love.graphics.setFont(oldFont)

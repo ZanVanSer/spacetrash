@@ -34,4 +34,8 @@ end
 local types = {"weapons", "ships", "enemies", "bosses", "stages", "upgrades", "backgrounds"}
 for _, t in ipairs(types) do createGetter(t) end
 
+function dl.getStages()
+    return dl.loadJSON("stages")
+end
+
 return dl
