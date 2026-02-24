@@ -13,7 +13,7 @@
     "cooldown": 1.0,
     "area": 1.0,
     "amount": 0,
-    "startWeapon": "plasma_lance",
+    "startWeapon": "basic_laser",
     "unlockCondition": "default"
   },
   {
@@ -64,7 +64,7 @@
     "cooldown": 1.0,
     "area": 1.2,
     "amount": 2,
-    "startWeapon": "orbital_drones",
+    "startWeapon": "basic_laser",
     "unlockCondition": "default"
   },
   {

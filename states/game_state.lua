@@ -9,14 +9,13 @@ local savemanager = require "systems/savemanager"
 local Background = require "entities/background"
 local state = {}
 
-function state:enter(saveData, stageData, shipData, saveSlot)
+function state:enter(saveData, stageData, shipData)
     -- Use parameters if provided, otherwise fall back to global state (important for Restarts)
     self.currentSaveData = saveData or _G.currentSaveData
-    self.currentSaveSlot = saveSlot or _G.currentSaveSlot
+    self.currentSaveSlot = _G.currentSaveSlot
     self.stageData = stageData or {}
     
-    local shipToUse = shipData or dl.getShips()[1]
-    self.player = Player.new(shipToUse)
+    self.player = Player.new(shipData or dl.getShips()[1])
     
     self.isPaused = false
     self.upgradeMenu = nil
@@ -293,16 +292,22 @@ function state:applyUpgrade(upgrade)
     
     if effect.type == "stat_mult" then
         if effect.stat == "damage" then
-            p.damageMult = (p.damageMult or 1) * effect.value
+            p.might = p.might * effect.value
         elseif effect.stat == "fireRate" then
-            p.fireRateMult = (p.fireRateMult or 1) * effect.value
+            p.cooldown = p.cooldown * effect.value
         elseif effect.stat == "speed" then
             p.speed = p.speed * effect.value
+        elseif effect.stat == "area" then
+            p.area = p.area * effect.value
+        elseif effect.stat == "duration" then
+            p.duration = p.duration * effect.value
         end
     elseif effect.type == "stat_add" then
         if effect.stat == "maxHealth" then
             p.maxHp = p.maxHp + effect.value
             p.hp = p.hp + effect.value
+        elseif effect.stat == "amount" then
+            p.amount = p.amount + effect.value
         end
     end
 end

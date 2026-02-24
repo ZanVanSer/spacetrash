@@ -6,17 +6,26 @@ function Player.new(shipData)
     local self = setmetatable({}, Player)
     self.x = love.graphics.getWidth() / 2
     self.y = love.graphics.getHeight() - 50
-    self.hp = shipData.hp
-    self.maxHp = shipData.hp
-    self.speed = shipData.speed
+    
+    -- Ship Stats
+    self.maxHp = shipData.maxHealth or 100
+    self.hp = self.maxHp
+    self.recovery = shipData.recovery or 0
+    self.armor = shipData.armor or 0
+    self.speed = shipData.speed or 200
+    self.might = shipData.might or 1.0
+    self.duration = shipData.duration or 1.0
+    self.cooldown = shipData.cooldown or 1.0
+    self.area = shipData.area or 1.0
+    self.amount = shipData.amount or 0
+    
     self.radius = 15
     self.ws = WS.new()
     self.ws:equipWeapon(shipData.startWeapon)
+    
     self.xp = 0
     self.level = 1
     self.xpToNext = 10
-    self.damageMult = 1
-    self.fireRateMult = 1
     return self
 end
 
@@ -35,14 +44,25 @@ function Player:levelUp()
 end
 
 function Player:update(dt)
+    -- Movement
+    local moveX = 0
     if love.keyboard.isDown("left") then
-        self.x = self.x - self.speed * dt
+        moveX = -1
     elseif love.keyboard.isDown("right") then
-        self.x = self.x + self.speed * dt
+        moveX = 1
+    end
+    self.x = self.x + moveX * self.speed * dt
+    
+    -- Bounds
+    self.x = math.max(self.radius, math.min(love.graphics.getWidth() - self.radius, self.x))
+    
+    -- Recovery
+    if self.hp < self.maxHp then
+        self.hp = math.min(self.maxHp, self.hp + self.recovery * dt)
     end
     
-    self.x = math.max(self.radius, math.min(love.graphics.getWidth() - self.radius, self.x))
-    self.ws:update(dt, self.x, self.y, self.damageMult, self.fireRateMult)
+    -- Weapon System
+    self.ws:update(dt, self.x, self.y, self.might, self.cooldown, self.area, self.amount)
 end
 
 function Player:draw()
