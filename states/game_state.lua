@@ -9,14 +9,15 @@ local savemanager = require "systems/savemanager"
 local Background = require "entities/background"
 local state = {}
 
-function state:enter(saveSlot, saveData)
+function state:enter(saveData, stageData, shipData, saveSlot)
     -- Use parameters if provided, otherwise fall back to global state (important for Restarts)
-    self.currentSaveSlot = saveSlot or _G.currentSaveSlot
     self.currentSaveData = saveData or _G.currentSaveData
+    self.currentSaveSlot = saveSlot or _G.currentSaveSlot
+    self.stageData = stageData or {}
     
-    local shipData = dl.getShips()[1]
-    self.player = Player.new(shipData)
-    self.enemySpawner = Spawner.new()
+    local shipToUse = shipData or dl.getShips()[1]
+    self.player = Player.new(shipToUse)
+    
     self.isPaused = false
     self.upgradeMenu = nil
     self.gameTime = 0
@@ -28,6 +29,15 @@ function state:enter(saveSlot, saveData)
     self.pauseMenu = nil
     self.enemiesKilled = 0
     
+    -- Stage Configuration
+    self.background = Background.new(self.stageData.background or "space_complete")
+    self.bossSpawnTime = self.stageData.survivalTime or 180
+    self.stageEnemies = self.stageData.enemies or {}
+    self.enemySpawnInterval = self.stageData.enemySpawnRate or 2.0
+    self.stageBoss = self.stageData.boss
+    
+    self.enemySpawner = Spawner.new(self.stageEnemies, self.enemySpawnInterval)
+    
     -- Run statistics
     self.runStatistics = {
         kills = 0,
@@ -36,8 +46,6 @@ function state:enter(saveSlot, saveData)
         highestLevel = 1,
         bossesDefeated = 0
     }
-
-    self.background = Background.new("space_complete")
 end
 
 local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
@@ -46,10 +54,10 @@ local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
 end
 
 function state:saveProgress(isTerminal)
-    if not (self.currentSaveSlot and self.currentSaveData) then return end
+    if not self.currentSaveData then return end
     
     if isTerminal then
-        -- Ensure statistics table exists (for backward compatibility/robustness)
+        -- Ensure statistics table exists
         if not self.currentSaveData.statistics then
             self.currentSaveData.statistics = {
                 totalPlayTime = 0,
@@ -69,7 +77,11 @@ function state:saveProgress(isTerminal)
         stats.bossesDefeated = (stats.bossesDefeated or 0) + self.runStatistics.bossesDefeated
         stats.highestLevel = math.max(stats.highestLevel or 0, self.runStatistics.highestLevel)
         
-        savemanager.createSave(self.currentSaveSlot, self.currentSaveData)
+        -- Use the global currentSaveSlot if not explicitly stored
+        local slot = self.currentSaveSlot or _G.currentSaveSlot
+        if slot then
+            savemanager.createSave(slot, self.currentSaveData)
+        end
     end
 end
 
@@ -88,8 +100,9 @@ function state:update(dt)
     end
 
     -- Trigger boss spawn
-    if self.gameTime >= 180 and not self.bossSpawned then
-        local bossData = dl.getBosses()[1]
+    if self.gameTime >= self.bossSpawnTime and not self.bossSpawned then
+        local bossLookup = dl.createLookup(dl.getBosses(), "id")
+        local bossData = bossLookup[self.stageBoss] or dl.getBosses()[1]
         self.boss = Boss.new(love.graphics.getWidth() / 2, 80, bossData)
         self.bossSpawned = true
         self.enemySpawner:stop()
@@ -106,11 +119,49 @@ function state:update(dt)
             self.enemiesKilled = self.enemiesKilled + 1
             self.runStatistics.kills = self.runStatistics.kills + 1
             self.runStatistics.bossesDefeated = self.runStatistics.bossesDefeated + 1
+            
+            -- Apply Rewards
+            local rewards = self.stageData.rewards or {}
+            local unlockedItems = {}
+            
+            local function addToSet(list, item)
+                if not item then return false end
+                for _, v in ipairs(list) do
+                    if v == item then return false end
+                end
+                table.insert(list, item)
+                return true
+            end
+
+            -- Ensure tables exist
+            self.currentSaveData.completedStages = self.currentSaveData.completedStages or {}
+            self.currentSaveData.unlockedStages = self.currentSaveData.unlockedStages or {}
+            self.currentSaveData.unlockedShips = self.currentSaveData.unlockedShips or {}
+            self.currentSaveData.unlockedWeapons = self.currentSaveData.unlockedWeapons or {}
+
+            -- Unlock Ship
+            if rewards.unlockShip and addToSet(self.currentSaveData.unlockedShips, rewards.unlockShip) then
+                table.insert(unlockedItems, "NEW SHIP UNLOCKED!")
+            end
+            -- Unlock Weapon
+            if rewards.unlockWeapon and addToSet(self.currentSaveData.unlockedWeapons, rewards.unlockWeapon) then
+                table.insert(unlockedItems, "NEW WEAPON UNLOCKED!")
+            end
+            -- Unlock Stage (Explicit Reward)
+            if rewards.unlockStage then
+                addToSet(self.currentSaveData.unlockedStages, rewards.unlockStage)
+            end
+            -- Mark Current Stage Completed
+            addToSet(self.currentSaveData.completedStages, self.stageData.id)
+
             self.victoryStats = {
                 timeSurvived = self.gameTime,
                 level = self.player.level,
-                enemiesKilled = self.enemiesKilled
+                enemiesKilled = self.enemiesKilled,
+                notifications = unlockedItems
             }
+            
+            self.victoryMenu = Menu.new({"Retry", "Stage Select", "Main Menu"})
             self:saveProgress(true)
         end
     end
@@ -180,7 +231,7 @@ function state:update(dt)
             enemiesKilled = self.enemiesKilled
         }
         self:saveProgress(true)
-        sm.switch("gameover", stats)
+        sm.switch("gameover", stats, self.currentSaveData)
         return
     end
 
@@ -191,10 +242,13 @@ function state:update(dt)
 end
 
 function state:keypressed(key)
-    if self.isVictory then
-        if key == "r" then
+    if self.isVictory and self.victoryMenu then
+        local selection = self.victoryMenu:keypressed(key)
+        if selection == 1 then -- Retry
             sm.switch("game")
-        elseif key == "m" then
+        elseif selection == 2 then -- Stage Select
+            sm.switch("stage_select", self.currentSaveData)
+        elseif selection == 3 then -- Main Menu
             sm.switch("main_menu")
         end
         return
@@ -328,17 +382,31 @@ function state:draw()
         
         love.graphics.setFont(oldFont)
         love.graphics.setColor(1, 1, 1)
+        local statsY = love.graphics.getHeight() * 0.4
         if self.victoryStats then
-            local statsY = love.graphics.getHeight() * 0.4
             local mins = math.floor(self.victoryStats.timeSurvived / 60)
             local secs = math.floor(self.victoryStats.timeSurvived % 60)
             love.graphics.printf(string.format("Time: %02d:%02d", mins, secs), 0, statsY, love.graphics.getWidth(), "center")
             love.graphics.printf("Level: " .. self.victoryStats.level, 0, statsY + 30, love.graphics.getWidth(), "center")
             love.graphics.printf("Enemies Killed: " .. self.victoryStats.enemiesKilled, 0, statsY + 60, love.graphics.getWidth(), "center")
+            
+            -- Draw Notifications (Rewards)
+            if self.victoryStats.notifications and #self.victoryStats.notifications > 0 then
+                love.graphics.setColor(0.4, 1, 0.4)
+                local notifyY = statsY + 110
+                for _, msg in ipairs(self.victoryStats.notifications) do
+                    love.graphics.printf(msg, 0, notifyY, love.graphics.getWidth(), "center")
+                    notifyY = notifyY + 30
+                end
+            end
+        end
+        
+        if self.victoryMenu then
+            self.victoryMenu:draw(love.graphics.getWidth() / 2, love.graphics.getHeight() * 0.65)
         end
         
         love.graphics.setColor(0.8, 0.8, 0.8)
-        love.graphics.printf("Press R to Restart | Press M for Main Menu", 0, love.graphics.getHeight() * 0.7, love.graphics.getWidth(), "center")
+        love.graphics.printf("Arrows Keys: Move | Z: Select", 0, love.graphics.getHeight() - 50, love.graphics.getWidth(), "center")
     end
 
     if self.isPausedByPlayer and self.pauseMenu then

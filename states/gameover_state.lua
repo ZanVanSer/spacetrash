@@ -2,9 +2,10 @@ local sm = require "states/statemanager"
 local Menu = require "ui/menu"
 local state = {}
 
-function state:enter(stats)
+function state:enter(stats, saveData)
     self.stats = stats or { timeSurvived = 0, level = 1, enemiesKilled = 0 }
-    self.menu = Menu.new({"Retry", "Main Menu"})
+    self.saveData = saveData
+    self.menu = Menu.new({"Retry", "Stage Select", "Main Menu"})
 end
 
 function state:keypressed(key)
@@ -12,6 +13,8 @@ function state:keypressed(key)
     if selection == 1 then
         sm.switch("game")
     elseif selection == 2 then
+        sm.switch("stage_select", self.saveData)
+    elseif selection == 3 then
         sm.switch("main_menu")
     end
 end

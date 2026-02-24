@@ -32,6 +32,7 @@ function SaveManager.getDefaultSave()
         unlockedShips = {"vanguard"},
         unlockedWeapons = {"plasma_lance"},
         unlockedPassives = {},
+        unlockedStages = {},
         completedStages = {},
         statistics = {
             totalPlayTime = 0,

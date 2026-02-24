@@ -5,12 +5,12 @@
     "description": "Survive the asteroid field and defeat the guardian",
     "difficulty": 1,
     
-    "enemies": ["drone"],
+    "enemies": ["basic_drone"],
     "enemySpawnRate": 2.0,
     "maxEnemiesOnScreen": 10,
     
     "boss": "asteroid_boss",
-    "survivalTime": 180,
+    "survivalTime": 15,
     
     "background": "space_complete",
     "music": "battle_theme_1",
@@ -22,6 +22,56 @@
     },
     
     "unlockCondition": "default",
+    "thumbnail": "stage1_thumb.png",
+    "completed": false
+  },{
+    "id": "stage_2",
+    "name": "Asteroid Belt 2",
+    "description": "survive again",
+    "difficulty": 2,
+    
+    "enemies": ["basic_drone"],
+    "enemySpawnRate": 5.0,
+    "maxEnemiesOnScreen": 15,
+    
+    "boss": "asteroid_boss",
+    "survivalTime": 15,
+    
+    "background": "space_complete",
+    "music": "battle_theme_1",
+    
+    "rewards": {
+      "unlockShip": null,
+      "unlockWeapon": null,
+      "unlockStage": "stage_4"
+    },
+    
+    "unlockCondition": "stage_1",
+    "thumbnail": "stage1_thumb.png",
+    "completed": false
+  },{
+    "id": "stage_3",
+    "name": "Asteroid Belt 3",
+    "description": "lock test",
+    "difficulty": 1,
+    
+    "enemies": ["basic_drone"],
+    "enemySpawnRate": 2.0,
+    "maxEnemiesOnScreen": 10,
+    
+    "boss": "asteroid_boss",
+    "survivalTime": 10,
+    
+    "background": "space_complete",
+    "music": "battle_theme_1",
+    
+    "rewards": {
+      "unlockShip": null,
+      "unlockWeapon": null,
+      "unlockStage": "stage_5"
+    },
+    
+    "unlockCondition": "stage_4",
     "thumbnail": "stage1_thumb.png",
     "completed": false
   }
