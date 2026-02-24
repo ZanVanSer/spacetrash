@@ -30,6 +30,20 @@ function state:enter(saveData, stageData)
     self.stageData = stageData
     self.allShips = dataloader.getShips()
     self.selectedIndex = 1
+    
+    -- Animation State
+    self.animTimer = 0
+    self.transitionTimer = 0
+    self.transitionDuration = 0.25
+    self.lastSelectedIndex = 1
+    self.slideDir = 0
+end
+
+function state:update(dt)
+    self.animTimer = self.animTimer + dt
+    if self.transitionTimer > 0 then
+        self.transitionTimer = math.max(0, self.transitionTimer - dt)
+    end
 end
 
 function state:keypressed(key)
@@ -40,16 +54,24 @@ function state:keypressed(key)
         return
     end
 
+    local oldIndex = self.selectedIndex
+
     if key == "left" then
+        self.lastSelectedIndex = self.selectedIndex
         self.selectedIndex = self.selectedIndex - 1
         if self.selectedIndex < 1 then
             self.selectedIndex = #self.allShips
         end
+        self.transitionTimer = self.transitionDuration
+        self.slideDir = -1
     elseif key == "right" then
+        self.lastSelectedIndex = self.selectedIndex
         self.selectedIndex = self.selectedIndex + 1
         if self.selectedIndex > #self.allShips then
             self.selectedIndex = 1
         end
+        self.transitionTimer = self.transitionDuration
+        self.slideDir = 1
     elseif key == "z" then
         local selectedShip = self.allShips[self.selectedIndex]
         if self:isShipUnlocked(selectedShip) then
@@ -74,7 +96,7 @@ end
 function state:draw()
     local screenWidth = love.graphics.getWidth()
     local screenHeight = love.graphics.getHeight()
-    local time = love.timer.getTime()
+    local time = self.animTimer
     
     love.graphics.clear(0.05, 0.05, 0.1)
     
@@ -106,55 +128,94 @@ function state:draw()
             love.graphics.print("->", leftCenterX + 60 + arrowPulse, leftCenterY - 60)
         end
         
-        -- Draw Ship Preview (3x Scale)
-        love.graphics.push()
-        love.graphics.translate(leftCenterX, leftCenterY - 40)
-        love.graphics.scale(3, 3)
-        
-        local function drawShipIcon(sid, isSilho)
-            if isSilho then
-                love.graphics.setColor(0.1, 0.1, 0.1, 0.7)
+        -- Helper to draw a ship icon with animations
+        local function drawShipIcon(sid, isSilho, x, y, scale, alpha, rotate)
+            love.graphics.push()
+            love.graphics.translate(x, y)
+            love.graphics.scale(scale, scale)
+            if rotate then
+                love.graphics.rotate(math.sin(time * 1.5) * 0.1)
             end
             
+            local r, g, b = 1, 1, 1
+            local baseAlpha = alpha or 1
+            
+            if isSilho then
+                r, g, b = 0.1, 0.1, 0.1
+                baseAlpha = baseAlpha * 0.7
+            end
+            
+            -- Pulse/Glow Effect
+            if not isSilho and alpha == 1 then
+                local glow = (math.sin(time * 4) + 1) / 2 * 0.2
+                love.graphics.setColor(1, 1, 1, glow)
+                love.graphics.circle("fill", 0, 0, 15)
+            end
+
             if sid == "vanguard" then
-                if not isSilho then love.graphics.setColor(1, 1, 1) end
+                love.graphics.setColor(r, g, b, baseAlpha)
                 love.graphics.polygon("fill", 0, -10, -8, 8, 8, 8)
             elseif sid == "interceptor" then
-                if not isSilho then love.graphics.setColor(1, 1, 0) end
+                if not isSilho then r, g, b = 1, 1, 0 end
+                love.graphics.setColor(r, g, b, baseAlpha)
                 love.graphics.polygon("fill", 0, -12, -5, 8, 5, 8)
             elseif sid == "fortress" then
-                if not isSilho then love.graphics.setColor(0.6, 0.6, 0.6) end
+                if not isSilho then r, g, b = 0.6, 0.6, 0.6 end
+                love.graphics.setColor(r, g, b, baseAlpha)
                 love.graphics.polygon("fill", 0, -10, 8, -4, 8, 4, 0, 10, -8, 4, -8, -4)
             elseif sid == "swarm_commander" then
-                if not isSilho then love.graphics.setColor(0, 1, 1) end
+                if not isSilho then r, g, b = 0, 1, 1 end
+                love.graphics.setColor(r, g, b, baseAlpha)
                 love.graphics.polygon("fill", 0, -10, -8, 8, 8, 8)
                 if not isSilho then
                     for i = 1, 4 do
                         local angle = time * 2 + (i * math.pi / 2)
                         local dx = math.cos(angle) * 15
                         local dy = math.sin(angle) * 15
+                        love.graphics.setColor(0, 1, 1, baseAlpha)
                         love.graphics.circle("fill", dx, dy, 2)
                     end
                 end
             elseif sid == "storm_caller" then
-                if not isSilho then love.graphics.setColor(0.7, 0.3, 1) end
+                if not isSilho then r, g, b = 0.7, 0.3, 1 end
+                love.graphics.setColor(r, g, b, baseAlpha)
                 love.graphics.polygon("fill", 0, -10, -8, 8, 8, 8)
                 if not isSilho then
                     love.graphics.setLineWidth(1)
                     for i = 1, 3 do
                         local angle = (time * 5 + i) % (math.pi * 2)
                         local dist = 12 + math.random() * 8
+                        love.graphics.setColor(0.8, 0.6, 1, baseAlpha)
                         love.graphics.line(0, 0, math.cos(angle) * dist, math.sin(angle) * dist)
                     end
                 end
             else
-                if not isSilho then love.graphics.setColor(0.5, 0.5, 0.5) end
+                love.graphics.setColor(0.5, 0.5, 0.5, baseAlpha)
                 love.graphics.polygon("fill", 0, -10, -8, 8, 8, 8)
             end
+            love.graphics.pop()
         end
-        
-        drawShipIcon(ship.id, not unlocked)
-        love.graphics.pop()
+
+        -- Handle Transitions
+        local bobY = math.sin(time * 2) * 10
+        if self.transitionTimer > 0 then
+            local t = 1 - (self.transitionTimer / self.transitionDuration)
+            -- Ease out quint
+            t = 1 - math.pow(1 - t, 5)
+            
+            local lastShip = self.allShips[self.lastSelectedIndex]
+            local lastUnlocked = self:isShipUnlocked(lastShip)
+            
+            -- Draw previous ship sliding out
+            local prevX = leftCenterX - t * 150 * self.slideDir
+            drawShipIcon(lastShip.id, not lastUnlocked, prevX, leftCenterY - 40 + bobY, 3, 1 - t, true)
+            
+            -- Draw current ship sliding in
+            local currX = leftCenterX + (1 - t) * 150 * self.slideDir
+            drawShipIcon(ship.id, not unlocked, currX, leftCenterY - 40 + bobY, 3, t, true)
+        else
+            drawShipIcon(ship.id, not unlocked, leftCenterX, leftCenterY - 40 + bobY, 3, 1, true)
+        end
         
         -- Locked Overlay
         if not unlocked then
@@ -200,11 +261,7 @@ function state:draw()
                 love.graphics.circle("line", x, bottomY, iconSize/2 + 5)
             end
             
-            love.graphics.push()
-            love.graphics.translate(x, bottomY)
-            love.graphics.scale(1.5, 1.5)
-            drawShipIcon(s.id, not isUnlocked)
-            love.graphics.pop()
+            drawShipIcon(s.id, not isUnlocked, x, bottomY, 1.5, 1, false)
             
             if not isUnlocked then
                 love.graphics.setFont(smallFont)
