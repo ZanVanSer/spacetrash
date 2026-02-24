@@ -1,5 +1,6 @@
 local dataloader = require "systems/dataloader"
 local stateManager = require "states/statemanager"
+local ShipVisuals = require "entities/ship_visuals"
 
 local state = {}
 
@@ -53,8 +54,6 @@ function state:keypressed(key)
         end
         return
     end
-
-    local oldIndex = self.selectedIndex
 
     if key == "left" then
         self.lastSelectedIndex = self.selectedIndex
@@ -128,97 +127,35 @@ function state:draw()
             love.graphics.print("->", leftCenterX + 60 + arrowPulse, leftCenterY - 60)
         end
         
-        -- Helper to draw a ship icon with animations
-        local function drawShipIcon(sid, isSilho, x, y, scale, alpha, rotate)
-            love.graphics.push()
-            love.graphics.translate(x, y)
-            love.graphics.scale(scale, scale)
-            if rotate then
-                love.graphics.rotate(math.sin(time * 1.5) * 0.1)
-            end
-            
-            local r, g, b = 1, 1, 1
-            local baseAlpha = alpha or 1
-            
-            if isSilho then
-                r, g, b = 0.1, 0.1, 0.1
-                baseAlpha = baseAlpha * 0.7
-            end
-            
-            -- Pulse/Glow Effect
-            if not isSilho and alpha == 1 then
-                local glow = (math.sin(time * 4) + 1) / 2 * 0.2
-                love.graphics.setColor(1, 1, 1, glow)
-                love.graphics.circle("fill", 0, 0, 15)
-            end
-
-            if sid == "vanguard" then
-                love.graphics.setColor(r, g, b, baseAlpha)
-                love.graphics.polygon("fill", 0, -10, -8, 8, 8, 8)
-            elseif sid == "interceptor" then
-                if not isSilho then r, g, b = 1, 1, 0 end
-                love.graphics.setColor(r, g, b, baseAlpha)
-                love.graphics.polygon("fill", 0, -12, -5, 8, 5, 8)
-            elseif sid == "fortress" then
-                if not isSilho then r, g, b = 0.6, 0.6, 0.6 end
-                love.graphics.setColor(r, g, b, baseAlpha)
-                love.graphics.polygon("fill", 0, -10, 8, -4, 8, 4, 0, 10, -8, 4, -8, -4)
-            elseif sid == "swarm_commander" then
-                if not isSilho then r, g, b = 0, 1, 1 end
-                love.graphics.setColor(r, g, b, baseAlpha)
-                love.graphics.polygon("fill", 0, -10, -8, 8, 8, 8)
-                if not isSilho then
-                    for i = 1, 4 do
-                        local angle = time * 2 + (i * math.pi / 2)
-                        local dx = math.cos(angle) * 15
-                        local dy = math.sin(angle) * 15
-                        love.graphics.setColor(0, 1, 1, baseAlpha)
-                        love.graphics.circle("fill", dx, dy, 2)
-                    end
-                end
-            elseif sid == "storm_caller" then
-                if not isSilho then r, g, b = 0.7, 0.3, 1 end
-                love.graphics.setColor(r, g, b, baseAlpha)
-                love.graphics.polygon("fill", 0, -10, -8, 8, 8, 8)
-                if not isSilho then
-                    love.graphics.setLineWidth(1)
-                    for i = 1, 3 do
-                        local angle = (time * 5 + i) % (math.pi * 2)
-                        local dist = 12 + math.random() * 8
-                        love.graphics.setColor(0.8, 0.6, 1, baseAlpha)
-                        love.graphics.line(0, 0, math.cos(angle) * dist, math.sin(angle) * dist)
-                    end
-                end
-            else
-                love.graphics.setColor(0.5, 0.5, 0.5, baseAlpha)
-                love.graphics.polygon("fill", 0, -10, -8, 8, 8, 8)
-            end
-            love.graphics.pop()
-        end
+        -- Animation values
+        local bobY = math.sin(time * 2) * 10
+        local rotation = math.sin(time * 1.5) * 0.1
 
         -- Handle Transitions
-        local bobY = math.sin(time * 2) * 10
         if self.transitionTimer > 0 then
             local t = 1 - (self.transitionTimer / self.transitionDuration)
             -- Ease out quint
             t = 1 - math.pow(1 - t, 5)
             
             local lastShip = self.allShips[self.lastSelectedIndex]
-            local lastUnlocked = self:isShipUnlocked(lastShip)
             
             -- Draw previous ship sliding out
             local prevX = leftCenterX - t * 150 * self.slideDir
-            drawShipIcon(lastShip.id, not lastUnlocked, prevX, leftCenterY - 40 + bobY, 3, 1 - t, true)
+            ShipVisuals.drawShip(lastShip.id, prevX, leftCenterY - 40 + bobY, 3.0, rotation)
             
             -- Draw current ship sliding in
             local currX = leftCenterX + (1 - t) * 150 * self.slideDir
-            drawShipIcon(ship.id, not unlocked, currX, leftCenterY - 40 + bobY, 3, t, true)
+            ShipVisuals.drawShip(ship.id, currX, leftCenterY - 40 + bobY, 3.0, rotation)
         else
-            drawShipIcon(ship.id, not unlocked, leftCenterX, leftCenterY - 40 + bobY, 3, 1, true)
+            ShipVisuals.drawShip(ship.id, leftCenterX, leftCenterY - 40 + bobY, 3.0, rotation)
         end
         
         -- Locked Overlay
         if not unlocked then
+            -- Simple dark overlay for locked ship
+            love.graphics.setColor(0, 0, 0, 0.4)
+            love.graphics.circle("fill", leftCenterX, leftCenterY - 40, 60)
+            
             love.graphics.setFont(boldFont)
             love.graphics.setColor(1, 0, 0, 0.8 + math.sin(time * 5) * 0.2)
             love.graphics.printf("LOCKED", 0, leftCenterY - 60, screenWidth * 0.45, "center")
@@ -261,9 +198,13 @@ function state:draw()
                 love.graphics.circle("line", x, bottomY, iconSize/2 + 5)
             end
             
-            drawShipIcon(s.id, not isUnlocked, x, bottomY, 1.5, 1, false)
+            ShipVisuals.drawShip(s.id, x, bottomY, 0.5, 0)
             
             if not isUnlocked then
+                -- Darken locked thumbnails
+                love.graphics.setColor(0, 0, 0, 0.6)
+                love.graphics.circle("fill", x, bottomY, iconSize/2)
+                
                 love.graphics.setFont(smallFont)
                 love.graphics.setColor(1, 1, 1, 0.5)
                 love.graphics.print("?", x - 4, bottomY - 7)

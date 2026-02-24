@@ -1,4 +1,6 @@
 local WS = require "systems/weapon_system"
+local ShipVisuals = require "entities/ship_visuals"
+
 local Player = {}
 Player.__index = Player
 
@@ -69,57 +71,10 @@ function Player:update(dt)
 end
 
 function Player:draw()
-    local r = self.radius
-    local time = love.timer.getTime()
+    -- Draw ship using visual system
+    ShipVisuals.drawShip(self.shipId, self.x, self.y, 1.0, 0)
     
-    if self.shipId == "vanguard" then
-        -- White triangle (balanced)
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.polygon("fill", self.x, self.y - r, self.x - r, self.y + r, self.x + r, self.y + r)
-    elseif self.shipId == "interceptor" then
-        -- Yellow narrow triangle (fast)
-        love.graphics.setColor(1, 1, 0)
-        love.graphics.polygon("fill", self.x, self.y - r * 1.2, self.x - r * 0.6, self.y + r * 0.8, self.x + r * 0.6, self.y + r * 0.8)
-    elseif self.shipId == "fortress" then
-        -- Gray wide hexagon (tanky)
-        love.graphics.setColor(0.6, 0.6, 0.6)
-        local w, h = r * 1.2, r * 0.8
-        love.graphics.polygon("fill", 
-            self.x, self.y - h, 
-            self.x + w, self.y - h/2, 
-            self.x + w, self.y + h/2, 
-            self.x, self.y + h, 
-            self.x - w, self.y + h/2, 
-            self.x - w, self.y - h/2
-        )
-    elseif self.shipId == "swarm_commander" then
-        -- Cyan triangle with small dots around it (drones)
-        love.graphics.setColor(0, 1, 1)
-        love.graphics.polygon("fill", self.x, self.y - r, self.x - r, self.y + r, self.x + r, self.y + r)
-        -- Mini drones
-        for i = 1, 3 do
-            local angle = time * 3 + (i * (math.pi * 2 / 3))
-            local dx = self.x + math.cos(angle) * 25
-            local dy = self.y + math.sin(angle) * 25
-            love.graphics.circle("fill", dx, dy, 2)
-        end
-    elseif self.shipId == "storm_caller" then
-        -- Purple triangle with lightning effect (AoE)
-        love.graphics.setColor(0.7, 0.3, 1)
-        love.graphics.polygon("fill", self.x, self.y - r, self.x - r, self.y + r, self.x + r, self.y + r)
-        -- Electric sparks
-        love.graphics.setLineWidth(1)
-        for i = 1, 2 do
-            local angle = (time * 10 + i) % (math.pi * 2)
-            local dist = 15 + math.random() * 10
-            love.graphics.line(self.x, self.y, self.x + math.cos(angle) * dist, self.y + math.sin(angle) * dist)
-        end
-    else
-        -- Default fallback
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.polygon("fill", self.x, self.y - r, self.x - r, self.y + r, self.x + r, self.y + r)
-    end
-    
+    -- Draw weapons
     self.ws:draw()
 end
 
