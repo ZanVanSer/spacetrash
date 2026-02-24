@@ -75,7 +75,7 @@ function state:keypressed(key)
         local selectedStage = self.stages[self.selectedIndex]
         if selectedStage and self:isUnlocked(selectedStage) then
             print("Selected Stage: " .. selectedStage.name)
-            sm.switch("game", self.saveData, selectedStage)
+            sm.switch("ship_select", self.saveData, selectedStage)
         end
         return
     elseif key == "x" then

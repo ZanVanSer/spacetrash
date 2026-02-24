@@ -18,22 +18,36 @@ function WS:equipWeapon(weaponId)
     self.shootTimers[weaponId] = 0
 end
 
-function WS:update(dt, playerX, playerY, damageMult, fireRateMult)
-    self.damageMult = damageMult or 1
-    self.fireRateMult = fireRateMult or 1
+function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus)
     if not self.lookup then self.lookup = dl.createLookup(dl.getWeapons(), "id") end
 
     for _, id in ipairs(self.equippedWeapons) do
         local wd = self.lookup[id]
         if wd then
             self.shootTimers[id] = self.shootTimers[id] + dt
-            if self.shootTimers[id] >= (wd.fireRate * self.fireRateMult) then
-                local bulletWeaponData = {
-                    damage = wd.damage * self.damageMult,
-                    bulletSpeed = wd.bulletSpeed,
-                    pattern = wd.pattern
-                }
-                table.insert(self.bullets, Bullet.new(playerX, playerY, bulletWeaponData))
+            
+            local finalFireRate = wd.fireRate * (cooldown or 1.0)
+            
+            if self.shootTimers[id] >= finalFireRate then
+                local weaponAmount = wd.amount or 1
+                local finalAmount = math.floor(weaponAmount * (1 + (amountBonus or 0)))
+                
+                for i = 1, finalAmount do
+                    local bulletWeaponData = {
+                        damage = wd.damage * (might or 1.0),
+                        bulletSpeed = wd.bulletSpeed,
+                        pattern = wd.pattern,
+                        area = (wd.area or 1.0) * (area or 1.0)
+                    }
+                    
+                    -- Simple horizontal spread for multiple bullets
+                    local xOffset = 0
+                    if finalAmount > 1 then
+                        xOffset = (i - (finalAmount + 1) / 2) * 15
+                    end
+                    
+                    table.insert(self.bullets, Bullet.new(playerX + xOffset, playerY, bulletWeaponData))
+                end
                 self.shootTimers[id] = 0
             end
         end
