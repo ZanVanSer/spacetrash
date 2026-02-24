@@ -30,7 +30,7 @@
     "cooldown": 1.1,
     "area": 0.9,
     "amount": 1,
-    "startWeapon": "railgun",
+    "startWeapon": "basic_laser",
     "unlockCondition": "stage_1"
   },
   {
@@ -47,7 +47,7 @@
     "cooldown": 0.9,
     "area": 1.1,
     "amount": 0,
-    "startWeapon": "photon_whip",
+    "startWeapon": "basic_laser",
     "unlockCondition": "default"
   },
   {
@@ -81,7 +81,7 @@
     "cooldown": 1.2,
     "area": 1.4,
     "amount": 0,
-    "startWeapon": "arc_conductor",
+    "startWeapon": "basic_laser",
     "unlockCondition": "default"
   }
 ]

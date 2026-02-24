@@ -55,6 +55,17 @@ function state:keypressed(key)
         if self:isShipUnlocked(selectedShip) then
             stateManager.switch('game', self.saveData, self.stageData, selectedShip)
         end
+    elseif key == "r" then
+        local unlockedShips = {}
+        for _, ship in ipairs(self.allShips) do
+            if self:isShipUnlocked(ship) then
+                table.insert(unlockedShips, ship)
+            end
+        end
+        if #unlockedShips > 0 then
+            local randomShip = unlockedShips[love.math.random(#unlockedShips)]
+            stateManager.switch('game', self.saveData, self.stageData, randomShip)
+        end
     elseif key == "x" then
         stateManager.switch('stage_select', self.saveData)
     end
@@ -281,7 +292,7 @@ function state:draw()
     -- Controls hint
     love.graphics.setFont(mainFont)
     love.graphics.setColor(0.7, 0.7, 0.7)
-    love.graphics.printf("LEFT/RIGHT: Navigate | Z: Confirm | X: Back", 0, screenHeight - 50, screenWidth, "center")
+    love.graphics.printf("LEFT/RIGHT: Navigate | Z: Confirm | R: Random | X: Back", 0, screenHeight - 50, screenWidth, "center")
 end
 
 return state
