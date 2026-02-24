@@ -59,6 +59,7 @@ end
 function state:draw()
     local screenWidth = love.graphics.getWidth()
     local screenHeight = love.graphics.getHeight()
+    local time = love.timer.getTime()
     
     love.graphics.clear(0.05, 0.05, 0.1)
     
@@ -76,9 +77,120 @@ function state:draw()
         local ship = self.unlockedShips[self.selectedIndex]
         
         -- Left Side: Selection Display
+        local leftCenterX = screenWidth * 0.225
+        local leftCenterY = screenHeight * 0.45
+        
+        -- Navigation Arrows
+        local arrowPulse = math.sin(time * 8) * 5
+        love.graphics.setFont(titleFont)
+        
+        -- Left Arrow
+        if #self.unlockedShips > 1 then
+            love.graphics.setColor(1, 1, 1, 0.8 + math.sin(time * 10) * 0.2)
+            love.graphics.print("<-", leftCenterX - 110 - arrowPulse, leftCenterY - 60)
+            
+            -- Right Arrow
+            love.graphics.print("->", leftCenterX + 60 + arrowPulse, leftCenterY - 60)
+        end
+        
+        -- Draw Ship Preview (3x Scale)
+        love.graphics.push()
+        love.graphics.translate(leftCenterX, leftCenterY - 40)
+        love.graphics.scale(3, 3)
+        
+        local function drawShipIcon(sid, isSilho)
+            if isSilho then
+                love.graphics.setColor(0, 0, 0, 0.5)
+            end
+            
+            if sid == "vanguard" then
+                if not isSilho then love.graphics.setColor(1, 1, 1) end
+                love.graphics.polygon("fill", 0, -10, -8, 8, 8, 8)
+            elseif sid == "interceptor" then
+                if not isSilho then love.graphics.setColor(1, 1, 0) end
+                love.graphics.polygon("fill", 0, -12, -5, 8, 5, 8)
+            elseif sid == "fortress" then
+                if not isSilho then love.graphics.setColor(0.6, 0.6, 0.6) end
+                love.graphics.polygon("fill", 0, -10, 8, -4, 8, 4, 0, 10, -8, 4, -8, -4)
+            elseif sid == "swarm_commander" then
+                if not isSilho then love.graphics.setColor(0, 1, 1) end
+                love.graphics.polygon("fill", 0, -10, -8, 8, 8, 8)
+                if not isSilho then
+                    for i = 1, 4 do
+                        local angle = time * 2 + (i * math.pi / 2)
+                        local dx = math.cos(angle) * 15
+                        local dy = math.sin(angle) * 15
+                        love.graphics.circle("fill", dx, dy, 2)
+                    end
+                end
+            elseif sid == "storm_caller" then
+                if not isSilho then love.graphics.setColor(0.7, 0.3, 1) end
+                love.graphics.polygon("fill", 0, -10, -8, 8, 8, 8)
+                if not isSilho then
+                    love.graphics.setLineWidth(1)
+                    for i = 1, 3 do
+                        local angle = (time * 5 + i) % (math.pi * 2)
+                        local dist = 12 + math.random() * 8
+                        love.graphics.line(0, 0, math.cos(angle) * dist, math.sin(angle) * dist)
+                    end
+                end
+            else
+                if not isSilho then love.graphics.setColor(0.5, 0.5, 0.5) end
+                love.graphics.polygon("fill", 0, -10, -8, 8, 8, 8)
+            end
+        end
+        
+        drawShipIcon(ship.id, false)
+        love.graphics.pop()
+        
+        -- Ship Name
         love.graphics.setFont(boldFont)
         love.graphics.setColor(1, 1, 1)
-        love.graphics.printf("< " .. ship.name .. " >", 0, screenHeight / 2 - 20, screenWidth * 0.45, "center")
+        love.graphics.printf(ship.name, 0, screenHeight * 0.45 + 50, screenWidth * 0.45, "center")
+        
+        -- Ship Counter
+        love.graphics.setFont(mainFont)
+        love.graphics.setColor(0.6, 0.6, 0.7)
+        love.graphics.printf(self.selectedIndex .. " / " .. #self.unlockedShips, 0, screenHeight * 0.45 + 85, screenWidth * 0.45, "center")
+        
+        -- Ship Row at Bottom
+        local allShips = dataloader.getShips()
+        local iconSize = 40
+        local spacing = 20
+        local totalWidth = (#allShips * iconSize) + ((#allShips - 1) * spacing)
+        local startX = (screenWidth * 0.45 - totalWidth) / 2
+        local bottomY = screenHeight - 120
+        
+        local unlockedMap = {}
+        if self.saveData and self.saveData.unlockedShips then
+            for _, id in ipairs(self.saveData.unlockedShips) do unlockedMap[id] = true end
+        end
+
+        for i, s in ipairs(allShips) do
+            local x = startX + (i - 1) * (iconSize + spacing) + iconSize/2
+            local isUnlocked = s.unlockCondition == "default" or unlockedMap[s.id]
+            local isSelected = s.id == ship.id
+            
+            if isSelected then
+                love.graphics.setColor(1, 1, 1, 0.2)
+                love.graphics.circle("fill", x, bottomY, iconSize/2 + 5)
+                love.graphics.setColor(1, 1, 1, 0.8)
+                love.graphics.setLineWidth(2)
+                love.graphics.circle("line", x, bottomY, iconSize/2 + 5)
+            end
+            
+            love.graphics.push()
+            love.graphics.translate(x, bottomY)
+            love.graphics.scale(1.5, 1.5)
+            drawShipIcon(s.id, not isUnlocked)
+            love.graphics.pop()
+            
+            if not isUnlocked then
+                love.graphics.setFont(smallFont)
+                love.graphics.setColor(1, 1, 1, 0.5)
+                love.graphics.print("?", x - 4, bottomY - 7)
+            end
+        end
         
         -- Right Side: Stats Panel
         local panelX = screenWidth * 0.45

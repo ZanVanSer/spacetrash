@@ -31,7 +31,7 @@
     "area": 0.9,
     "amount": 1,
     "startWeapon": "railgun",
-    "unlockCondition": "level_10"
+    "unlockCondition": "stage_1"
   },
   {
     "id": "fortress",
@@ -48,7 +48,7 @@
     "area": 1.1,
     "amount": 0,
     "startWeapon": "photon_whip",
-    "unlockCondition": "beat_stage_1"
+    "unlockCondition": "default"
   },
   {
     "id": "swarm_commander",
@@ -65,7 +65,7 @@
     "area": 1.2,
     "amount": 2,
     "startWeapon": "orbital_drones",
-    "unlockCondition": "beat_stage_2"
+    "unlockCondition": "default"
   },
   {
     "id": "storm_caller",
@@ -82,6 +82,6 @@
     "area": 1.4,
     "amount": 0,
     "startWeapon": "arc_conductor",
-    "unlockCondition": "beat_stage_3"
+    "unlockCondition": "default"
   }
 ]
