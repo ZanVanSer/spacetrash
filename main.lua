@@ -6,6 +6,7 @@ function love.load()
     sm.register("main_menu", require "states/main_menu")
     sm.register("save_select", require "states/save_select")
     sm.register("stage_select", require "states/stage_select")
+    sm.register("ship_select", require "states/ship_select")
     sm.register("game", require "states/game_state")
     sm.register("gameover", require "states/gameover_state")
     
