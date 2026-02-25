@@ -256,7 +256,37 @@ function HUD:draw(player, gameState)
     end
   end
 
-  -- 9. Bottom Status Bar
+  -- 9. Threat Analysis Box
+  if gameState.boss and not gameState.boss.isDead then
+    local tBoxX, tBoxY = 10, 870
+    local tBoxW, tBoxH = 200, 80
+
+    -- Floating Label
+    Colors.setColor("danger")
+    love.graphics.setFont(Fonts.getFont("small"))
+    love.graphics.print("THREAT ANALYSIS", tBoxX + 5, tBoxY - 12)
+
+    -- Border
+    love.graphics.setLineWidth(1)
+    love.graphics.rectangle("line", tBoxX, tBoxY, tBoxW, tBoxH)
+
+    -- Boss Info
+    local boss = gameState.boss
+    Colors.setColor("danger")
+    love.graphics.printf(boss.bossData.name:upper(), tBoxX, tBoxY + 10, tBoxW, "center")
+
+    -- Boss HP Bar
+    self:drawAsciiBar(boss.health, boss.maxHealth, 15, tBoxX + 10, tBoxY + 40, "BOSS_INTEGRITY", Colors.COLORS.danger, Colors.COLORS.dim)
+
+    -- Critical Warning
+    if boss.health / boss.maxHealth < 0.3 then
+      Colors.setColor("danger")
+      love.graphics.setFont(Fonts.getFont("small"))
+      love.graphics.printf("!! CRITICAL !!", tBoxX, tBoxY + 62, tBoxW, "center")
+    end
+  end
+
+  -- 10. Bottom Status Bar
   local vw = Screen.getVirtualWidth()
   local vh = Screen.getVirtualHeight()
   local barX = 220
