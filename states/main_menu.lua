@@ -1,5 +1,7 @@
 local sm = require "states/statemanager"
 local Menu = require "ui/menu"
+local Screen = require('systems.screen')
+local Fonts = require('ui/fonts')
 local state = {}
 
 function state:enter()
@@ -20,31 +22,34 @@ function state:keypressed(key)
 end
 
 function state:draw()
+    Screen.applyScale()
+    local oldFont = love.graphics.getFont()
     -- Dark background
     love.graphics.clear(0.05, 0.05, 0.1)
     
-    local screenWidth = love.graphics.getWidth()
-    local screenHeight = love.graphics.getHeight()
+    local screenWidth = Screen.getVirtualWidth()
+    local screenHeight = Screen.getVirtualHeight()
     
     -- Title
     love.graphics.setColor(1, 1, 1)
-    local titleFont = love.graphics.newFont(48)
-    local oldFont = love.graphics.getFont()
-    love.graphics.setFont(titleFont)
+    love.graphics.setFont(Fonts.getFont("huge"))
     love.graphics.printf("SPACE TRASH", 0, screenHeight * 0.2, screenWidth, "center")
     
     -- Subtitle
-    local subtitleFont = love.graphics.newFont(24)
-    love.graphics.setFont(subtitleFont)
+    love.graphics.setFont(Fonts.getFont("large"))
     love.graphics.printf("A Bullet Hell Trash Roguelike", 0, screenHeight * 0.3, screenWidth, "center")
     
     -- Menu
-    love.graphics.setFont(oldFont)
+    love.graphics.setFont(Fonts.getFont("normal"))
     self.menu:draw(screenWidth / 2, screenHeight / 2 + 50)
     
     -- Controls Hint
     love.graphics.setColor(0.7, 0.7, 0.7)
+    love.graphics.setFont(Fonts.getFont("small"))
     love.graphics.printf("Arrow Keys: Move | Z: Select | X: Back", 0, screenHeight - 50, screenWidth, "center")
+    
+    love.graphics.setFont(oldFont)
+    Screen.removeScale()
 end
 
 return state

@@ -1,3 +1,4 @@
+local Screen = require('systems.screen')
 local Enemy = {}
 Enemy.__index = Enemy
 
@@ -18,8 +19,8 @@ function Enemy:update(dt)
     local behavior = require("behaviors/" .. self.behavior)
     behavior.update(self, dt)
     -- Simple off-screen check (leaving the screen from the bottom or sides)
-    if self.y > love.graphics.getHeight() + 50 or 
-       self.x < -50 or self.x > love.graphics.getWidth() + 50 then
+    if self.y > Screen.getVirtualHeight() + 50 or 
+       self.x < -50 or self.x > Screen.getVirtualWidth() + 50 then
         self.isDead = true
     end
 end

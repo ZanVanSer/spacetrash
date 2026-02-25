@@ -1,3 +1,4 @@
+local Screen = require('systems.screen')
 local BackgroundLayer = {}
 BackgroundLayer.__index = BackgroundLayer
 
@@ -9,8 +10,8 @@ function BackgroundLayer.new(layerData)
     self.speed = layerData.speed or 0
     self.scrollDirection = layerData.scrollDirection or "down"
     self.yOffset = 0
-    self.width = 800
-    self.height = 600
+    self.width = Screen.getVirtualWidth()
+    self.height = Screen.getVirtualHeight()
     
     -- Positioning and Style
     self.position = layerData.position or "fill"

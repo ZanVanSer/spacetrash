@@ -1,6 +1,8 @@
 local dataloader = require "systems/dataloader"
 local stateManager = require "states/statemanager"
 local ShipVisuals = require "entities/ship_visuals"
+local Screen = require('systems.screen')
+local Fonts = require('ui/fonts')
 
 local state = {}
 
@@ -93,16 +95,19 @@ function state:keypressed(key)
 end
 
 function state:draw()
-    local screenWidth = love.graphics.getWidth()
-    local screenHeight = love.graphics.getHeight()
+    Screen.applyScale()
+    local oldFont = love.graphics.getFont()
+    local screenWidth = Screen.getVirtualWidth()
+    local screenHeight = Screen.getVirtualHeight()
     local time = self.animTimer
     
     love.graphics.clear(0.05, 0.05, 0.1)
     
-    local titleFont = love.graphics.newFont(36)
-    local mainFont = love.graphics.newFont(18)
-    local smallFont = love.graphics.newFont(14)
-    local boldFont = love.graphics.newFont(22)
+    -- Fonts
+    local titleFont = Fonts.getFont("huge")
+    local mainFont = Fonts.getFont("large")
+    local smallFont = Fonts.getFont("small")
+    local boldFont = Fonts.getFont("large")
 
     -- Title
     love.graphics.setFont(titleFont)
@@ -291,6 +296,9 @@ function state:draw()
     love.graphics.setFont(mainFont)
     love.graphics.setColor(0.7, 0.7, 0.7)
     love.graphics.printf("LEFT/RIGHT: Navigate | Z: Confirm | R: Random | X: Back", 0, screenHeight - 50, screenWidth, "center")
+    
+    love.graphics.setFont(oldFont)
+    Screen.removeScale()
 end
 
 return state
