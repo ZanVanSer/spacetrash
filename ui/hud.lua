@@ -10,6 +10,36 @@ function HUD.new()
   return self
 end
 
+function HUD:drawAsciiBar(value, maxValue, barWidth, x, y, label, fillColor, emptyColor)
+  local percent = maxValue > 0 and (value / maxValue) or 0
+  percent = math.min(1, math.max(0, percent))
+  local filled = math.floor(percent * barWidth)
+  local empty = barWidth - filled
+  local pctText = math.floor(percent * 100) .. "%"
+
+  -- Draw Label
+  Colors.setColor("dim")
+  love.graphics.setFont(Fonts.getFont("small"))
+  love.graphics.print(label, x, y - 15)
+
+  -- Draw Bar
+  love.graphics.setFont(Fonts.getFont("normal"))
+  local barData = {
+    emptyColor, "[",
+    fillColor, string.rep('█', filled),
+    emptyColor, string.rep('░', empty),
+    emptyColor, "]"
+  }
+  love.graphics.print(barData, x, y)
+
+  -- Draw Percentage
+  Colors.setColor("dim")
+  local font = Fonts.getFont("normal")
+  local fullBarStr = "[" .. string.rep('█', barWidth) .. "]"
+  local barPixelWidth = font:getWidth(fullBarStr)
+  love.graphics.print(pctText, x + barPixelWidth + 5, y)
+end
+
 function HUD:draw(player, gameState)
   local width = 220
   local height = Screen.getVirtualHeight()
