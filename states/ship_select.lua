@@ -1,6 +1,7 @@
 local dataloader = require "systems/dataloader"
 local stateManager = require "states/statemanager"
 local ShipVisuals = require "entities/ship_visuals"
+local Screen = require('systems.screen')
 
 local state = {}
 
@@ -93,8 +94,9 @@ function state:keypressed(key)
 end
 
 function state:draw()
-    local screenWidth = love.graphics.getWidth()
-    local screenHeight = love.graphics.getHeight()
+    Screen.applyScale()
+    local screenWidth = Screen.getVirtualWidth()
+    local screenHeight = Screen.getVirtualHeight()
     local time = self.animTimer
     
     love.graphics.clear(0.05, 0.05, 0.1)
@@ -291,6 +293,7 @@ function state:draw()
     love.graphics.setFont(mainFont)
     love.graphics.setColor(0.7, 0.7, 0.7)
     love.graphics.printf("LEFT/RIGHT: Navigate | Z: Confirm | R: Random | X: Back", 0, screenHeight - 50, screenWidth, "center")
+    Screen.removeScale()
 end
 
 return state

@@ -1,5 +1,6 @@
 local sm = require "states/statemanager"
 local Menu = require "ui/menu"
+local Screen = require('systems.screen')
 local state = {}
 
 function state:enter()
@@ -20,11 +21,12 @@ function state:keypressed(key)
 end
 
 function state:draw()
+    Screen.applyScale()
     -- Dark background
     love.graphics.clear(0.05, 0.05, 0.1)
     
-    local screenWidth = love.graphics.getWidth()
-    local screenHeight = love.graphics.getHeight()
+    local screenWidth = Screen.getVirtualWidth()
+    local screenHeight = Screen.getVirtualHeight()
     
     -- Title
     love.graphics.setColor(1, 1, 1)
@@ -45,6 +47,7 @@ function state:draw()
     -- Controls Hint
     love.graphics.setColor(0.7, 0.7, 0.7)
     love.graphics.printf("Arrow Keys: Move | Z: Select | X: Back", 0, screenHeight - 50, screenWidth, "center")
+    Screen.removeScale()
 end
 
 return state

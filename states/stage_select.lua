@@ -2,6 +2,7 @@ local sm = require "states/statemanager"
 local dataloader = require "systems/dataloader"
 local savemanager = require "systems/savemanager"
 local Menu = require "ui/menu"
+local Screen = require('systems.screen')
 
 local state = {}
 
@@ -107,10 +108,11 @@ function state:keypressed(key)
 end
 
 function state:draw()
+    Screen.applyScale()
     love.graphics.clear(0.05, 0.05, 0.1)
     
-    local screenWidth = love.graphics.getWidth()
-    local screenHeight = love.graphics.getHeight()
+    local screenWidth = Screen.getVirtualWidth()
+    local screenHeight = Screen.getVirtualHeight()
     local time = love.timer.getTime()
     
     -- Title
@@ -355,6 +357,7 @@ function state:draw()
     love.graphics.setFont(mainFont)
     love.graphics.setColor(0.7, 0.7, 0.7)
     love.graphics.printf("ARROWS: Navigate | Z: Select | X: Back", 0, screenHeight - 40, screenWidth, "center")
+    Screen.removeScale()
 end
 
 return state
