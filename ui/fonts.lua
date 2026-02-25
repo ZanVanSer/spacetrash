@@ -2,6 +2,7 @@ local Screen = require('systems.screen')
 
 local Fonts = {}
 local fontCache = {}
+local FONT_PATH = "assets/fonts/ShareTechMono-Regular.ttf"
 
 local SIZES = {
     small = 10,
@@ -19,12 +20,13 @@ function Fonts.getFont(sizeName)
     local cacheKey = sizeName .. "_" .. finalSize
     
     if not fontCache[cacheKey] then
-        -- Attempt to load a monospace font. Since we don't have a custom .ttf,
-        -- we'll use the default font provided by LÖVE at the calculated size.
-        -- Note: LÖVE's default font isn't guaranteed to be monospace on all systems,
-        -- but without a specific font file, it's the most reliable fallback.
+        -- Attempt to load the custom monospace font.
         local success, font = pcall(function()
-            return love.graphics.newFont(finalSize)
+            if love.filesystem.getInfo(FONT_PATH) then
+                return love.graphics.newFont(FONT_PATH, finalSize)
+            else
+                return love.graphics.newFont(finalSize)
+            end
         end)
         
         if success and font then
