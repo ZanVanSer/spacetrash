@@ -75,6 +75,32 @@ function HUD:draw(player, gameState)
     local dotX = (width + textWidth) / 2 + 5
     love.graphics.circle("fill", dotX, 50, 3)
   end
+
+  -- 4. System Integrity Box
+  local boxX, boxY = 10, 100
+  local boxW, boxH = 200, 115
+
+  -- Floating Label
+  Colors.setColor("dim")
+  love.graphics.setFont(Fonts.getFont("small"))
+  love.graphics.print("SYSTEM INTEGRITY", boxX + 5, boxY - 12)
+
+  -- Border
+  Colors.setColor("accent")
+  love.graphics.setLineWidth(1)
+  love.graphics.rectangle("line", boxX, boxY, boxW, boxH)
+
+  -- Inside Box
+  -- HULL Bar
+  self:drawAsciiBar(player.hp, player.maxHp, 15, boxX + 10, boxY + 25, "HULL", Colors.COLORS.health, Colors.COLORS.dim)
+
+  -- ARMOR Bar (assuming 10 is max visual armor for bar scaling)
+  self:drawAsciiBar(player.armor, 10, 15, boxX + 10, boxY + 65, "ARMOR", Colors.COLORS.accent, Colors.COLORS.dim)
+
+  -- REGEN Stat
+  Colors.setColor("dim")
+  love.graphics.setFont(Fonts.getFont("small"))
+  love.graphics.print("REGEN: " .. string.format("%.1f HP/s", player.recovery), boxX + 10, boxY + 95)
 end
 
 return HUD
