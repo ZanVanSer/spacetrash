@@ -218,6 +218,43 @@ function HUD:draw(player, gameState)
       love.graphics.line(pBoxX + 10, slotY + pSlotH, pBoxX + pBoxW - 10, slotY + pSlotH)
     end
   end
+
+  -- 8. Ship Stats Box
+  local sBoxX, sBoxY = 10, 700
+  local sBoxW, sBoxH = 200, 150
+  local statStep = 25
+
+  -- Floating Label
+  Colors.setColor("dim")
+  love.graphics.setFont(Fonts.getFont("small"))
+  love.graphics.print("SHIP STATS", sBoxX + 5, sBoxY - 12)
+
+  -- Border
+  Colors.setColor("accent")
+  love.graphics.setLineWidth(1)
+  love.graphics.rectangle("line", sBoxX, sBoxY, sBoxW, sBoxH)
+
+  local stats = {
+    { label = "MIGHT", val = string.format("%d%%", player.might * 100) },
+    { label = "SPEED", val = string.format("%d%%", (player.speed / 200) * 100) },
+    { label = "AREA",  val = string.format("%d%%", player.area * 100) },
+    { label = "CDR",   val = string.format("%d%%", (1 - player.cooldown) * 100) },
+    { label = "CRIT",  val = "0%" } -- Not yet implemented in player
+  }
+
+  Colors.setColor("dim")
+  for i, stat in ipairs(stats) do
+    local y = sBoxY + 10 + (i-1) * statStep
+    love.graphics.setFont(Fonts.getFont("small"))
+    love.graphics.print(stat.label, sBoxX + 10, y)
+    love.graphics.printf(stat.val, sBoxX, y, sBoxW - 10, "right")
+
+    if i < #stats then
+      Colors.setColor("dim", 0.2)
+      love.graphics.line(sBoxX + 10, y + 20, sBoxX + sBoxW - 10, y + 20)
+      Colors.setColor("dim")
+    end
+  end
 end
 
 return HUD
