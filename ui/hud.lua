@@ -112,7 +112,7 @@ function HUD:draw(player, gameState)
 
   -- 5. XP Progress Box
   local xpBoxX, xpBoxY = 10, 150
-  local xpBoxW, xpBoxH = 200, 75
+  local xpBoxW, xpBoxH = 200, 70
 
   -- Floating Label
   Colors.setColor("dim")
@@ -140,7 +140,7 @@ function HUD:draw(player, gameState)
   -- 6. Weapons display box
   local wBoxX, wBoxY = 10, 240
   local wBoxW = 200
-  local slotH = 28
+  local slotH = 25
   local wBoxH = 4 * slotH + 12
 
   -- Floating Label
@@ -184,7 +184,7 @@ function HUD:draw(player, gameState)
   -- 7. Passives display box
   local pBoxX, pBoxY = 10, 370
   local pBoxW = 200
-  local pSlotH = 22
+  local pSlotH = 20
   local pBoxH = 4 * pSlotH + 8
 
   -- Floating Label
