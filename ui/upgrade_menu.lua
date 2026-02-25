@@ -1,3 +1,4 @@
+local Screen = require('systems.screen')
 local UpgradeMenu = {}
 UpgradeMenu.__index = UpgradeMenu
 
@@ -36,7 +37,7 @@ function UpgradeMenu:keypressed(key)
 end
 
 function UpgradeMenu:draw()
-  local sw, sh = love.graphics.getWidth(), love.graphics.getHeight()
+  local sw, sh = Screen.getVirtualWidth(), Screen.getVirtualHeight()
   
   love.graphics.setColor(0, 0, 0, 0.7)
   love.graphics.rectangle('fill', 0, 0, sw, sh)

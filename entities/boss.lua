@@ -1,10 +1,11 @@
+local Screen = require('systems.screen')
 local Boss = {}
 Boss.__index = Boss
 
 function Boss.new(x, y, bossData)
     local self = setmetatable({}, Boss)
     self.bossData = bossData
-    self.x = x or love.graphics.getWidth() / 2
+    self.x = x or Screen.getVirtualWidth() / 2
     self.y = y or 100
     self.health = bossData.health
     self.maxHealth = bossData.health
@@ -46,8 +47,8 @@ function Boss:update(dt)
         b.y = b.y + (b.vy or 0) * dt
 
         -- Remove off-screen bullets
-        if b.y > love.graphics.getHeight() + 50 or b.y < -50 or 
-           b.x < -50 or b.x > love.graphics.getWidth() + 50 or b.isDead then
+        if b.y > Screen.getVirtualHeight() + 50 or b.y < -50 or 
+           b.x < -50 or b.x > Screen.getVirtualWidth() + 50 or b.isDead then
             table.remove(self.bullets, i)
         end
     end

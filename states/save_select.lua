@@ -3,6 +3,7 @@ local savemanager = require "systems/savemanager"
 local dl = require "systems/dataloader"
 local Menu = require "ui/menu"
 local Screen = require('systems.screen')
+local Fonts = require('ui/fonts')
 
 local state = {}
 
@@ -56,6 +57,7 @@ end
 
 function state:draw()
     Screen.applyScale()
+    local oldFont = love.graphics.getFont()
     -- Visual style consistent with main_menu.lua
     love.graphics.clear(0.05, 0.05, 0.1)
     
@@ -64,13 +66,11 @@ function state:draw()
     
     -- Title
     love.graphics.setColor(1, 1, 1)
-    local titleFont = love.graphics.newFont(48)
-    local oldFont = love.graphics.getFont()
-    love.graphics.setFont(titleFont)
+    love.graphics.setFont(Fonts.getFont("huge"))
     love.graphics.printf("SELECT SAVE SLOT", 0, screenHeight * 0.1, screenWidth, "center")
     
     -- Menu
-    love.graphics.setFont(oldFont)
+    love.graphics.setFont(Fonts.getFont("normal"))
     self.menu:draw(screenWidth / 2, screenHeight / 2 - 50)
     
     -- Additional info for highlighted slot
@@ -87,6 +87,7 @@ function state:draw()
             local totalStages = #dl.getStages()
             if totalStages == 0 then totalStages = 1 end -- Default for display if empty
             
+            love.graphics.setFont(Fonts.getFont("small"))
             love.graphics.setColor(0.8, 0.8, 1)
             love.graphics.printf("Total Runs: " .. (stats.totalRuns or 0), 0, infoY, screenWidth, "center")
             love.graphics.printf("Total Playtime: " .. string.format("%d hours %d minutes", hours, mins), 0, infoY + 25, screenWidth, "center")
@@ -96,14 +97,18 @@ function state:draw()
             love.graphics.printf("Unlocked Ships: " .. #data.unlockedShips .. "/" .. totalShips, 0, infoY + 125, screenWidth, "center")
             love.graphics.printf("Completed Stages: " .. #data.completedStages .. "/" .. totalStages, 0, infoY + 150, screenWidth, "center")
         else
+            love.graphics.setFont(Fonts.getFont("normal"))
             love.graphics.setColor(0.6, 0.6, 0.6)
             love.graphics.printf("Create New Save", 0, infoY, screenWidth, "center")
         end
     end
     
     -- Controls Hint
+    love.graphics.setFont(Fonts.getFont("small"))
     love.graphics.setColor(0.7, 0.7, 0.7)
     love.graphics.printf("Arrow Keys: Move | Z: Select | X: Back", 0, screenHeight - 50, screenWidth, "center")
+    
+    love.graphics.setFont(oldFont)
     Screen.removeScale()
 end
 

@@ -1,5 +1,6 @@
 local Enemy = require "entities/enemy"
 local dl = require "systems/dataloader"
+local Screen = require('systems.screen')
 
 local Spawner = {}
 Spawner.__index = Spawner
@@ -32,7 +33,7 @@ function Spawner:update(dt)
         if self.spawnTimer >= self.spawnInterval then
             if #self.enemyDataList > 0 then
                 local data = self.enemyDataList[love.math.random(#self.enemyDataList)]
-                local x = love.math.random(20, love.graphics.getWidth() - 20)
+                local x = love.math.random(20, Screen.getVirtualWidth() - 20)
                 table.insert(self.enemies, Enemy.new(x, -20, data))
             end
             self.spawnTimer = 0

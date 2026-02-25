@@ -1,13 +1,14 @@
 local WS = require "systems/weapon_system"
 local ShipVisuals = require "entities/ship_visuals"
+local Screen = require('systems.screen')
 
 local Player = {}
 Player.__index = Player
 
 function Player.new(shipData)
     local self = setmetatable({}, Player)
-    self.x = love.graphics.getWidth() / 2
-    self.y = love.graphics.getHeight() - 50
+    self.x = Screen.getVirtualWidth() / 2
+    self.y = Screen.getVirtualHeight() - 50
     
     -- Store Ship ID for drawing
     self.shipId = shipData.id
@@ -59,7 +60,7 @@ function Player:update(dt)
     self.x = self.x + moveX * self.speed * dt
     
     -- Bounds
-    self.x = math.max(self.radius, math.min(love.graphics.getWidth() - self.radius, self.x))
+    self.x = math.max(self.radius, math.min(Screen.getVirtualWidth() - self.radius, self.x))
     
     -- Recovery
     if self.hp < self.maxHp then

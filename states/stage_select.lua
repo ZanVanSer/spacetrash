@@ -3,6 +3,7 @@ local dataloader = require "systems/dataloader"
 local savemanager = require "systems/savemanager"
 local Menu = require "ui/menu"
 local Screen = require('systems.screen')
+local Fonts = require('ui/fonts')
 
 local state = {}
 
@@ -109,20 +110,21 @@ end
 
 function state:draw()
     Screen.applyScale()
+    local oldFont = love.graphics.getFont()
     love.graphics.clear(0.05, 0.05, 0.1)
     
     local screenWidth = Screen.getVirtualWidth()
     local screenHeight = Screen.getVirtualHeight()
     local time = love.timer.getTime()
     
-    -- Title
-    love.graphics.setColor(1, 1, 1)
-    local titleFont = love.graphics.newFont(36)
-    local mainFont = love.graphics.newFont(18)
-    local smallFont = love.graphics.newFont(14)
-    local boldFont = love.graphics.newFont(22)
+    -- Fonts
+    local titleFont = Fonts.getFont("huge")
+    local mainFont = Fonts.getFont("large")
+    local smallFont = Fonts.getFont("small")
+    local boldFont = Fonts.getFont("large") -- Using large as bold since we don't have separate bold variants
     
     love.graphics.setFont(titleFont)
+    love.graphics.setColor(1, 1, 1)
     love.graphics.printf("SELECT STAGE", 20, 20, screenWidth, "left")
     
     -- Grid Settings
@@ -357,6 +359,8 @@ function state:draw()
     love.graphics.setFont(mainFont)
     love.graphics.setColor(0.7, 0.7, 0.7)
     love.graphics.printf("ARROWS: Navigate | Z: Select | X: Back", 0, screenHeight - 40, screenWidth, "center")
+    
+    love.graphics.setFont(oldFont)
     Screen.removeScale()
 end
 
