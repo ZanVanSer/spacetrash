@@ -13,12 +13,12 @@ function HUD.new()
   return self
 end
 
-function HUD:drawAsciiBar(value, maxValue, barWidth, x, y, label, fillColor, emptyColor)
+function HUD:drawAsciiBar(value, maxValue, barWidth, x, y, label, fillColor, emptyColor, suffixText)
   local percent = maxValue > 0 and (value / maxValue) or 0
   percent = math.min(1, math.max(0, percent))
   local filled = math.floor(percent * barWidth)
   local empty = barWidth - filled
-  local pctText = math.floor(percent * 100) .. "%"
+  local displayText = suffixText or (math.floor(percent * 100) .. "%")
 
   -- Draw Label
   Colors.setColor("dim")
@@ -35,12 +35,12 @@ function HUD:drawAsciiBar(value, maxValue, barWidth, x, y, label, fillColor, emp
   }
   love.graphics.print(barData, x, y)
 
-  -- Draw Percentage
+  -- Draw Percentage/Value
   Colors.setColor("dim")
   local font = Fonts.getFont("normal")
   local fullBarStr = "[" .. string.rep('=', barWidth) .. "]"
   local barPixelWidth = font:getWidth(fullBarStr)
-  love.graphics.print(pctText, x + barPixelWidth + 5, y)
+  love.graphics.print(displayText, x + barPixelWidth + 5, y)
 end
 
 function HUD:draw(player, gameState)
@@ -81,7 +81,7 @@ function HUD:draw(player, gameState)
 
   -- 4. System Integrity Box
   local boxX, boxY = 10, 75
-  local boxW, boxH = 200, 105
+  local boxW, boxH = 200, 75
 
   -- Floating Label
   Colors.setColor("dim")
@@ -94,19 +94,17 @@ function HUD:draw(player, gameState)
   love.graphics.rectangle("line", boxX, boxY, boxW, boxH)
 
   -- Inside Box
-  -- HULL Bar
-  self:drawAsciiBar(player.hp, player.maxHp, 15, boxX + 10, boxY + 22, "HULL", Colors.COLORS.health, Colors.COLORS.dim)
-
-  -- ARMOR Bar (assuming 10 is max visual armor for bar scaling)
-  self:drawAsciiBar(player.armor, 10, 15, boxX + 10, boxY + 58, "ARMOR", Colors.COLORS.accent, Colors.COLORS.dim)
+  -- HP Bar
+  local hpText = string.format("%d/%d", math.ceil(player.hp), player.maxHp)
+  self:drawAsciiBar(player.hp, player.maxHp, 15, boxX + 10, boxY + 22, "HP", Colors.COLORS.health, Colors.COLORS.dim, hpText)
 
   -- REGEN Stat
   Colors.setColor("dim")
   love.graphics.setFont(Fonts.getFont("small"))
-  love.graphics.print("REGEN: " .. string.format("%.1f HP/s", player.recovery), boxX + 10, boxY + 85)
+  love.graphics.print("REGEN: " .. string.format("%.1f HP/s", player.recovery), boxX + 10, boxY + 55)
 
   -- 5. XP Progress Box
-  local xpBoxX, xpBoxY = 10, 195
+  local xpBoxX, xpBoxY = 10, 165
   local xpBoxW, xpBoxH = 200, 80
 
   -- Floating Label
@@ -133,7 +131,7 @@ function HUD:draw(player, gameState)
   love.graphics.printf(string.format("XP: %d/%d", math.floor(player.xp), player.xpToNext), xpBoxX, xpBoxY + 62, xpBoxW, "center")
 
   -- 6. Weapons display box
-  local wBoxX, wBoxY = 10, 290
+  local wBoxX, wBoxY = 10, 260
   local wBoxW = 200
   local slotH = 30
   local wBoxH = 4 * slotH + 15
@@ -161,7 +159,7 @@ function HUD:draw(player, gameState)
       love.graphics.print("W" .. i .. ": " .. name, wBoxX + 10, slotY)
       
       -- Stars (Level 1 for now)
-      local stars = "★☆☆☆☆"
+      local stars = "*oooo"
       love.graphics.print(stars, wBoxX + 10, slotY + 12)
     else
       Colors.setColor("dim")
@@ -177,7 +175,7 @@ function HUD:draw(player, gameState)
   end
 
   -- 7. Passives display box
-  local pBoxX, pBoxY = 10, 430
+  local pBoxX, pBoxY = 10, 400
   local pBoxW = 200
   local pSlotH = 25
   local pBoxH = 4 * pSlotH + 10
@@ -212,26 +210,29 @@ function HUD:draw(player, gameState)
   end
 
   -- 8. Ship Stats Box
-  local sBoxX, sBoxY = 10, 510
-  local sBoxW, sBoxH = 200, 130
-  local statStep = 22
+  local sBoxX, sBoxY = 10, 515
+  local sBoxW = 200
+  local statStep = 14 -- Thinner for more stats
 
   -- Floating Label
   Colors.setColor("dim")
   love.graphics.setFont(Fonts.getFont("small"))
   love.graphics.print("SHIP STATS", sBoxX + 5, sBoxY - 12)
 
-  -- Border
-  Colors.setColor("accent")
-  love.graphics.setLineWidth(1)
-  love.graphics.rectangle("line", sBoxX, sBoxY, boxW, 85) -- Smaller height for compact view
-
   local stats = {
+    { label = "ARMOR", val = string.format("%d", player.armor) },
     { label = "MIGHT", val = string.format("%d%%", player.might * 100) },
     { label = "SPEED", val = string.format("%d%%", (player.speed / 200) * 100) },
     { label = "AREA",  val = string.format("%d%%", player.area * 100) },
-    { label = "CDR",   val = string.format("%d%%", (1 - player.cooldown) * 100) }
+    { label = "CDR",   val = string.format("%d%%", (1 - player.cooldown) * 100) },
+    { label = "CRIT",  val = "0%" }
   }
+
+  local sBoxH = #stats * statStep + 10
+  -- Border
+  Colors.setColor("accent")
+  love.graphics.setLineWidth(1)
+  love.graphics.rectangle("line", sBoxX, sBoxY, sBoxW, sBoxH)
 
   Colors.setColor("dim")
   for i, stat in ipairs(stats) do
