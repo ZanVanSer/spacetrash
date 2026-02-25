@@ -7,6 +7,7 @@ local Menu = require "ui/menu"
 local sm = require "states/statemanager"
 local savemanager = require "systems/savemanager"
 local Background = require "entities/background"
+local Screen = require('systems.screen')
 local state = {}
 
 function state:enter(saveData, stageData, shipData)
@@ -313,6 +314,8 @@ function state:applyUpgrade(upgrade)
 end
 
 function state:draw()
+    Screen.applyScale()
+    local vw, vh = Screen.getVirtualWidth(), Screen.getVirtualHeight()
     self.background:draw()
 
     self.player:draw()
@@ -325,7 +328,7 @@ function state:draw()
         if not self.boss.isDead then
             local barWidth = 600
             local barHeight = 20
-            local barX = (love.graphics.getWidth() - barWidth) / 2
+            local barX = (vw - barWidth) / 2
             local barY = 40
             
             love.graphics.setColor(0.2, 0, 0)
@@ -343,12 +346,12 @@ function state:draw()
     
     -- UI
     love.graphics.setColor(1, 1, 1)
-    love.graphics.print("HP: " .. math.ceil(self.player.hp), 10, 50)
+    love.graphics.print("HP: " .. math.ceil(self.player.hp), 10, vh - 30) -- Moved to bottom left
     
     -- XP Bar
     local barWidth = 400
     local barHeight = 20
-    local barX = (love.graphics.getWidth() - barWidth) / 2
+    local barX = (vw - barWidth) / 2
     local barY = 10
 
     love.graphics.setColor(0.2, 0.2, 0.2)
@@ -368,7 +371,7 @@ function state:draw()
     local minutes = math.floor(self.gameTime / 60)
     local seconds = math.floor(self.gameTime % 60)
     local timerStr = string.format("Time: %02d:%02d", minutes, seconds)
-    love.graphics.print(timerStr, love.graphics.getWidth() - 100, 10)
+    love.graphics.print(timerStr, vw - 100, 10)
 
     if self.isPaused and self.upgradeMenu then
         self.upgradeMenu:draw()
@@ -377,56 +380,57 @@ function state:draw()
     if self.isVictory then
         -- Semi-transparent gold overlay
         love.graphics.setColor(0.1, 0.1, 0, 0.8)
-        love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+        love.graphics.rectangle("fill", 0, 0, vw, vh)
         
         love.graphics.setColor(1, 0.8, 0)
         local font = love.graphics.newFont(64)
         local oldFont = love.graphics.getFont()
         love.graphics.setFont(font)
-        love.graphics.printf("VICTORY!", 0, love.graphics.getHeight() * 0.2, love.graphics.getWidth(), "center")
+        love.graphics.printf("VICTORY!", 0, vh * 0.2, vw, "center")
         
         love.graphics.setFont(oldFont)
         love.graphics.setColor(1, 1, 1)
-        local statsY = love.graphics.getHeight() * 0.4
+        local statsY = vh * 0.4
         if self.victoryStats then
             local mins = math.floor(self.victoryStats.timeSurvived / 60)
             local secs = math.floor(self.victoryStats.timeSurvived % 60)
-            love.graphics.printf(string.format("Time: %02d:%02d", mins, secs), 0, statsY, love.graphics.getWidth(), "center")
-            love.graphics.printf("Level: " .. self.victoryStats.level, 0, statsY + 30, love.graphics.getWidth(), "center")
-            love.graphics.printf("Enemies Killed: " .. self.victoryStats.enemiesKilled, 0, statsY + 60, love.graphics.getWidth(), "center")
+            love.graphics.printf(string.format("Time: %02d:%02d", mins, secs), 0, statsY, vw, "center")
+            love.graphics.printf("Level: " .. self.victoryStats.level, 0, statsY + 30, vw, "center")
+            love.graphics.printf("Enemies Killed: " .. self.victoryStats.enemiesKilled, 0, statsY + 60, vw, "center")
             
             -- Draw Notifications (Rewards)
             if self.victoryStats.notifications and #self.victoryStats.notifications > 0 then
                 love.graphics.setColor(0.4, 1, 0.4)
                 local notifyY = statsY + 110
                 for _, msg in ipairs(self.victoryStats.notifications) do
-                    love.graphics.printf(msg, 0, notifyY, love.graphics.getWidth(), "center")
+                    love.graphics.printf(msg, 0, notifyY, vw, "center")
                     notifyY = notifyY + 30
                 end
             end
         end
         
         if self.victoryMenu then
-            self.victoryMenu:draw(love.graphics.getWidth() / 2, love.graphics.getHeight() * 0.65)
+            self.victoryMenu:draw(vw / 2, vh * 0.65)
         end
         
         love.graphics.setColor(0.8, 0.8, 0.8)
-        love.graphics.printf("Arrows Keys: Move | Z: Select", 0, love.graphics.getHeight() - 50, love.graphics.getWidth(), "center")
+        love.graphics.printf("Arrows Keys: Move | Z: Select", 0, vh - 50, vw, "center")
     end
 
     if self.isPausedByPlayer and self.pauseMenu then
         -- Semi-transparent dark overlay
         love.graphics.setColor(0, 0, 0, 0.7)
-        love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+        love.graphics.rectangle("fill", 0, 0, vw, vh)
         
         -- "PAUSED" text at top
         love.graphics.setColor(1, 1, 1)
         local font = love.graphics.getFont()
         local text = "PAUSED"
-        love.graphics.printf(text, 0, 100, love.graphics.getWidth(), "center")
+        love.graphics.printf(text, 0, 100, vw, "center")
         
-        self.pauseMenu:draw(love.graphics.getWidth() / 2, love.graphics.getHeight() / 2)
+        self.pauseMenu:draw(vw / 2, vh / 2)
     end
+    Screen.removeScale()
 end
 
 return state
