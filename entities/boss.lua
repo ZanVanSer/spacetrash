@@ -27,6 +27,15 @@ function Boss:update(dt)
         behavior.update(self, dt)
     end
 
+    -- Boundary enforcement (Viewport: 220-800, padding 40)
+    if self.x < 260 then
+        self.x = 260
+        self.direction = 1
+    elseif self.x > Screen.getVirtualWidth() - 40 then
+        self.x = Screen.getVirtualWidth() - 40
+        self.direction = -1
+    end
+
     -- Shooting logic
     self.shootTimer = self.shootTimer + dt
     if self.shootTimer >= self.bossData.shootInterval then

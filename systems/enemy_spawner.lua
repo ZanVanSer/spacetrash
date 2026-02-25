@@ -33,7 +33,8 @@ function Spawner:update(dt)
         if self.spawnTimer >= self.spawnInterval then
             if #self.enemyDataList > 0 then
                 local data = self.enemyDataList[love.math.random(#self.enemyDataList)]
-                local x = love.math.random(20, Screen.getVirtualWidth() - 20)
+                -- Spawn within game viewport (220 to 800) with buffer
+                local x = love.math.random(240, Screen.getVirtualWidth() - 20)
                 table.insert(self.enemies, Enemy.new(x, -20, data))
             end
             self.spawnTimer = 0

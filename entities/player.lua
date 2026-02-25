@@ -59,8 +59,13 @@ function Player:update(dt)
     end
     self.x = self.x + moveX * self.speed * dt
     
-    -- Bounds
-    self.x = math.max(self.radius, math.min(Screen.getVirtualWidth() - self.radius, self.x))
+    -- Bounds (Keep player in game viewport: 220 to virtual width)
+    if self.x < 220 + self.radius then
+        self.x = 220 + self.radius
+    end
+    if self.x > Screen.getVirtualWidth() - self.radius then
+        self.x = Screen.getVirtualWidth() - self.radius
+    end
     
     -- Recovery
     if self.hp < self.maxHp then
