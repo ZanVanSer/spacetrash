@@ -22,23 +22,23 @@ function HUD:drawAsciiBar(value, maxValue, barWidth, x, y, label, fillColor, emp
 
   -- Draw Label
   Colors.setColor("dim")
-  love.graphics.setFont(Fonts.getFont("small"))
-  love.graphics.print(label, x, y - 15)
+  love.graphics.setFont(Fonts.getFont("tiny"))
+  love.graphics.print(label, x, y - 12)
 
   -- Draw Bar
-  love.graphics.setFont(Fonts.getFont("normal"))
+  love.graphics.setFont(Fonts.getFont("small"))
   local barData = {
     emptyColor, "[",
-    fillColor, string.rep('=', filled),
-    emptyColor, string.rep('-', empty),
+    fillColor, string.rep('#', filled),
+    emptyColor, string.rep('.', empty),
     emptyColor, "]"
   }
   love.graphics.print(barData, x, y)
 
   -- Draw Percentage/Value
   Colors.setColor("dim")
-  local font = Fonts.getFont("normal")
-  local fullBarStr = "[" .. string.rep('=', barWidth) .. "]"
+  local font = Fonts.getFont("small")
+  local fullBarStr = "[" .. string.rep('#', barWidth) .. "]"
   local barPixelWidth = font:getWidth(fullBarStr)
   love.graphics.print(displayText, x + barPixelWidth + 5, y)
 end
@@ -56,37 +56,44 @@ function HUD:draw(player, gameState)
   love.graphics.setLineWidth(1)
   love.graphics.line(width, 0, width, height)
 
-  -- 3. Mission Clock
-  local minutes = math.floor(gameState.gameTime / 60)
-  local seconds = math.floor(gameState.gameTime % 60)
+  -- 3. Boss Arrival Timer
+  local survivalTime = (gameState.stageData and gameState.stageData.survivalTime) or 180
+  local remainingTime = math.max(0, survivalTime - gameState.gameTime)
+  local minutes = math.floor(remainingTime / 60)
+  local seconds = math.floor(remainingTime % 60)
   local timerStr = string.format("%02d:%02d", minutes, seconds)
   
   -- Label
   Colors.setColor("dim")
-  love.graphics.setFont(Fonts.getFont("small"))
-  love.graphics.printf("MISSION CLOCK", 0, 15, width, "center")
+  love.graphics.setFont(Fonts.getFont("tiny"))
+  love.graphics.printf("TIME TO BOSS", 0, 10, width, "center")
   
-  -- Time
-  Colors.setColor("accent")
-  local timeFont = Fonts.getFont("large")
+  -- Time (with flash warning)
+  local timeColor = "accent"
+  if remainingTime < 30 and math.floor(gameState.gameTime * 4) % 2 == 0 then
+    timeColor = "danger"
+  end
+  Colors.setColor(timeColor)
+  
+  local timeFont = Fonts.getFont("huge")
   love.graphics.setFont(timeFont)
-  love.graphics.printf(timerStr, 0, 30, width, "center")
+  love.graphics.printf(timerStr, 0, 22, width, "center")
 
   -- Blinking Dot
   if math.floor(gameState.gameTime) % 2 == 0 then
     local textWidth = timeFont:getWidth(timerStr)
     local dotX = (width + textWidth) / 2 + 5
-    love.graphics.circle("fill", dotX, 40, 2)
+    love.graphics.circle("fill", dotX, 35, 2)
   end
 
   -- 4. System Integrity Box
-  local boxX, boxY = 10, 75
-  local boxW, boxH = 200, 75
+  local boxX, boxY = 10, 70
+  local boxW, boxH = 200, 65
 
   -- Floating Label
   Colors.setColor("dim")
-  love.graphics.setFont(Fonts.getFont("small"))
-  love.graphics.print("SYSTEM INTEGRITY", boxX + 5, boxY - 12)
+  love.graphics.setFont(Fonts.getFont("tiny"))
+  love.graphics.print("SYSTEM INTEGRITY", boxX + 5, boxY - 10)
 
   -- Border
   Colors.setColor("accent")
@@ -96,21 +103,21 @@ function HUD:draw(player, gameState)
   -- Inside Box
   -- HP Bar
   local hpText = string.format("%d/%d", math.ceil(player.hp), player.maxHp)
-  self:drawAsciiBar(player.hp, player.maxHp, 15, boxX + 10, boxY + 22, "HP", Colors.COLORS.health, Colors.COLORS.dim, hpText)
+  self:drawAsciiBar(player.hp, player.maxHp, 15, boxX + 10, boxY + 20, "HP", Colors.COLORS.health, Colors.COLORS.dim, hpText)
 
   -- REGEN Stat
   Colors.setColor("dim")
   love.graphics.setFont(Fonts.getFont("small"))
-  love.graphics.print("REGEN: " .. string.format("%.1f HP/s", player.recovery), boxX + 10, boxY + 55)
+  love.graphics.print("REGEN: " .. string.format("%.1f HP/s", player.recovery), boxX + 10, boxY + 45)
 
   -- 5. XP Progress Box
-  local xpBoxX, xpBoxY = 10, 165
-  local xpBoxW, xpBoxH = 200, 80
+  local xpBoxX, xpBoxY = 10, 150
+  local xpBoxW, xpBoxH = 200, 75
 
   -- Floating Label
   Colors.setColor("dim")
-  love.graphics.setFont(Fonts.getFont("small"))
-  love.graphics.print("XP PROGRESS", xpBoxX + 5, xpBoxY - 12)
+  love.graphics.setFont(Fonts.getFont("tiny"))
+  love.graphics.print("XP PROGRESS", xpBoxX + 5, xpBoxY - 10)
 
   -- Border
   Colors.setColor("accent")
@@ -120,26 +127,26 @@ function HUD:draw(player, gameState)
   -- Level Number
   Colors.setColor("accent")
   love.graphics.setFont(Fonts.getFont("large"))
-  love.graphics.printf("LVL " .. player.level, xpBoxX, xpBoxY + 10, xpBoxW, "center")
+  love.graphics.printf("LVL " .. player.level, xpBoxX, xpBoxY + 8, xpBoxW, "center")
 
   -- XP Bar
-  self:drawAsciiBar(player.xp, player.xpToNext, 15, xpBoxX + 10, xpBoxY + 45, "", Colors.COLORS.xp, Colors.COLORS.dim)
+  self:drawAsciiBar(player.xp, player.xpToNext, 15, xpBoxX + 10, xpBoxY + 40, "", Colors.COLORS.xp, Colors.COLORS.dim)
 
   -- XP Text
   Colors.setColor("dim")
   love.graphics.setFont(Fonts.getFont("small"))
-  love.graphics.printf(string.format("XP: %d/%d", math.floor(player.xp), player.xpToNext), xpBoxX, xpBoxY + 62, xpBoxW, "center")
+  love.graphics.printf(string.format("XP: %d/%d", math.floor(player.xp), player.xpToNext), xpBoxX, xpBoxY + 55, xpBoxW, "center")
 
   -- 6. Weapons display box
-  local wBoxX, wBoxY = 10, 260
+  local wBoxX, wBoxY = 10, 240
   local wBoxW = 200
-  local slotH = 30
-  local wBoxH = 4 * slotH + 15
+  local slotH = 28
+  local wBoxH = 4 * slotH + 12
 
   -- Floating Label
   Colors.setColor("dim")
-  love.graphics.setFont(Fonts.getFont("small"))
-  love.graphics.print("WEAPONS", wBoxX + 5, wBoxY - 12)
+  love.graphics.setFont(Fonts.getFont("tiny"))
+  love.graphics.print("WEAPONS", wBoxX + 5, wBoxY - 10)
 
   -- Border
   Colors.setColor("accent")
@@ -147,7 +154,7 @@ function HUD:draw(player, gameState)
   love.graphics.rectangle("line", wBoxX, wBoxY, wBoxW, wBoxH)
 
   for i = 1, 4 do
-    local slotY = wBoxY + 8 + (i-1) * slotH
+    local slotY = wBoxY + 6 + (i-1) * slotH
     local weaponId = player.ws.equippedWeapons[i]
     
     if weaponId then
@@ -159,7 +166,7 @@ function HUD:draw(player, gameState)
       love.graphics.print("W" .. i .. ": " .. name, wBoxX + 10, slotY)
       
       -- Stars (Level 1 for now)
-      local stars = "*oooo"
+      local stars = "*----"
       love.graphics.print(stars, wBoxX + 10, slotY + 12)
     else
       Colors.setColor("dim")
@@ -175,15 +182,15 @@ function HUD:draw(player, gameState)
   end
 
   -- 7. Passives display box
-  local pBoxX, pBoxY = 10, 400
+  local pBoxX, pBoxY = 10, 370
   local pBoxW = 200
-  local pSlotH = 25
-  local pBoxH = 4 * pSlotH + 10
+  local pSlotH = 22
+  local pBoxH = 4 * pSlotH + 8
 
   -- Floating Label
   Colors.setColor("dim")
-  love.graphics.setFont(Fonts.getFont("small"))
-  love.graphics.print("PASSIVES", pBoxX + 5, pBoxY - 12)
+  love.graphics.setFont(Fonts.getFont("tiny"))
+  love.graphics.print("PASSIVES", pBoxX + 5, pBoxY - 10)
 
   -- Border
   Colors.setColor("accent")
@@ -191,7 +198,7 @@ function HUD:draw(player, gameState)
   love.graphics.rectangle("line", pBoxX, pBoxY, pBoxW, pBoxH)
 
   for i = 1, 4 do
-    local slotY = pBoxY + 5 + (i-1) * pSlotH
+    local slotY = pBoxY + 4 + (i-1) * pSlotH
     local passive = player.passives and player.passives[i]
     
     if passive then
@@ -210,14 +217,14 @@ function HUD:draw(player, gameState)
   end
 
   -- 8. Ship Stats Box
-  local sBoxX, sBoxY = 10, 515
+  local sBoxX, sBoxY = 10, 475
   local sBoxW = 200
-  local statStep = 14 -- Thinner for more stats
+  local statStep = 12
 
   -- Floating Label
   Colors.setColor("dim")
-  love.graphics.setFont(Fonts.getFont("small"))
-  love.graphics.print("SHIP STATS", sBoxX + 5, sBoxY - 12)
+  love.graphics.setFont(Fonts.getFont("tiny"))
+  love.graphics.print("SHIP STATS", sBoxX + 5, sBoxY - 10)
 
   local stats = {
     { label = "ARMOR", val = string.format("%d", player.armor) },
@@ -228,7 +235,7 @@ function HUD:draw(player, gameState)
     { label = "CRIT",  val = "0%" }
   }
 
-  local sBoxH = #stats * statStep + 10
+  local sBoxH = #stats * statStep + 8
   -- Border
   Colors.setColor("accent")
   love.graphics.setLineWidth(1)
@@ -236,7 +243,7 @@ function HUD:draw(player, gameState)
 
   Colors.setColor("dim")
   for i, stat in ipairs(stats) do
-    local y = sBoxY + 5 + (i-1) * statStep
+    local y = sBoxY + 4 + (i-1) * statStep
     love.graphics.setFont(Fonts.getFont("small"))
     love.graphics.print(stat.label, sBoxX + 10, y)
     love.graphics.printf(stat.val, sBoxX, y, sBoxW - 10, "right")
@@ -262,16 +269,12 @@ function HUD:draw(player, gameState)
 
   -- Left: ENEMIES
   Colors.setColor("danger")
-  love.graphics.print("ENEMIES: " .. (gameState.enemiesKilled or 0), barX + 10, barY + 5)
+  love.graphics.print("ENEMIES: " .. (gameState.enemiesKilled or 0), barX + 20, barY + 5)
 
-  -- Center: SCORE
+  -- Right: SCORE
   Colors.setColor("xp")
   local score = (gameState.enemiesKilled or 0) * 100
-  love.graphics.printf("SCORE: " .. score, barX, barY + 5, barW, "center")
-
-  -- Right: SYSTEM_STABLE
-  Colors.setColor("health")
-  love.graphics.printf("SYSTEM_STABLE: TRUE", barX, barY + 5, barW - 10, "right")
+  love.graphics.printf("SCORE: " .. score, barX, barY + 5, barW - 20, "right")
 end
 
 return HUD

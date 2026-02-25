@@ -5,6 +5,7 @@ local fontCache = {}
 local FONT_PATH = "assets/fonts/ShareTechMono-Regular.ttf"
 
 local SIZES = {
+    tiny = 8,
     small = 10,
     normal = 12,
     large = 16,
