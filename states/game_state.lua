@@ -10,6 +10,7 @@ local Background = require "entities/background"
 local Screen = require('systems.screen')
 local Layout = require('ui/layout')
 local Fonts = require('ui/fonts')
+local HUD = require('ui/hud')
 local state = {}
 
 function state:enter(saveData, stageData, shipData)
@@ -19,6 +20,7 @@ function state:enter(saveData, stageData, shipData)
     self.stageData = stageData or {}
     
     self.player = Player.new(shipData or dl.getShips()[1])
+    self.hud = HUD.new()
     
     self.isPaused = false
     self.upgradeMenu = nil
@@ -346,6 +348,9 @@ function state:draw()
             love.graphics.printf(self.boss.bossData.name, barX, barY + 2, barWidth, "center")
         end
     end
+    
+    -- HUD
+    self.hud:draw(self.player, self)
     
     -- UI
     love.graphics.setFont(Fonts.getFont("normal"))
