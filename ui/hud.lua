@@ -9,6 +9,7 @@ local HUD = {}
 function HUD.new()
   local self = setmetatable({}, { __index = HUD })
   self.weaponLookup = dl.createLookup(dl.getWeapons(), "id")
+  self.upgradeLookup = dl.createLookup(dl.getUpgrades(), "id")
   return self
 end
 
@@ -172,6 +173,49 @@ function HUD:draw(player, gameState)
     if i < 4 then
       Colors.setColor("dim", 0.3)
       love.graphics.line(wBoxX + 10, slotY + slotH, wBoxX + wBoxW - 10, slotY + slotH)
+    end
+  end
+
+  -- 7. Passives display box
+  local pBoxX, pBoxY = 10, 525
+  local pBoxW = 200
+  local pSlotH = 35
+  local pBoxH = 4 * pSlotH + 20
+
+  -- Floating Label
+  Colors.setColor("dim")
+  love.graphics.setFont(Fonts.getFont("small"))
+  love.graphics.print("PASSIVES", pBoxX + 5, pBoxY - 12)
+
+  -- Border
+  Colors.setColor("accent")
+  love.graphics.setLineWidth(1)
+  love.graphics.rectangle("line", pBoxX, pBoxY, pBoxW, pBoxH)
+
+  for i = 1, 4 do
+    local slotY = pBoxY + 10 + (i-1) * pSlotH
+    -- Assuming player.passives exists or will exist as a list of {id, level}
+    local passive = player.passives and player.passives[i]
+    
+    if passive then
+      local ud = self.upgradeLookup[passive.id]
+      local name = ud and ud.name:upper() or "UNKNOWN"
+      local level = passive.level or 1
+      
+      Colors.setColor("dim")
+      love.graphics.setFont(Fonts.getFont("small"))
+      love.graphics.print("P" .. i .. ": " .. name, pBoxX + 10, slotY + 2)
+      love.graphics.print("Lv " .. level, pBoxX + 10, slotY + 15)
+    else
+      Colors.setColor("dim", 0.6)
+      love.graphics.setFont(Fonts.getFont("small"))
+      love.graphics.print("P" .. i .. ": -- EMPTY --", pBoxX + 10, slotY + 10)
+    end
+    
+    -- Slot divider
+    if i < 4 then
+      Colors.setColor("dim", 0.2)
+      love.graphics.line(pBoxX + 10, slotY + pSlotH, pBoxX + pBoxW - 10, slotY + pSlotH)
     end
   end
 end
