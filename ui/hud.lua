@@ -52,6 +52,29 @@ function HUD:draw(player, gameState)
   Colors.setColor("accent")
   love.graphics.setLineWidth(1)
   love.graphics.line(width, 0, width, height)
+
+  -- 3. Mission Clock
+  local minutes = math.floor(gameState.gameTime / 60)
+  local seconds = math.floor(gameState.gameTime % 60)
+  local timerStr = string.format("%02d:%02d", minutes, seconds)
+  
+  -- Label
+  Colors.setColor("dim")
+  love.graphics.setFont(Fonts.getFont("small"))
+  love.graphics.printf("MISSION CLOCK", 0, 20, width, "center")
+  
+  -- Time
+  Colors.setColor("accent")
+  local timeFont = Fonts.getFont("huge")
+  love.graphics.setFont(timeFont)
+  love.graphics.printf(timerStr, 0, 35, width, "center")
+
+  -- Blinking Dot
+  if math.floor(gameState.gameTime) % 2 == 0 then
+    local textWidth = timeFont:getWidth(timerStr)
+    local dotX = (width + textWidth) / 2 + 5
+    love.graphics.circle("fill", dotX, 50, 3)
+  end
 end
 
 return HUD
