@@ -101,6 +101,33 @@ function HUD:draw(player, gameState)
   Colors.setColor("dim")
   love.graphics.setFont(Fonts.getFont("small"))
   love.graphics.print("REGEN: " .. string.format("%.1f HP/s", player.recovery), boxX + 10, boxY + 95)
+
+  -- 5. XP Progress Box
+  local xpBoxX, xpBoxY = 10, 230
+  local xpBoxW, xpBoxH = 200, 100
+
+  -- Floating Label
+  Colors.setColor("dim")
+  love.graphics.setFont(Fonts.getFont("small"))
+  love.graphics.print("XP PROGRESS", xpBoxX + 5, xpBoxY - 12)
+
+  -- Border
+  Colors.setColor("accent")
+  love.graphics.setLineWidth(1)
+  love.graphics.rectangle("line", xpBoxX, xpBoxY, xpBoxW, xpBoxH)
+
+  -- Level Number
+  Colors.setColor("accent")
+  love.graphics.setFont(Fonts.getFont("huge"))
+  love.graphics.printf("LVL " .. player.level, xpBoxX, xpBoxY + 15, xpBoxW, "center")
+
+  -- XP Bar
+  self:drawAsciiBar(player.xp, player.xpToNext, 15, xpBoxX + 10, xpBoxY + 60, "", Colors.COLORS.xp, Colors.COLORS.dim)
+
+  -- XP Text
+  Colors.setColor("dim")
+  love.graphics.setFont(Fonts.getFont("small"))
+  love.graphics.printf(string.format("XP: %d/%d", math.floor(player.xp), player.xpToNext), xpBoxX, xpBoxY + 80, xpBoxW, "center")
 end
 
 return HUD
