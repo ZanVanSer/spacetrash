@@ -2,11 +2,13 @@ local Colors = require('ui.colors')
 local Layout = require('ui.layout')
 local Fonts = require('ui.fonts')
 local Screen = require('systems.screen')
+local dl = require('systems/dataloader')
 
 local HUD = {}
 
 function HUD.new()
   local self = setmetatable({}, { __index = HUD })
+  self.weaponLookup = dl.createLookup(dl.getWeapons(), "id")
   return self
 end
 
@@ -128,6 +130,50 @@ function HUD:draw(player, gameState)
   Colors.setColor("dim")
   love.graphics.setFont(Fonts.getFont("small"))
   love.graphics.printf(string.format("XP: %d/%d", math.floor(player.xp), player.xpToNext), xpBoxX, xpBoxY + 80, xpBoxW, "center")
+
+  -- 6. Weapons display box
+  local wBoxX, wBoxY = 10, 350
+  local wBoxW = 200
+  local slotH = 40
+  local wBoxH = 4 * slotH + 20
+
+  -- Floating Label
+  Colors.setColor("dim")
+  love.graphics.setFont(Fonts.getFont("small"))
+  love.graphics.print("WEAPONS", wBoxX + 5, wBoxY - 12)
+
+  -- Border
+  Colors.setColor("accent")
+  love.graphics.setLineWidth(1)
+  love.graphics.rectangle("line", wBoxX, wBoxY, wBoxW, wBoxH)
+
+  for i = 1, 4 do
+    local slotY = wBoxY + 10 + (i-1) * slotH
+    local weaponId = player.ws.equippedWeapons[i]
+    
+    if weaponId then
+      local wd = self.weaponLookup[weaponId]
+      local name = wd and wd.name:upper() or "UNKNOWN"
+      
+      Colors.setColor("accent")
+      love.graphics.setFont(Fonts.getFont("small"))
+      love.graphics.print("W" .. i .. ": " .. name, wBoxX + 10, slotY + 5)
+      
+      -- Stars (Level 1 for now)
+      local stars = "★☆☆☆☆"
+      love.graphics.print(stars, wBoxX + 10, slotY + 20)
+    else
+      Colors.setColor("dim")
+      love.graphics.setFont(Fonts.getFont("small"))
+      love.graphics.print("W" .. i .. ": -- EMPTY --", wBoxX + 10, slotY + 12)
+    end
+    
+    -- Slot divider
+    if i < 4 then
+      Colors.setColor("dim", 0.3)
+      love.graphics.line(wBoxX + 10, slotY + slotH, wBoxX + wBoxW - 10, slotY + slotH)
+    end
+  end
 end
 
 return HUD
