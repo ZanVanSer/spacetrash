@@ -255,6 +255,37 @@ function HUD:draw(player, gameState)
       Colors.setColor("dim")
     end
   end
+
+  -- 9. Bottom Status Bar
+  local vw = Screen.getVirtualWidth()
+  local vh = Screen.getVirtualHeight()
+  local barX = 220
+  local barY = vh - 20
+  local barW = vw - barX
+
+  -- Background
+  love.graphics.setColor(0, 0, 0, 0.6)
+  love.graphics.rectangle("fill", barX, barY, barW, 20)
+
+  -- Top line
+  Colors.setColor("accent")
+  love.graphics.setLineWidth(1)
+  love.graphics.line(barX, barY, vw, barY)
+
+  love.graphics.setFont(Fonts.getFont("small"))
+
+  -- Left: ENEMIES
+  Colors.setColor("danger")
+  love.graphics.print("ENEMIES: " .. (gameState.enemiesKilled or 0), barX + 10, barY + 5)
+
+  -- Center: SCORE
+  Colors.setColor("xp")
+  local score = (gameState.enemiesKilled or 0) * 100
+  love.graphics.printf("SCORE: " .. score, barX, barY + 5, barW, "center")
+
+  -- Right: SYSTEM_STABLE
+  Colors.setColor("health")
+  love.graphics.printf("SYSTEM_STABLE: TRUE", barX, barY + 5, barW - 10, "right")
 end
 
 return HUD
