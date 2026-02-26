@@ -2,7 +2,7 @@
   {
     "id": "basic_drone",
     "name": "Drone",
-    "health": 10,
+    "hp": 10,
     "speed": 100,
     "xp": 1,
     "behavior": "straight_down",
@@ -11,7 +11,7 @@
   {
     "id": "zigzag_fighter",
     "name": "Fighter",
-    "health": 15,
+    "hp": 15,
     "speed": 120,
     "xp": 2,
     "behavior": "zigzag",
@@ -20,7 +20,7 @@
   {
     "id": "bomber",
     "name": "Bomber",
-    "health": 30,
+    "hp": 30,
     "speed": 80,
     "xp": 3,
     "behavior": "straight_down",
@@ -29,7 +29,7 @@
   {
     "id": "swarm_bee",
     "name": "Swarm Bee",
-    "health": 5,
+    "hp": 5,
     "speed": 150,
     "xp": 1,
     "behavior": "swarm",
