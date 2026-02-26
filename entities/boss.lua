@@ -86,29 +86,38 @@ function Boss:draw()
         self.x, self.y + self.radius                 -- Bottom center
     )
 
-    -- Draw Health Bar
-    local barWidth = self.radius * 2
-    local barHeight = 8
-    local barX = self.x - self.radius
-    local barY = self.y - self.radius - 15
-
-    -- Background
-    love.graphics.setColor(0.2, 0.2, 0.2)
-    love.graphics.rectangle("fill", barX, barY, barWidth, barHeight)
-
-    -- Fill
-    local fillPercent = math.max(0, self.health / self.maxHealth)
-    love.graphics.setColor(1, 0, 0)
-    love.graphics.rectangle("fill", barX, barY, barWidth * fillPercent, barHeight)
-
-    -- Border
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.rectangle("line", barX, barY, barWidth, barHeight)
-
     -- Draw Bullets
-    love.graphics.setColor(1, 0.2, 0.2)
+    local t = love.timer.getTime()
+    local Colors = require('ui/colors')
     for _, b in ipairs(self.bullets) do
-        love.graphics.circle("fill", b.x, b.y, b.radius or 8)
+        local r = b.radius or 8
+        local pulse = 1.0 + math.sin(t * 10) * 0.1
+        
+        local drawCircle = function()
+            love.graphics.circle("fill", b.x, b.y, r)
+        end
+
+        -- Outer glow
+        love.graphics.push()
+        love.graphics.translate(b.x, b.y)
+        love.graphics.scale(1.3 * pulse, 1.3 * pulse)
+        love.graphics.translate(-b.x, -b.y)
+        Colors.setColor("danger", 0.1)
+        drawCircle()
+        love.graphics.pop()
+
+        -- Mid glow
+        love.graphics.push()
+        love.graphics.translate(b.x, b.y)
+        love.graphics.scale(1.15 * pulse, 1.15 * pulse)
+        love.graphics.translate(-b.x, -b.y)
+        Colors.setColor("danger", 0.2)
+        drawCircle()
+        love.graphics.pop()
+
+        -- Main bullet
+        Colors.setColor("danger", 0.9)
+        drawCircle()
     end
 end
 

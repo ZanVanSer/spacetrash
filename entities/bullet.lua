@@ -1,3 +1,5 @@
+local Colors = require('ui/colors')
+
 local Bullet = {}
 Bullet.__index = Bullet
 
@@ -16,8 +18,34 @@ function Bullet:update(dt)
 end
 
 function Bullet:draw()
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.rectangle("fill", self.x, self.y, 4, 10)
+    local drawShape = function()
+        -- Diamond/Rectangle shape
+        love.graphics.polygon("fill", 0, -5, -2, 0, 0, 5, 2, 0)
+    end
+
+    love.graphics.push()
+    love.graphics.translate(self.x, self.y)
+    
+    -- 3-pass glow effect
+    -- Outer glow
+    love.graphics.push()
+    love.graphics.scale(1.3, 1.3)
+    Colors.setColor("accent", 0.1)
+    drawShape()
+    love.graphics.pop()
+    
+    -- Mid glow
+    love.graphics.push()
+    love.graphics.scale(1.15, 1.15)
+    Colors.setColor("accent", 0.2)
+    drawShape()
+    love.graphics.pop()
+    
+    -- Main bullet
+    Colors.setColor("accent", 0.9)
+    drawShape()
+    
+    love.graphics.pop()
 end
 
 return Bullet

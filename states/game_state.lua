@@ -8,6 +8,10 @@ local sm = require "states/statemanager"
 local savemanager = require "systems/savemanager"
 local Background = require "entities/background"
 local Screen = require('systems.screen')
+local Screenshake = require('systems.screenshake')
+local Particles = require('systems.particles')
+local Scanlines = require('ui.scanlines')
+local DamageNumbers = require('ui.damage_numbers')
 local Layout = require('ui/layout')
 local Fonts = require('ui/fonts')
 local HUD = require('ui/hud')
@@ -21,12 +25,16 @@ function state:enter(saveData, stageData, shipData)
     
     self.player = Player.new(shipData or dl.getShips()[1])
     self.hud = HUD.new()
+    self.screenshake = Screenshake
+    self.particles = Particles
+    self.damageNumbers = DamageNumbers
     
     self.isPaused = false
     self.upgradeMenu = nil
     self.gameTime = 0
     self.bossSpawned = false
     self.boss = nil
+    self.bossEntranceTimer = 0
     self.isVictory = false
     self.victoryStats = nil
     self.isPausedByPlayer = false
@@ -90,8 +98,15 @@ function state:saveProgress(isTerminal)
 end
 
 function state:update(dt)
-    -- Always update background, even when paused
+    -- Always update background, screenshake, and particles, even when paused
     self.background:update(dt)
+    self.screenshake.update(dt)
+    self.particles.update(dt)
+    self.damageNumbers.update(dt)
+
+    if self.bossEntranceTimer > 0 then
+        self.bossEntranceTimer = self.bossEntranceTimer - dt
+    end
 
     if self.isPaused or self.isPausedByPlayer or self.isVictory then return end
 
@@ -110,6 +125,9 @@ function state:update(dt)
         self.boss = Boss.new(Layout.centerX(), 80, bossData)
         self.bossSpawned = true
         self.enemySpawner:stop()
+        self.screenshake.trigger(15, 1.0)
+        self.particles.bossHit(self.boss.x, self.boss.y)
+        self.bossEntranceTimer = 2.0
     end
 
     local oldLevel = self.player.level
@@ -123,6 +141,8 @@ function state:update(dt)
             self.enemiesKilled = self.enemiesKilled + 1
             self.runStatistics.kills = self.runStatistics.kills + 1
             self.runStatistics.bossesDefeated = self.runStatistics.bossesDefeated + 1
+            self.screenshake.trigger(10, 0.5)
+            self.particles.enemyDeath(self.boss.x, self.boss.y)
             
             -- Apply Rewards
             local rewards = self.stageData.rewards or {}
@@ -180,6 +200,7 @@ function state:update(dt)
                 if checkCircleCollision(b.x, b.y, 4, e.x, e.y, e.radius) then
                     local damage = b.weaponData.damage
                     e:takeDamage(damage)
+                    self.damageNumbers.spawn(e.x, e.y, damage, false)
                     self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
                     b.isDead = true
                     
@@ -188,6 +209,9 @@ function state:update(dt)
                         e.xpGiven = true
                         self.enemiesKilled = self.enemiesKilled + 1
                         self.runStatistics.kills = self.runStatistics.kills + 1
+                        self.screenshake.trigger(2, 0.1)
+                        self.particles.enemyDeath(e.x, e.y)
+                        self.particles.xpPickup(self.player.x, self.player.y)
                     end
                 end
             end
@@ -198,8 +222,11 @@ function state:update(dt)
             if checkCircleCollision(b.x, b.y, 4, self.boss.x, self.boss.y, self.boss.radius) then
                 local damage = b.weaponData.damage
                 self.boss:takeDamage(damage)
+                self.damageNumbers.spawn(b.x, b.y, damage, false)
                 self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
                 b.isDead = true
+                self.screenshake.trigger(5, 0.15)
+                self.particles.bossHit(b.x, b.y)
             end
         end
     end
@@ -210,6 +237,8 @@ function state:update(dt)
             if checkCircleCollision(self.player.x, self.player.y, self.player.radius, e.x, e.y, e.radius) then
                 self.player.hp = self.player.hp - 10
                 e.isDead = true
+                self.screenshake.trigger(8, 0.2)
+                self.particles.playerHit(self.player.x, self.player.y)
             end
         end
     end
@@ -222,6 +251,8 @@ function state:update(dt)
                 if checkCircleCollision(bb.x, bb.y, bb.radius or 8, self.player.x, self.player.y, self.player.radius) then
                     self.player.hp = self.player.hp - bb.damage
                     bb.isDead = true
+                    self.screenshake.trigger(8, 0.2)
+                    self.particles.playerHit(self.player.x, self.player.y)
                 end
             end
         end
@@ -322,13 +353,20 @@ function state:draw()
     local oldFont = love.graphics.getFont()
     self.background:draw()
 
+    love.graphics.push()
+    self.screenshake.apply()
+
     -- Corner Brackets (radar screen feel)
     local vw, vh = Screen.getVirtualWidth(), Screen.getVirtualHeight()
     local hudW = 220
-    local bSize = 20
+    local time = love.timer.getTime()
+    local bPulse = math.sin(time * 3) * 5
+    local bSize = 20 + bPulse
+    local bAlpha = 0.6 + math.sin(time * 2) * 0.2
+    
     love.graphics.setLineWidth(1)
     local Colors = require('ui.colors')
-    Colors.setColor("accent")
+    Colors.setColor("accent", bAlpha)
     
     -- Top Left
     love.graphics.line(hudW, 0, hudW + bSize, 0)
@@ -367,9 +405,29 @@ function state:draw()
             love.graphics.rectangle("line", barX, barY, barWidth, barHeight)
         end
     end
+
+    self.particles.draw()
+    self.damageNumbers.draw()
     
+    love.graphics.pop()
+
     -- HUD
     self.hud:draw(self.player, self)
+
+    -- Boss Entrance Warning
+    if self.bossEntranceTimer > 0 then
+        -- Flash effect
+        local flashAlpha = math.min(0.5, self.bossEntranceTimer)
+        love.graphics.setColor(1, 0, 0, flashAlpha)
+        love.graphics.rectangle("fill", hudW, 0, vw - hudW, vh)
+        
+        -- Text Warning
+        if math.floor(love.timer.getTime() * 5) % 2 == 0 then
+            love.graphics.setColor(1, 0, 0)
+            love.graphics.setFont(Fonts.getFont("large"))
+            love.graphics.printf("WARNING: BOSS DETECTED", hudW, vh * 0.4, vw - hudW, "center")
+        end
+    end
 
     if self.isPaused and self.upgradeMenu then
         self.upgradeMenu:draw()
@@ -427,6 +485,10 @@ function state:draw()
         self.pauseMenu:draw(hudW + (vw - hudW) / 2, vh / 2)
     end
     love.graphics.setFont(oldFont)
+
+    Scanlines.drawScanlines()
+    love.graphics.setColor(1, 1, 1, 1)
+
     Screen.removeScale()
 end
 

@@ -18,8 +18,34 @@ local function setColor(colorName, alpha)
   love.graphics.setColor(c)
 end
 
+local function drawGlow(color, drawFunction, scale1, scale2)
+    local s1 = scale1 or 1.4
+    local s2 = scale2 or 1.15
+    
+    -- Pass 1: Outer Glow
+    love.graphics.push()
+    love.graphics.scale(s1, s1)
+    setColor(color, 0.08)
+    drawFunction()
+    love.graphics.pop()
+    
+    -- Pass 2: Mid Glow
+    love.graphics.push()
+    love.graphics.scale(s2, s2)
+    setColor(color, 0.15)
+    drawFunction()
+    love.graphics.pop()
+    
+    -- Pass 3: Main Shape
+    love.graphics.push()
+    setColor(color, 0.9)
+    drawFunction()
+    love.graphics.pop()
+end
+
 return {
   COLORS = COLORS,
   getColor = getColor,
-  setColor = setColor
+  setColor = setColor,
+  drawGlow = drawGlow
 }
