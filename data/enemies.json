@@ -1,9 +1,38 @@
 [
   {
     "id": "basic_drone",
-    "hp": 10,
+    "name": "Drone",
+    "health": 10,
     "speed": 100,
     "xp": 1,
-    "behavior": "straight_down"
+    "behavior": "straight_down",
+    "radius": 15
+  },
+  {
+    "id": "zigzag_fighter",
+    "name": "Fighter",
+    "health": 15,
+    "speed": 120,
+    "xp": 2,
+    "behavior": "zigzag",
+    "radius": 14
+  },
+  {
+    "id": "bomber",
+    "name": "Bomber",
+    "health": 30,
+    "speed": 80,
+    "xp": 3,
+    "behavior": "straight_down",
+    "radius": 18
+  },
+  {
+    "id": "swarm_bee",
+    "name": "Swarm Bee",
+    "health": 5,
+    "speed": 150,
+    "xp": 1,
+    "behavior": "swarm",
+    "radius": 6
   }
 ]
