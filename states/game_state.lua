@@ -32,6 +32,7 @@ function state:enter(saveData, stageData, shipData)
     self.gameTime = 0
     self.bossSpawned = false
     self.boss = nil
+    self.bossEntranceTimer = 0
     self.isVictory = false
     self.victoryStats = nil
     self.isPausedByPlayer = false
@@ -100,6 +101,10 @@ function state:update(dt)
     self.screenshake.update(dt)
     self.particles.update(dt)
 
+    if self.bossEntranceTimer > 0 then
+        self.bossEntranceTimer = self.bossEntranceTimer - dt
+    end
+
     if self.isPaused or self.isPausedByPlayer or self.isVictory then return end
 
     self.gameTime = self.gameTime + dt
@@ -117,7 +122,9 @@ function state:update(dt)
         self.boss = Boss.new(Layout.centerX(), 80, bossData)
         self.bossSpawned = true
         self.enemySpawner:stop()
-        self.screenshake.trigger(10, 0.5)
+        self.screenshake.trigger(15, 1.0)
+        self.particles.bossHit(self.boss.x, self.boss.y)
+        self.bossEntranceTimer = 2.0
     end
 
     local oldLevel = self.player.level
@@ -396,6 +403,21 @@ function state:draw()
 
     -- HUD
     self.hud:draw(self.player, self)
+
+    -- Boss Entrance Warning
+    if self.bossEntranceTimer > 0 then
+        -- Flash effect
+        local flashAlpha = math.min(0.5, self.bossEntranceTimer)
+        love.graphics.setColor(1, 0, 0, flashAlpha)
+        love.graphics.rectangle("fill", hudW, 0, vw - hudW, vh)
+        
+        -- Text Warning
+        if math.floor(love.timer.getTime() * 5) % 2 == 0 then
+            love.graphics.setColor(1, 0, 0)
+            love.graphics.setFont(Fonts.getFont("large"))
+            love.graphics.printf("WARNING: BOSS DETECTED", hudW, vh * 0.4, vw - hudW, "center")
+        end
+    end
 
     if self.isPaused and self.upgradeMenu then
         self.upgradeMenu:draw()
