@@ -106,9 +106,37 @@ function Boss:draw()
     love.graphics.rectangle("line", barX, barY, barWidth, barHeight)
 
     -- Draw Bullets
-    love.graphics.setColor(1, 0.2, 0.2)
+    local t = love.timer.getTime()
+    local Colors = require('ui/colors')
     for _, b in ipairs(self.bullets) do
-        love.graphics.circle("fill", b.x, b.y, b.radius or 8)
+        local r = b.radius or 8
+        local pulse = 1.0 + math.sin(t * 10) * 0.1
+        
+        local drawCircle = function()
+            love.graphics.circle("fill", b.x, b.y, r)
+        end
+
+        -- Outer glow
+        love.graphics.push()
+        love.graphics.translate(b.x, b.y)
+        love.graphics.scale(1.3 * pulse, 1.3 * pulse)
+        love.graphics.translate(-b.x, -b.y)
+        Colors.setColor("danger", 0.1)
+        drawCircle()
+        love.graphics.pop()
+
+        -- Mid glow
+        love.graphics.push()
+        love.graphics.translate(b.x, b.y)
+        love.graphics.scale(1.15 * pulse, 1.15 * pulse)
+        love.graphics.translate(-b.x, -b.y)
+        Colors.setColor("danger", 0.2)
+        drawCircle()
+        love.graphics.pop()
+
+        -- Main bullet
+        Colors.setColor("danger", 0.9)
+        drawCircle()
     end
 end
 
