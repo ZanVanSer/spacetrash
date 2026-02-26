@@ -8,6 +8,7 @@ local sm = require "states/statemanager"
 local savemanager = require "systems/savemanager"
 local Background = require "entities/background"
 local Screen = require('systems.screen')
+local Screenshake = require('systems.screenshake')
 local Layout = require('ui/layout')
 local Fonts = require('ui/fonts')
 local HUD = require('ui/hud')
@@ -21,6 +22,7 @@ function state:enter(saveData, stageData, shipData)
     
     self.player = Player.new(shipData or dl.getShips()[1])
     self.hud = HUD.new()
+    self.screenshake = Screenshake
     
     self.isPaused = false
     self.upgradeMenu = nil
@@ -90,8 +92,9 @@ function state:saveProgress(isTerminal)
 end
 
 function state:update(dt)
-    -- Always update background, even when paused
+    -- Always update background and screenshake, even when paused
     self.background:update(dt)
+    self.screenshake.update(dt)
 
     if self.isPaused or self.isPausedByPlayer or self.isVictory then return end
 
@@ -110,6 +113,7 @@ function state:update(dt)
         self.boss = Boss.new(Layout.centerX(), 80, bossData)
         self.bossSpawned = true
         self.enemySpawner:stop()
+        self.screenshake.trigger(10, 0.5)
     end
 
     local oldLevel = self.player.level
@@ -123,6 +127,7 @@ function state:update(dt)
             self.enemiesKilled = self.enemiesKilled + 1
             self.runStatistics.kills = self.runStatistics.kills + 1
             self.runStatistics.bossesDefeated = self.runStatistics.bossesDefeated + 1
+            self.screenshake.trigger(10, 0.5)
             
             -- Apply Rewards
             local rewards = self.stageData.rewards or {}
@@ -188,6 +193,7 @@ function state:update(dt)
                         e.xpGiven = true
                         self.enemiesKilled = self.enemiesKilled + 1
                         self.runStatistics.kills = self.runStatistics.kills + 1
+                        self.screenshake.trigger(2, 0.1)
                     end
                 end
             end
@@ -200,6 +206,7 @@ function state:update(dt)
                 self.boss:takeDamage(damage)
                 self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
                 b.isDead = true
+                self.screenshake.trigger(5, 0.15)
             end
         end
     end
@@ -210,6 +217,7 @@ function state:update(dt)
             if checkCircleCollision(self.player.x, self.player.y, self.player.radius, e.x, e.y, e.radius) then
                 self.player.hp = self.player.hp - 10
                 e.isDead = true
+                self.screenshake.trigger(8, 0.2)
             end
         end
     end
@@ -222,6 +230,7 @@ function state:update(dt)
                 if checkCircleCollision(bb.x, bb.y, bb.radius or 8, self.player.x, self.player.y, self.player.radius) then
                     self.player.hp = self.player.hp - bb.damage
                     bb.isDead = true
+                    self.screenshake.trigger(8, 0.2)
                 end
             end
         end
@@ -322,6 +331,9 @@ function state:draw()
     local oldFont = love.graphics.getFont()
     self.background:draw()
 
+    love.graphics.push()
+    self.screenshake.apply()
+
     -- Corner Brackets (radar screen feel)
     local vw, vh = Screen.getVirtualWidth(), Screen.getVirtualHeight()
     local hudW = 220
@@ -368,6 +380,8 @@ function state:draw()
         end
     end
     
+    love.graphics.pop()
+
     -- HUD
     self.hud:draw(self.player, self)
 
