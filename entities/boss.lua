@@ -86,25 +86,6 @@ function Boss:draw()
         self.x, self.y + self.radius                 -- Bottom center
     )
 
-    -- Draw Health Bar
-    local barWidth = self.radius * 2
-    local barHeight = 8
-    local barX = self.x - self.radius
-    local barY = self.y - self.radius - 15
-
-    -- Background
-    love.graphics.setColor(0.2, 0.2, 0.2)
-    love.graphics.rectangle("fill", barX, barY, barWidth, barHeight)
-
-    -- Fill
-    local fillPercent = math.max(0, self.health / self.maxHealth)
-    love.graphics.setColor(1, 0, 0)
-    love.graphics.rectangle("fill", barX, barY, barWidth * fillPercent, barHeight)
-
-    -- Border
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.rectangle("line", barX, barY, barWidth, barHeight)
-
     -- Draw Bullets
     local t = love.timer.getTime()
     local Colors = require('ui/colors')
