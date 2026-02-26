@@ -11,6 +11,7 @@ local Screen = require('systems.screen')
 local Screenshake = require('systems.screenshake')
 local Particles = require('systems.particles')
 local Scanlines = require('ui.scanlines')
+local DamageNumbers = require('ui.damage_numbers')
 local Layout = require('ui/layout')
 local Fonts = require('ui/fonts')
 local HUD = require('ui/hud')
@@ -26,6 +27,7 @@ function state:enter(saveData, stageData, shipData)
     self.hud = HUD.new()
     self.screenshake = Screenshake
     self.particles = Particles
+    self.damageNumbers = DamageNumbers
     
     self.isPaused = false
     self.upgradeMenu = nil
@@ -100,6 +102,7 @@ function state:update(dt)
     self.background:update(dt)
     self.screenshake.update(dt)
     self.particles.update(dt)
+    self.damageNumbers.update(dt)
 
     if self.bossEntranceTimer > 0 then
         self.bossEntranceTimer = self.bossEntranceTimer - dt
@@ -197,6 +200,7 @@ function state:update(dt)
                 if checkCircleCollision(b.x, b.y, 4, e.x, e.y, e.radius) then
                     local damage = b.weaponData.damage
                     e:takeDamage(damage)
+                    self.damageNumbers.spawn(e.x, e.y, damage, false)
                     self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
                     b.isDead = true
                     
@@ -218,6 +222,7 @@ function state:update(dt)
             if checkCircleCollision(b.x, b.y, 4, self.boss.x, self.boss.y, self.boss.radius) then
                 local damage = b.weaponData.damage
                 self.boss:takeDamage(damage)
+                self.damageNumbers.spawn(b.x, b.y, damage, false)
                 self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
                 b.isDead = true
                 self.screenshake.trigger(5, 0.15)
@@ -398,6 +403,7 @@ function state:draw()
     end
 
     self.particles.draw()
+    self.damageNumbers.draw()
     
     love.graphics.pop()
 
