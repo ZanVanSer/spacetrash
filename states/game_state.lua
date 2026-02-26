@@ -10,6 +10,7 @@ local Background = require "entities/background"
 local Screen = require('systems.screen')
 local Screenshake = require('systems.screenshake')
 local Particles = require('systems.particles')
+local Scanlines = require('ui.scanlines')
 local Layout = require('ui/layout')
 local Fonts = require('ui/fonts')
 local HUD = require('ui/hud')
@@ -452,6 +453,10 @@ function state:draw()
         self.pauseMenu:draw(hudW + (vw - hudW) / 2, vh / 2)
     end
     love.graphics.setFont(oldFont)
+
+    Scanlines.drawScanlines()
+    love.graphics.setColor(1, 1, 1, 1)
+
     Screen.removeScale()
 end
 
