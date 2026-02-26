@@ -359,10 +359,14 @@ function state:draw()
     -- Corner Brackets (radar screen feel)
     local vw, vh = Screen.getVirtualWidth(), Screen.getVirtualHeight()
     local hudW = 220
-    local bSize = 20
+    local time = love.timer.getTime()
+    local bPulse = math.sin(time * 3) * 5
+    local bSize = 20 + bPulse
+    local bAlpha = 0.6 + math.sin(time * 2) * 0.2
+    
     love.graphics.setLineWidth(1)
     local Colors = require('ui.colors')
-    Colors.setColor("accent")
+    Colors.setColor("accent", bAlpha)
     
     -- Top Left
     love.graphics.line(hudW, 0, hudW + bSize, 0)
