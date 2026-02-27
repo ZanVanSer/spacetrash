@@ -12,7 +12,7 @@
     "boss": "asteroid_boss",
     "survivalTime": 30,
     
-    "background": "space_complete",
+    "background": "asteroid_belt",
     "music": "battle_theme_1",
     
     "rewards": {

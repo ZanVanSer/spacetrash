@@ -48,6 +48,17 @@ function state:enter(saveData, stageData, shipData)
     self.enemySpawnInterval = self.stageData.enemySpawnRate or 2.0
     self.stageBoss = self.stageData.boss
     
+    -- Background Tinting for Immersion
+    local bgID = self.stageData.background or "space_complete"
+    self.backgroundTint = {1, 1, 1} -- Default
+    if bgID == "asteroid_belt" then
+        self.backgroundTint = {0.8, 0.8, 0.8} -- Grayish
+    elseif bgID == "urban_ruins" then
+        self.backgroundTint = {1, 0.9, 0.7} -- Warm orange glow
+    elseif bgID == "solar_core" then
+        self.backgroundTint = {1, 0.7, 0.4} -- Strong fire tint
+    end
+    
     self.enemySpawner = Spawner.new(self.stageEnemies, self.enemySpawnInterval)
     
     -- Run statistics
@@ -382,6 +393,9 @@ function state:draw()
     love.graphics.line(vw, vh - bSize, vw, vh)
 
     self.player:draw()
+    
+    -- Apply background tint for game elements
+    love.graphics.setColor(self.backgroundTint[1], self.backgroundTint[2], self.backgroundTint[3], 1.0)
     self.enemySpawner:draw()
     
     if self.boss then
@@ -405,6 +419,9 @@ function state:draw()
             love.graphics.rectangle("line", barX, barY, barWidth, barHeight)
         end
     end
+    
+    -- Reset tint
+    love.graphics.setColor(1, 1, 1, 1)
 
     self.particles.draw()
     self.damageNumbers.draw()
