@@ -9,8 +9,10 @@ function EnemyBullet.new(x, y, patternData)
     self.x = x
     self.y = y
     self.patternData = patternData -- contains speed, angle, pattern, damage
+    self.vx = patternData.vx
+    self.vy = patternData.vy
     self.isDead = false
-    self.radius = 6
+    self.radius = patternData.radius or 6
     return self
 end
 

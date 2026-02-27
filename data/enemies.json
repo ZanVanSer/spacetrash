@@ -33,7 +33,7 @@
     "xp": 3,
     "behavior": "straight_down",
     "radius": 18,
-    "shootPattern": "straight",
+    "shootPattern": "spread",
     "shootInterval": 3.0,
     "bulletSpeed": 100,
     "bulletDamage": 15

@@ -13,15 +13,18 @@ function AttackSpread.createBullets(x, y, patternData, playerX, playerY)
     }
     
     for _, angle in ipairs(angles) do
-        table.insert(bullets, {
-            x = x,
-            y = y,
-            vx = math.cos(angle) * speed,
-            vy = math.sin(angle) * speed,
-            patternData = patternData,
-            isDead = false,
-            radius = 6
-        })
+        -- Merge patternData into the bullet table
+        local b = {}
+        for k, v in pairs(patternData) do b[k] = v end
+        
+        b.x = x
+        b.y = y
+        b.vx = math.cos(angle) * speed
+        b.vy = math.sin(angle) * speed
+        b.isDead = false
+        b.radius = 6
+        
+        table.insert(bullets, b)
     end
     
     return bullets
