@@ -2,6 +2,7 @@ local Screen = require('systems.screen')
 local EnemyVisuals = require('entities.enemy_visuals')
 local EnemyBullet = require('entities.enemy_bullet')
 local Particles = require('systems.particles')
+local Colors = require('ui/colors')
 local Enemy = {}
 Enemy.__index = Enemy
 
@@ -29,6 +30,10 @@ end
 function Enemy:update(dt, playerX, playerY)
     local behavior = require("behaviors/" .. self.behavior)
     behavior.update(self, dt)
+
+    -- Store last player position for drawing telegraph
+    self.lastPlayerX = playerX
+    self.lastPlayerY = playerY
 
     -- Shooting logic
     if self.shootPattern then
@@ -82,6 +87,19 @@ function Enemy:update(dt, playerX, playerY)
 end
 
 function Enemy:draw()
+    -- Visual Warning (Telegraph)
+    if (self.shootPattern == "aimed" or self.shootPattern == "spread") and self.lastPlayerX then
+        local timeRemaining = self.shootInterval - self.shootTimer
+        if timeRemaining <= 0.5 and timeRemaining > 0 then
+            local alpha = (0.5 - timeRemaining) / 0.5
+            local pulse = math.abs(math.sin(love.timer.getTime() * 20)) * 0.5 + 0.2
+            Colors.setColor("danger", pulse * alpha)
+            love.graphics.setLineWidth(1)
+            love.graphics.line(self.x, self.y, self.lastPlayerX, self.lastPlayerY)
+            love.graphics.setLineWidth(1)
+        end
+    end
+
     EnemyVisuals.drawEnemy(self.enemyData.id, self.x, self.y, 1.0, 0)
     
     -- HP Bar if damaged
