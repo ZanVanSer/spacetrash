@@ -88,7 +88,7 @@ end
 
 function Enemy:draw()
     -- Visual Warning (Telegraph)
-    if (self.shootPattern == "aimed" or self.shootPattern == "spread") and self.lastPlayerX then
+    if self.shootPattern == "aimed" and self.lastPlayerX then
         local timeRemaining = self.shootInterval - self.shootTimer
         if timeRemaining <= 0.5 and timeRemaining > 0 then
             local alpha = (0.5 - timeRemaining) / 0.5
