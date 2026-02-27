@@ -247,7 +247,7 @@ function state:update(dt)
     for _, e in ipairs(enemies) do
         if not e.isDead then
             if checkCircleCollision(self.player.x, self.player.y, self.player.radius, e.x, e.y, e.radius) then
-                self.player:takeDamage(10)
+                self.player:takeDamage(e:getContactDamage())
                 e.isDead = true
                 self.screenshake.trigger(8, 0.2)
                 self.particles.playerHit(self.player.x, self.player.y)
@@ -270,11 +270,18 @@ function state:update(dt)
 
     -- Boss Bullet-Player Collisions
     if self.boss and not self.boss.isDead then
+        -- Player-Boss Body Contact Collision
+        if checkCircleCollision(self.player.x, self.player.y, self.player.radius, self.boss.x, self.boss.y, self.boss.radius) then
+            self.player:takeDamage(self.boss:getContactDamage() * dt * 60)
+            self.screenshake.trigger(10, 0.1)
+            self.particles.playerHit(self.player.x, self.player.y)
+        end
+
         local bBullets = self.boss:getBullets()
         for _, bb in ipairs(bBullets) do
             if not bb.isDead then
                 if checkCircleCollision(bb.x, bb.y, bb.radius or 8, self.player.x, self.player.y, self.player.radius) then
-                    self.player.hp = self.player.hp - bb.damage
+                    self.player:takeDamage(bb.patternData.damage or 10)
                     bb.isDead = true
                     self.screenshake.trigger(8, 0.2)
                     self.particles.playerHit(self.player.x, self.player.y)

@@ -8,7 +8,7 @@
     "behavior": "side_to_side",
     "shootPattern": "spread",
     "shootInterval": 2.0,
-    "bulletDamage": 10,
+    "bulletDamage": 30,
     "bulletSpeed": 200
   }
 ]

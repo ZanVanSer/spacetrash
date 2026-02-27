@@ -127,6 +127,10 @@ function Enemy:getBullets()
     return self.bullets
 end
 
+function Enemy:getContactDamage()
+    return self.enemyData.bulletDamage or 5
+end
+
 function Enemy:takeDamage(amount)
     self.hp = self.hp - amount
     if self.hp <= 0 then self.isDead = true end

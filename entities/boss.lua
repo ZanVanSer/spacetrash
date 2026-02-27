@@ -73,6 +73,10 @@ function Boss:update(dt, playerX, playerY)
     end
 end
 
+function Boss:getContactDamage()
+    return self.bossData.bulletDamage or 10
+end
+
 function Boss:takeDamage(amount)
     self.health = self.health - amount
     if self.health <= 0 then
