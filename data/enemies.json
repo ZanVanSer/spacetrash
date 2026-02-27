@@ -6,7 +6,11 @@
     "speed": 100,
     "xp": 1,
     "behavior": "straight_down",
-    "radius": 15
+    "radius": 15,
+    "shootPattern": "straight",
+    "shootInterval": 2.5,
+    "bulletSpeed": 150,
+    "bulletDamage": 5
   },
   {
     "id": "zigzag_fighter",
@@ -15,7 +19,11 @@
     "speed": 120,
     "xp": 2,
     "behavior": "zigzag",
-    "radius": 14
+    "radius": 14,
+    "shootPattern": "aimed",
+    "shootInterval": 2.0,
+    "bulletSpeed": 200,
+    "bulletDamage": 8
   },
   {
     "id": "bomber",
@@ -24,7 +32,11 @@
     "speed": 80,
     "xp": 3,
     "behavior": "straight_down",
-    "radius": 18
+    "radius": 18,
+    "shootPattern": "straight",
+    "shootInterval": 3.0,
+    "bulletSpeed": 100,
+    "bulletDamage": 15
   },
   {
     "id": "swarm_bee",

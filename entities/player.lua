@@ -87,4 +87,10 @@ end
 function Player:getBullets() return self.ws:getBullets() end
 function Player:addWeapon(id) self.ws:equipWeapon(id) end
 
+function Player:takeDamage(amount)
+    -- Apply armor reduction (simple reduction, minimum 1 damage)
+    local actualDamage = math.max(1, amount - (self.armor or 0))
+    self.hp = self.hp - actualDamage
+end
+
 return Player

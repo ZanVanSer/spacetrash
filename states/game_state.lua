@@ -143,7 +143,7 @@ function state:update(dt)
 
     local oldLevel = self.player.level
     self.player:update(dt)
-    self.enemySpawner:update(dt)
+    self.enemySpawner:update(dt, self.player.x, self.player.y)
     
     if self.boss then
         self.boss:update(dt)
@@ -246,10 +246,23 @@ function state:update(dt)
     for _, e in ipairs(enemies) do
         if not e.isDead then
             if checkCircleCollision(self.player.x, self.player.y, self.player.radius, e.x, e.y, e.radius) then
-                self.player.hp = self.player.hp - 10
+                self.player:takeDamage(10)
                 e.isDead = true
                 self.screenshake.trigger(8, 0.2)
                 self.particles.playerHit(self.player.x, self.player.y)
+            end
+
+            -- Enemy Bullet-Player Collisions
+            local eBullets = e:getBullets()
+            for _, eb in ipairs(eBullets) do
+                if not eb.isDead then
+                    if checkCircleCollision(eb.x, eb.y, eb.radius or 6, self.player.x, self.player.y, self.player.radius) then
+                        self.player:takeDamage(eb.patternData.damage or 5)
+                        eb.isDead = true
+                        self.particles.playerHit(self.player.x, self.player.y)
+                        self.screenshake.trigger(6, 0.15)
+                    end
+                end
             end
         end
     end
