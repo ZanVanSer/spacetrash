@@ -45,6 +45,10 @@
     "speed": 150,
     "xp": 1,
     "behavior": "swarm",
-    "radius": 6
+    "radius": 6,
+    "shootPattern": "spiral",
+    "shootInterval": 2.5,
+    "bulletSpeed": 150,
+    "bulletDamage": 5
   }
 ]
