@@ -21,9 +21,10 @@ function state:enter(saveData, stageData, shipData)
     -- Use parameters if provided, otherwise fall back to global state (important for Restarts)
     self.currentSaveData = saveData or _G.currentSaveData
     self.currentSaveSlot = _G.currentSaveSlot
-    self.stageData = stageData or {}
+    self.stageData = stageData or self.stageData or {}
+    self.shipData = shipData or self.shipData
     
-    self.player = Player.new(shipData or dl.getShips()[1])
+    self.player = Player.new(self.shipData or dl.getShips()[1])
     self.hud = HUD.new()
     self.screenshake = Screenshake
     self.particles = Particles

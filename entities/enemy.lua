@@ -1,6 +1,7 @@
 local Screen = require('systems.screen')
 local EnemyVisuals = require('entities.enemy_visuals')
 local EnemyBullet = require('entities.enemy_bullet')
+local Particles = require('systems.particles')
 local Enemy = {}
 Enemy.__index = Enemy
 
@@ -35,9 +36,13 @@ function Enemy:update(dt, playerX, playerY)
         if self.shootTimer >= self.shootInterval then
             local pattern = require("patterns/attack_" .. self.shootPattern)
             
+            -- Add slight random variation: speed = bulletSpeed * (0.9 + math.random() * 0.2)
+            local baseSpeed = self.enemyData.bulletSpeed or 200
+            local speed = baseSpeed * (0.9 + math.random() * 0.2)
+            
             local bulletData = {
                 pattern = self.shootPattern,
-                speed = self.enemyData.bulletSpeed or 200,
+                speed = speed,
                 damage = self.enemyData.bulletDamage or 10
             }
 
@@ -52,6 +57,9 @@ function Enemy:update(dt, playerX, playerY)
             else
                 table.insert(self.bullets, EnemyBullet.new(self.x, self.y, bulletData))
             end
+            
+            -- Muzzle flash effect: Brief flash at enemy position when bullet spawns
+            Particles.spawn(self.x, self.y, 6, "danger", 120, 2)
             
             self.shootTimer = 0
         end
