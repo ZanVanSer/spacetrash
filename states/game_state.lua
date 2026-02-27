@@ -147,7 +147,7 @@ function state:update(dt)
     self.enemySpawner:update(dt, self.player.x, self.player.y)
     
     if self.boss then
-        self.boss:update(dt)
+        self.boss:update(dt, self.player.x, self.player.y)
         if self.boss.isDead then
             self.isVictory = true
             self.enemiesKilled = self.enemiesKilled + 1
