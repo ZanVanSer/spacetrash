@@ -6,9 +6,9 @@
     "speed": 80,
     "radius": 40,
     "behavior": "side_to_side",
-    "shootPattern": "triple_spread",
+    "shootPattern": "spread",
     "shootInterval": 2.0,
-    "bulletDamage": 10,
+    "bulletDamage": 30,
     "bulletSpeed": 200
   }
 ]

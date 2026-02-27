@@ -1,4 +1,5 @@
 local Screen = require('systems.screen')
+local EnemyBullet = require('entities.enemy_bullet')
 local Boss = {}
 Boss.__index = Boss
 
@@ -18,7 +19,7 @@ function Boss.new(x, y, bossData)
     return self
 end
 
-function Boss:update(dt)
+function Boss:update(dt, playerX, playerY)
     if self.isDead then return end
 
     -- Load and run behavior
@@ -39,28 +40,41 @@ function Boss:update(dt)
     -- Shooting logic
     self.shootTimer = self.shootTimer + dt
     if self.shootTimer >= self.bossData.shootInterval then
-        local pattern = require("patterns/boss_" .. self.bossData.shootPattern)
-        if pattern and pattern.createBullets then
-            local newBullets = pattern.createBullets(self.x, self.y, self.bossData)
-            for _, b in ipairs(newBullets) do
-                table.insert(self.bullets, b)
+        local pattern = require("patterns/attack_" .. self.bossData.shootPattern)
+        
+        local bulletData = {
+            pattern = self.bossData.shootPattern,
+            speed = self.bossData.bulletSpeed or 200,
+            damage = self.bossData.bulletDamage or 10
+        }
+
+        if pattern.createBullets then
+            -- Use passed player position or fallback
+            local px, py = playerX or self.x, playerY or (self.y + 100)
+            
+            local newBulletsData = pattern.createBullets(self.x, self.y, bulletData, px, py)
+            for _, bData in ipairs(newBulletsData) do
+                table.insert(self.bullets, EnemyBullet.new(bData.x, bData.y, bData))
             end
+        else
+            table.insert(self.bullets, EnemyBullet.new(self.x, self.y, bulletData))
         end
+        
         self.shootTimer = 0
     end
 
     -- Update bullets
     for i = #self.bullets, 1, -1 do
         local b = self.bullets[i]
-        b.x = b.x + (b.vx or 0) * dt
-        b.y = b.y + (b.vy or 0) * dt
-
-        -- Remove off-screen bullets
-        if b.y > Screen.getVirtualHeight() + 50 or b.y < -50 or 
-           b.x < -50 or b.x > Screen.getVirtualWidth() + 50 or b.isDead then
+        b:update(dt)
+        if b.isDead then
             table.remove(self.bullets, i)
         end
     end
+end
+
+function Boss:getContactDamage()
+    return self.bossData.bulletDamage or 10
 end
 
 function Boss:takeDamage(amount)
@@ -87,37 +101,8 @@ function Boss:draw()
     )
 
     -- Draw Bullets
-    local t = love.timer.getTime()
-    local Colors = require('ui/colors')
     for _, b in ipairs(self.bullets) do
-        local r = b.radius or 8
-        local pulse = 1.0 + math.sin(t * 10) * 0.1
-        
-        local drawCircle = function()
-            love.graphics.circle("fill", b.x, b.y, r)
-        end
-
-        -- Outer glow
-        love.graphics.push()
-        love.graphics.translate(b.x, b.y)
-        love.graphics.scale(1.3 * pulse, 1.3 * pulse)
-        love.graphics.translate(-b.x, -b.y)
-        Colors.setColor("danger", 0.1)
-        drawCircle()
-        love.graphics.pop()
-
-        -- Mid glow
-        love.graphics.push()
-        love.graphics.translate(b.x, b.y)
-        love.graphics.scale(1.15 * pulse, 1.15 * pulse)
-        love.graphics.translate(-b.x, -b.y)
-        Colors.setColor("danger", 0.2)
-        drawCircle()
-        love.graphics.pop()
-
-        -- Main bullet
-        Colors.setColor("danger", 0.9)
-        drawCircle()
+        b:draw()
     end
 end
 

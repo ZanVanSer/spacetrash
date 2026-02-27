@@ -27,7 +27,7 @@ function Spawner.new(enemyList, spawnInterval)
     return self
 end
 
-function Spawner:update(dt)
+function Spawner:update(dt, playerX, playerY)
     if self.active then
         self.spawnTimer = self.spawnTimer + dt
         if self.spawnTimer >= self.spawnInterval then
@@ -44,7 +44,7 @@ function Spawner:update(dt)
     for i = #self.enemies, 1, -1 do
         local e = self.enemies[i]
         if e then
-            e:update(dt)
+            e:update(dt, playerX, playerY)
             if e.isDead then table.remove(self.enemies, i) end
         end
     end

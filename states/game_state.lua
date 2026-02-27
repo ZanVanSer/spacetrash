@@ -21,9 +21,10 @@ function state:enter(saveData, stageData, shipData)
     -- Use parameters if provided, otherwise fall back to global state (important for Restarts)
     self.currentSaveData = saveData or _G.currentSaveData
     self.currentSaveSlot = _G.currentSaveSlot
-    self.stageData = stageData or {}
+    self.stageData = stageData or self.stageData or {}
+    self.shipData = shipData or self.shipData
     
-    self.player = Player.new(shipData or dl.getShips()[1])
+    self.player = Player.new(self.shipData or dl.getShips()[1])
     self.hud = HUD.new()
     self.screenshake = Screenshake
     self.particles = Particles
@@ -143,10 +144,10 @@ function state:update(dt)
 
     local oldLevel = self.player.level
     self.player:update(dt)
-    self.enemySpawner:update(dt)
+    self.enemySpawner:update(dt, self.player.x, self.player.y)
     
     if self.boss then
-        self.boss:update(dt)
+        self.boss:update(dt, self.player.x, self.player.y)
         if self.boss.isDead then
             self.isVictory = true
             self.enemiesKilled = self.enemiesKilled + 1
@@ -246,21 +247,41 @@ function state:update(dt)
     for _, e in ipairs(enemies) do
         if not e.isDead then
             if checkCircleCollision(self.player.x, self.player.y, self.player.radius, e.x, e.y, e.radius) then
-                self.player.hp = self.player.hp - 10
+                self.player:takeDamage(e:getContactDamage())
                 e.isDead = true
                 self.screenshake.trigger(8, 0.2)
                 self.particles.playerHit(self.player.x, self.player.y)
+            end
+
+            -- Enemy Bullet-Player Collisions
+            local eBullets = e:getBullets()
+            for _, eb in ipairs(eBullets) do
+                if not eb.isDead then
+                    if checkCircleCollision(eb.x, eb.y, eb.radius or 6, self.player.x, self.player.y, self.player.radius) then
+                        self.player:takeDamage(eb.patternData.damage or 5)
+                        eb.isDead = true
+                        self.particles.playerHit(self.player.x, self.player.y)
+                        self.screenshake.trigger(6, 0.15)
+                    end
+                end
             end
         end
     end
 
     -- Boss Bullet-Player Collisions
     if self.boss and not self.boss.isDead then
+        -- Player-Boss Body Contact Collision
+        if checkCircleCollision(self.player.x, self.player.y, self.player.radius, self.boss.x, self.boss.y, self.boss.radius) then
+            self.player:takeDamage(self.boss:getContactDamage() * dt * 60)
+            self.screenshake.trigger(10, 0.1)
+            self.particles.playerHit(self.player.x, self.player.y)
+        end
+
         local bBullets = self.boss:getBullets()
         for _, bb in ipairs(bBullets) do
             if not bb.isDead then
                 if checkCircleCollision(bb.x, bb.y, bb.radius or 8, self.player.x, self.player.y, self.player.radius) then
-                    self.player.hp = self.player.hp - bb.damage
+                    self.player:takeDamage(bb.patternData.damage or 10)
                     bb.isDead = true
                     self.screenshake.trigger(8, 0.2)
                     self.particles.playerHit(self.player.x, self.player.y)

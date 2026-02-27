@@ -7,8 +7,8 @@ Player.__index = Player
 
 function Player.new(shipData)
     local self = setmetatable({}, Player)
-    self.x = Screen.getVirtualWidth() / 2
-    self.y = Screen.getVirtualHeight() - 50
+    self.x = (Screen.getVirtualWidth() + 220) / 2
+    self.y = Screen.getVirtualHeight() / 2
     
     -- Store Ship ID for drawing
     self.shipId = shipData.id
@@ -50,14 +50,29 @@ function Player:levelUp()
 end
 
 function Player:update(dt)
-    -- Movement
-    local moveX = 0
-    if love.keyboard.isDown("left") then
-        moveX = -1
-    elseif love.keyboard.isDown("right") then
-        moveX = 1
+    -- Movement with Normalization
+    local dx, dy = 0, 0
+    if love.keyboard.isDown("left") or love.keyboard.isDown("a") then
+        dx = dx - 1
     end
-    self.x = self.x + moveX * self.speed * dt
+    if love.keyboard.isDown("right") or love.keyboard.isDown("d") then
+        dx = dx + 1
+    end
+    if love.keyboard.isDown("up") or love.keyboard.isDown("w") then
+        dy = dy - 1
+    end
+    if love.keyboard.isDown("down") or love.keyboard.isDown("s") then
+        dy = dy + 1
+    end
+
+    if dx ~= 0 or dy ~= 0 then
+        local length = math.sqrt(dx * dx + dy * dy)
+        dx = dx / length
+        dy = dy / length
+        
+        self.x = self.x + dx * self.speed * dt
+        self.y = self.y + dy * self.speed * dt
+    end
     
     -- Bounds (Keep player in game viewport: 220 to virtual width)
     if self.x < 220 + self.radius then
@@ -65,6 +80,14 @@ function Player:update(dt)
     end
     if self.x > Screen.getVirtualWidth() - self.radius then
         self.x = Screen.getVirtualWidth() - self.radius
+    end
+
+    -- Vertical Bounds
+    if self.y < self.radius then
+        self.y = self.radius
+    end
+    if self.y > Screen.getVirtualHeight() - self.radius then
+        self.y = Screen.getVirtualHeight() - self.radius
     end
     
     -- Recovery
@@ -86,5 +109,11 @@ end
 
 function Player:getBullets() return self.ws:getBullets() end
 function Player:addWeapon(id) self.ws:equipWeapon(id) end
+
+function Player:takeDamage(amount)
+    -- Apply armor reduction (simple reduction, minimum 1 damage)
+    local actualDamage = math.max(1, amount - (self.armor or 0))
+    self.hp = self.hp - actualDamage
+end
 
 return Player

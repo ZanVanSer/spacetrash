@@ -12,7 +12,7 @@ function Bullet.new(x, y, weaponData)
 end
 
 function Bullet:update(dt)
-    local pattern = require("patterns/" .. self.weaponData.pattern)
+    local pattern = require("patterns/player_" .. self.weaponData.pattern)
     pattern.update(self, dt)
     if self.y < -50 then self.isDead = true end
 end
