@@ -22,7 +22,7 @@ local function drawGlow(color, drawFunction, scale1, scale2)
     drawFunction()
 end
 
-function BossVisuals.asteroid_guardian(flashTimer, overlayAlpha, aimAngle)
+function BossVisuals.asteroid_guardian(flashTimer, overlayAlpha, aimAngle, chargeLevel)
     local t = love.timer.getTime()
     local baseAim = aimAngle or 0
     local leftAim = baseAim - math.rad(15)
@@ -99,8 +99,9 @@ function BossVisuals.asteroid_guardian(flashTimer, overlayAlpha, aimAngle)
     love.graphics.rectangle("fill", 16, 16, 8, 4)
 end
 
-function BossVisuals.void_destroyer(flashTimer, overlayAlpha, aimAngle)
+function BossVisuals.void_destroyer(flashTimer, overlayAlpha, aimAngle, chargeLevel)
     local t = love.timer.getTime()
+    local charge = math.max(0, math.min(1, chargeLevel or 0))
 
     if flashTimer and flashTimer > 0 and overlayAlpha and overlayAlpha > 0 then
         love.graphics.setColor(1, 1, 1, overlayAlpha)
@@ -147,14 +148,28 @@ function BossVisuals.void_destroyer(flashTimer, overlayAlpha, aimAngle)
     love.graphics.circle("line", 0, 0, 20)
 
     -- Energy core pulse indicating imminent shot.
+    local coreRadius = 5 + (charge * 5)
     local pulse = 0.55 + (math.sin(t * 8) + 1) * 0.225
-    Colors.setColor("danger", pulse)
-    love.graphics.circle("fill", 0, 0, 5)
-    Colors.setColor("danger", math.min(1, pulse + 0.15))
-    love.graphics.circle("line", 0, 0, 8)
+    local coreAlpha = 0.5 + (charge * 0.5)
+    Colors.setColor("danger", math.max(pulse, coreAlpha))
+    love.graphics.circle("fill", 0, 0, coreRadius)
+    Colors.setColor("danger", math.min(1, math.max(pulse, coreAlpha) + 0.15))
+    love.graphics.circle("line", 0, 0, coreRadius + 3)
+
+    if charge > 0 then
+        local ringPulse = (math.sin(t * 10) + 1) * 0.5
+        local ringAlpha = (0.25 + charge * 0.55) * (0.7 + ringPulse * 0.3)
+        local ring1 = coreRadius + 4 + charge * 4 + ringPulse * 2
+        local ring2 = coreRadius + 10 + charge * 6 + ringPulse * 3
+        Colors.setColor("danger", math.min(1, ringAlpha))
+        love.graphics.setLineWidth(2)
+        love.graphics.circle("line", 0, 0, ring1)
+        Colors.setColor("danger", math.min(1, ringAlpha * 0.8))
+        love.graphics.circle("line", 0, 0, ring2)
+    end
 end
 
-function BossVisuals.default(flashTimer, overlayAlpha, aimAngle)
+function BossVisuals.default(flashTimer, overlayAlpha, aimAngle, chargeLevel)
     if flashTimer and flashTimer > 0 and overlayAlpha and overlayAlpha > 0 then
         love.graphics.setColor(1, 1, 1, overlayAlpha)
         love.graphics.circle("fill", 0, 0, 42)
@@ -174,27 +189,27 @@ function BossVisuals.default(flashTimer, overlayAlpha, aimAngle)
     love.graphics.circle("line", 0, 0, 42)
 end
 
-local function drawBossById(bossId, flashTimer, overlayAlpha, aimAngle)
+local function drawBossById(bossId, flashTimer, overlayAlpha, aimAngle, chargeLevel)
     if bossId == "asteroid_boss" or bossId == "asteroid_guardian" then
-        BossVisuals.asteroid_guardian(flashTimer, overlayAlpha, aimAngle)
+        BossVisuals.asteroid_guardian(flashTimer, overlayAlpha, aimAngle, chargeLevel)
     elseif bossId == "void_destroyer" then
-        BossVisuals.void_destroyer(flashTimer, overlayAlpha, aimAngle)
+        BossVisuals.void_destroyer(flashTimer, overlayAlpha, aimAngle, chargeLevel)
     else
-        BossVisuals.default(flashTimer, overlayAlpha, aimAngle)
+        BossVisuals.default(flashTimer, overlayAlpha, aimAngle, chargeLevel)
     end
 end
 
-function BossVisuals.drawBoss(bossId, x, y, scale, rotation, flashTimer, aimAngle)
+function BossVisuals.drawBoss(bossId, x, y, scale, rotation, flashTimer, aimAngle, chargeLevel)
     love.graphics.push()
     love.graphics.translate(x, y)
     love.graphics.rotate(rotation or 0)
     love.graphics.scale(scale or 1, scale or 1)
 
-    drawBossById(bossId, flashTimer, nil, aimAngle)
+    drawBossById(bossId, flashTimer, nil, aimAngle, chargeLevel)
 
     if flashTimer and flashTimer > 0 then
         local alpha = math.min(1, flashTimer * 2)
-        drawBossById(bossId, flashTimer, alpha, aimAngle)
+        drawBossById(bossId, flashTimer, alpha, aimAngle, chargeLevel)
     end
 
     love.graphics.pop()
