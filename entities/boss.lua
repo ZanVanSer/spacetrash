@@ -1,6 +1,7 @@
 local Screen = require('systems.screen')
 local EnemyBullet = require('entities.enemy_bullet')
 local Particles = require('systems.particles')
+local BossVisuals = require('entities.boss_visuals')
 local Boss = {}
 Boss.__index = Boss
 
@@ -78,6 +79,16 @@ function Boss.new(x, y, bossData)
     self.direction = 1
     self.isDead = false
     self.bullets = {}
+    self.flashTimer = 0
+    self.rotation = 0
+    self.isTransitioning = false
+    self.transitionTimer = 0
+    self.pulseTimer = 0
+    self.aimAngle = math.pi / 2
+    self.chargeLevel = 0
+    self.isCharging = false
+    self.chargeTimer = 0
+    self.chargeDuration = 0.3
     
     return self
 end
@@ -101,11 +112,33 @@ function Boss:onPhaseChange(oldPhaseIndex, newPhaseIndex)
     self.patternIndex = 1
     self.patternTimer = 0
     self.shootTimer = -1.0 -- Stop shooting briefly (1 second pause)
+    self.isTransitioning = true
+    self.transitionTimer = 1.0
     return true
 end
 
 function Boss:update(dt, playerX, playerY)
     if self.isDead then return end
+
+    self.pulseTimer = self.pulseTimer + dt
+
+    if playerX and playerY then
+        self.aimAngle = math.atan2(playerY - self.y, playerX - self.x)
+    end
+    
+    if self.flashTimer > 0 then
+        self.flashTimer = math.max(0, self.flashTimer - dt)
+    end
+    
+    if self.isTransitioning then
+        self.rotation = self.rotation + 3 * dt
+        self.transitionTimer = self.transitionTimer - dt
+        if self.transitionTimer <= 0 then
+            self.isTransitioning = false
+            self.transitionTimer = 0
+            self.rotation = 0
+        end
+    end
 
     -- Phase Management
     local newPhase, newIndex = self:getCurrentPhase()
@@ -155,39 +188,56 @@ function Boss:update(dt, playerX, playerY)
         end
     end
 
-    -- Shooting logic (using shootTimer logic)
-    self.shootTimer = self.shootTimer + dt
-    local shootInterval = phase.shootInterval or 2.0
-    
-    if self.shootTimer >= shootInterval then
-        local patterns = phase.patterns or {}
-        local currentPattern = patterns[self.patternIndex] or "spread"
-        
-        -- Add attack_ prefix if missing for file require
-        local fileName = currentPattern
-        if not fileName:find("^attack_") then
-            fileName = "attack_" .. fileName
-        end
-        
-        local pattern = require("patterns/" .. fileName)
-        
-        local bulletData = {
-            pattern = currentPattern,
-            speed = self.bossData.bulletSpeed or 200,
-            damage = self.bossData.bulletDamage or 10
-        }
+    -- Shooting logic with pre-fire charge-up.
+    if not self.isCharging then
+        self.shootTimer = self.shootTimer + dt
+    end
 
-        if pattern.createBullets then
-            local px, py = playerX or self.x, playerY or (self.y + 100)
-            local newBulletsData = pattern.createBullets(self.x, self.y, bulletData, px, py)
-            for _, bData in ipairs(newBulletsData) do
-                table.insert(self.bullets, EnemyBullet.new(bData.x, bData.y, bData))
+    local shootInterval = phase.shootInterval or 2.0
+
+    if not self.isCharging and self.shootTimer >= shootInterval then
+        self.isCharging = true
+        self.chargeTimer = 0
+        self.chargeLevel = 0
+    end
+
+    if self.isCharging then
+        self.chargeTimer = self.chargeTimer + dt
+        self.chargeLevel = math.min(1, self.chargeTimer / self.chargeDuration)
+
+        if self.chargeLevel >= 1.0 then
+            local patterns = phase.patterns or {}
+            local currentPattern = patterns[self.patternIndex] or "spread"
+            
+            -- Add attack_ prefix if missing for file require
+            local fileName = currentPattern
+            if not fileName:find("^attack_") then
+                fileName = "attack_" .. fileName
             end
-        else
-            table.insert(self.bullets, EnemyBullet.new(self.x, self.y, bulletData))
+            
+            local pattern = require("patterns/" .. fileName)
+            
+            local bulletData = {
+                pattern = currentPattern,
+                speed = self.bossData.bulletSpeed or 200,
+                damage = self.bossData.bulletDamage or 10
+            }
+
+            if pattern.createBullets then
+                local px, py = playerX or self.x, playerY or (self.y + 100)
+                local newBulletsData = pattern.createBullets(self.x, self.y, bulletData, px, py)
+                for _, bData in ipairs(newBulletsData) do
+                    table.insert(self.bullets, EnemyBullet.new(bData.x, bData.y, bData))
+                end
+            else
+                table.insert(self.bullets, EnemyBullet.new(self.x, self.y, bulletData))
+            end
+
+            self.isCharging = false
+            self.chargeTimer = 0
+            self.chargeLevel = 0
+            self.shootTimer = 0
         end
-        
-        self.shootTimer = 0
     end
 
     -- Update bullets
@@ -206,6 +256,7 @@ end
 
 function Boss:takeDamage(amount)
     self.health = self.health - amount
+    self.flashTimer = 0.1
     if self.health <= 0 then
         self.health = 0
         self.isDead = true
@@ -219,22 +270,8 @@ end
 function Boss:draw()
     if self.isDead then return end
 
-    -- Visual feedback based on current phase
-    local r, g, b = 1, 0, 0
-    if self.currentPhaseIndex >= 4 then
-        r, g, b = 1, 0.2, 0.2
-    elseif self.currentPhaseIndex == 3 then
-        r, g, b = 1, 0.5, 0
-    elseif self.currentPhaseIndex == 2 then
-        r, g, b = 1, 0.8, 0
-    end
-    
-    love.graphics.setColor(r, g, b)
-    love.graphics.polygon("fill", 
-        self.x - self.radius, self.y - self.radius,
-        self.x + self.radius, self.y - self.radius,
-        self.x, self.y + self.radius
-    )
+    local scale = 1.0 + math.sin(self.pulseTimer * 2) * 0.05
+    BossVisuals.drawBoss(self.bossData.id, self.x, self.y, scale, self.rotation, self.flashTimer, self.aimAngle, self.chargeLevel)
 
     -- Draw Bullets
     for _, b in ipairs(self.bullets) do
