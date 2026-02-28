@@ -6,19 +6,70 @@ Boss.__index = Boss
 
 function Boss.new(x, y, bossData)
     local self = setmetatable({}, Boss)
-    self.bossData = bossData
+    self.bossData = bossData or {
+        id = "unknown",
+        name = "Unknown Entity",
+        maxHealth = 500,
+        radius = 40,
+        baseSpeed = 80,
+        bulletSpeed = 200,
+        bulletDamage = 10
+    }
     self.x = x or Screen.getVirtualWidth() / 2
     self.y = y or 100
     
-    -- Stats from bossData (remove hardcoded fallbacks where possible or use sensible defaults)
-    self.maxHealth = bossData.maxHealth or 500
+    -- Stats from bossData
+    self.maxHealth = self.bossData.maxHealth or 500
     self.health = self.maxHealth
-    self.radius = bossData.radius or 40
+    self.radius = self.bossData.radius or 40
     
+    -- Validation: Phases
+    if not self.bossData.phases or #self.bossData.phases == 0 then
+        print("ERROR: Boss '" .. (self.bossData.id or "unknown") .. "' has no phases! Falling back to default phase.")
+        self.bossData.phases = {
+            {
+                healthPercent = 1.0,
+                behavior = "side_to_side",
+                movementSpeed = 80,
+                patterns = {"spread"},
+                shootInterval = 2.0,
+                patternDuration = 5.0
+            }
+        }
+    end
+
+    -- Validation: Behaviors and Patterns in each phase
+    for i, phase in ipairs(self.bossData.phases) do
+        -- Behavior existence check
+        local behaviorName = phase.behavior or "side_to_side"
+        local behaviorPath = "behaviors/" .. behaviorName .. ".lua"
+        if not love.filesystem.getInfo(behaviorPath) then
+            print("WARNING: Behavior '" .. behaviorName .. "' not found for boss '" .. self.bossData.id .. "' phase " .. i .. ". Defaulting to side_to_side.")
+            phase.behavior = "side_to_side"
+        end
+
+        -- Patterns existence check
+        if not phase.patterns or #phase.patterns == 0 then
+            phase.patterns = {"spread"}
+        else
+            for j, patternName in ipairs(phase.patterns) do
+                local fullPatternName = patternName
+                if not patternName:find("^attack_") then
+                    fullPatternName = "attack_" .. patternName
+                end
+                local patternPath = "patterns/" .. fullPatternName .. ".lua"
+                if not love.filesystem.getInfo(patternPath) then
+                    print("WARNING: Pattern '" .. patternName .. "' not found for boss '" .. self.bossData.id .. "' phase " .. i .. ". Defaulting to spread.")
+                    phase.patterns[j] = "spread"
+                end
+            end
+        end
+    end
+
     -- Phase system initialization
-    self.phases = bossData.phases or {}
+    self.phases = self.bossData.phases
     self.currentPhaseIndex = 1
-    self.currentPhaseData = self.phases[1] or {}
+    self.currentPhaseData = self.phases[1]
     
     self.patternIndex = 1
     self.patternTimer = 0
