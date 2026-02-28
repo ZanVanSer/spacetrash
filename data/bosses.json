@@ -2,13 +2,46 @@
   {
     "id": "asteroid_boss",
     "name": "Asteroid Guardian",
-    "health": 500,
-    "speed": 80,
+    "maxHealth": 500,
     "radius": 40,
-    "behavior": "side_to_side",
-    "shootPattern": "spread",
-    "shootInterval": 2.0,
-    "bulletDamage": 30,
-    "bulletSpeed": 200
+    "baseSpeed": 80,
+    
+    "phases": [
+      {
+        "healthPercent": 1.0,
+        "behavior": "side_to_side",
+        "movementSpeed": 80,
+        "patterns": ["spread"],
+        "shootInterval": 2.0,
+        "patternDuration": 6.0
+      },
+      {
+        "healthPercent": 0.75,
+        "behavior": "side_to_side",
+        "movementSpeed": 100,
+        "patterns": ["aimed", "spread"],
+        "shootInterval": 1.5,
+        "patternDuration": 5.0
+      },
+      {
+        "healthPercent": 0.5,
+        "behavior": "side_to_side",
+        "movementSpeed": 120,
+        "patterns": ["spiral", "aimed", "spread"],
+        "shootInterval": 1.2,
+        "patternDuration": 4.0
+      },
+      {
+        "healthPercent": 0.25,
+        "behavior": "aggressive",
+        "movementSpeed": 150,
+        "patterns": ["burst", "spiral", "aimed"],
+        "shootInterval": 1.0,
+        "patternDuration": 3.0
+      }
+    ],
+    
+    "bulletSpeed": 200,
+    "bulletDamage": 10
   }
 ]
