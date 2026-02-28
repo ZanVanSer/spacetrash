@@ -1,5 +1,6 @@
 local Screen = require('systems.screen')
 local EnemyBullet = require('entities.enemy_bullet')
+local Particles = require('systems.particles')
 local Boss = {}
 Boss.__index = Boss
 
@@ -9,7 +10,7 @@ function Boss.new(x, y, bossData)
     self.x = x or Screen.getVirtualWidth() / 2
     self.y = y or 100
     
-    -- Stats from bossData
+    -- Stats from bossData (remove hardcoded fallbacks where possible or use sensible defaults)
     self.maxHealth = bossData.maxHealth or 500
     self.health = self.maxHealth
     self.radius = bossData.radius or 40
@@ -31,19 +32,25 @@ function Boss.new(x, y, bossData)
 end
 
 function Boss:getCurrentPhase()
-    if not self.phases or #self.phases == 0 then return nil end
+    if not self.phases or #self.phases == 0 then return nil, 1 end
     
     local hpPercent = self.health / self.maxHealth
     
-    -- Find first phase where hpPercent >= phase.healthPercent
+    -- Loop through phases array (sorted by healthPercent descending)
     for i, phase in ipairs(self.phases) do
         if hpPercent >= phase.healthPercent then
             return phase, i
         end
     end
     
-    -- Fallback to last phase if none match (shouldn't happen with 0.25 as lowest)
     return self.phases[#self.phases], #self.phases
+end
+
+function Boss:onPhaseChange(oldPhaseIndex, newPhaseIndex)
+    self.patternIndex = 1
+    self.patternTimer = 0
+    self.shootTimer = -1.0 -- Stop shooting briefly (1 second pause)
+    return true
 end
 
 function Boss:update(dt, playerX, playerY)
@@ -52,27 +59,30 @@ function Boss:update(dt, playerX, playerY)
     -- Phase Management
     local newPhase, newIndex = self:getCurrentPhase()
     if newPhase and newIndex ~= self.currentPhaseIndex then
-        self.currentPhaseData = newPhase
+        self:onPhaseChange(self.currentPhaseIndex, newIndex)
         self.currentPhaseIndex = newIndex
-        self.patternIndex = 1
-        self.patternTimer = 0
-        self.shootTimer = 0
-        -- Optional: Trigger visual effect or sound for phase change
+        self.currentPhaseData = newPhase
+        
+        -- Optional: visual effect for phase change
+        Particles.bossHit(self.x, self.y)
     end
 
-    local phase = self.currentPhaseData or self.bossData
+    -- Use currentPhaseData for behavior and stats
+    local phase = self.currentPhaseData
     
     -- Movement Behavior
-    self.speed = phase.movementSpeed or self.bossData.baseSpeed or 80
+    local speed = phase.movementSpeed or self.bossData.baseSpeed or 80
     local behaviorName = phase.behavior or self.bossData.behavior
     if behaviorName then
         local behavior = require("behaviors/" .. behaviorName)
         if behavior and behavior.update then
-            behavior.update(self, dt)
+            -- Store speed on self for behaviors that read boss.speed directly
+            self.speed = speed
+            behavior.update(self, dt, speed)
         end
     end
 
-    -- Boundary enforcement (Data-driven padding if needed, else standard)
+    -- Boundary enforcement
     local hudW = 220
     if self.x < hudW + self.radius then
         self.x = hudW + self.radius
@@ -82,24 +92,36 @@ function Boss:update(dt, playerX, playerY)
         self.direction = -1
     end
 
-    -- Shooting Logic
+    -- Pattern rotation logic
+    if phase.patterns and #phase.patterns > 1 then
+        self.patternTimer = self.patternTimer + dt
+        local patternDuration = phase.patternDuration or 5.0
+        if self.patternTimer >= patternDuration then
+            self.patternIndex = (self.patternIndex % #phase.patterns) + 1
+            self.patternTimer = 0
+            -- Brief visual effect for pattern change
+            Particles.bossHit(self.x, self.y)
+        end
+    end
+
+    -- Shooting logic (using shootTimer logic)
     self.shootTimer = self.shootTimer + dt
-    local shootInterval = phase.shootInterval or self.bossData.shootInterval or 2.0
+    local shootInterval = phase.shootInterval or 2.0
     
     if self.shootTimer >= shootInterval then
-        local patterns = phase.patterns or {phase.shootPattern or "spread"}
-        local patternName = patterns[self.patternIndex]
+        local patterns = phase.patterns or {}
+        local currentPattern = patterns[self.patternIndex] or "spread"
         
-        -- Ensure pattern name has "attack_" prefix for require
-        local fullPatternName = patternName
-        if not patternName:find("^attack_") then
-            fullPatternName = "attack_" .. patternName
+        -- Add attack_ prefix if missing for file require
+        local fileName = currentPattern
+        if not fileName:find("^attack_") then
+            fileName = "attack_" .. fileName
         end
         
-        local pattern = require("patterns/" .. fullPatternName)
+        local pattern = require("patterns/" .. fileName)
         
         local bulletData = {
-            pattern = patternName,
+            pattern = currentPattern,
             speed = self.bossData.bulletSpeed or 200,
             damage = self.bossData.bulletDamage or 10
         }
@@ -115,16 +137,6 @@ function Boss:update(dt, playerX, playerY)
         end
         
         self.shootTimer = 0
-    end
-    
-    -- Pattern Rotation within Phase
-    if phase.patterns and #phase.patterns > 1 then
-        self.patternTimer = self.patternTimer + dt
-        local patternDuration = phase.patternDuration or 5.0
-        if self.patternTimer >= patternDuration then
-            self.patternIndex = (self.patternIndex % #phase.patterns) + 1
-            self.patternTimer = 0
-        end
     end
 
     -- Update bullets
@@ -156,12 +168,14 @@ end
 function Boss:draw()
     if self.isDead then return end
 
-    -- Draw Boss: Visuals could vary by phase index
+    -- Visual feedback based on current phase
     local r, g, b = 1, 0, 0
-    if self.currentPhaseIndex == 4 then
-        r, g, b = 1, 0.2, 0.2 -- More intense
+    if self.currentPhaseIndex >= 4 then
+        r, g, b = 1, 0.2, 0.2
     elseif self.currentPhaseIndex == 3 then
-        r, g, b = 1, 0.5, 0   -- Orange
+        r, g, b = 1, 0.5, 0
+    elseif self.currentPhaseIndex == 2 then
+        r, g, b = 1, 0.8, 0
     end
     
     love.graphics.setColor(r, g, b)
