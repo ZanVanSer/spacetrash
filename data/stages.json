@@ -34,7 +34,7 @@
     "enemySpawnRate": 5.0,
     "maxEnemiesOnScreen": 15,
     
-    "boss": "asteroid_boss",
+    "boss": "void_destroyer",
     "survivalTime": 15,
     
     "background": "space_complete",
