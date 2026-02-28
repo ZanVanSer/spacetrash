@@ -15,6 +15,8 @@ local DamageNumbers = require('ui.damage_numbers')
 local Layout = require('ui/layout')
 local Fonts = require('ui/fonts')
 local HUD = require('ui/hud')
+local Telegraph = require('ui.attack_telegraph')
+local Colors = require('ui.colors')
 local state = {}
 
 function state:enter(saveData, stageData, shipData)
@@ -29,6 +31,15 @@ function state:enter(saveData, stageData, shipData)
     self.screenshake = Screenshake
     self.particles = Particles
     self.damageNumbers = DamageNumbers
+    self.telegraph = Telegraph.new()
+    self.screenFlash = {
+        active = false,
+        color = {1, 0, 0, 1},
+        duration = 0,
+        elapsed = 0,
+        intensity = 0
+    }
+    self.wasBossSpecialAttacking = false
     
     self.isPaused = false
     self.upgradeMenu = nil
@@ -70,6 +81,22 @@ function state:enter(saveData, stageData, shipData)
         highestLevel = 1,
         bossesDefeated = 0
     }
+end
+
+function state:flashScreen(color, duration, intensity)
+    local c = color
+    if type(color) == "string" then
+        c = Colors.getColor(color, 1)
+    end
+    if type(c) ~= "table" then
+        c = {1, 0, 0, 1}
+    end
+
+    self.screenFlash.active = true
+    self.screenFlash.color = {c[1] or 1, c[2] or 0, c[3] or 0, c[4] or 1}
+    self.screenFlash.duration = duration or 0.5
+    self.screenFlash.elapsed = 0
+    self.screenFlash.intensity = intensity or 0.3
 end
 
 local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
@@ -115,6 +142,13 @@ function state:update(dt)
     self.screenshake.update(dt)
     self.particles.update(dt)
     self.damageNumbers.update(dt)
+    self.telegraph:update(dt)
+    if self.screenFlash.active then
+        self.screenFlash.elapsed = self.screenFlash.elapsed + dt
+        if self.screenFlash.elapsed >= self.screenFlash.duration then
+            self.screenFlash.active = false
+        end
+    end
 
     if self.bossEntranceTimer > 0 then
         self.bossEntranceTimer = self.bossEntranceTimer - dt
@@ -147,7 +181,12 @@ function state:update(dt)
     self.enemySpawner:update(dt, self.player.x, self.player.y)
     
     if self.boss then
-        self.boss:update(dt, self.player.x, self.player.y)
+        self.boss:update(dt, self.player.x, self.player.y, self.telegraph)
+        if self.boss.isSpecialAttacking and not self.wasBossSpecialAttacking then
+            self:flashScreen(Colors.COLORS.danger, 0.5, 0.3)
+            self.screenshake.trigger(10, 0.5)
+        end
+        self.wasBossSpecialAttacking = self.boss.isSpecialAttacking
         if self.boss.isDead then
             self.isVictory = true
             self.enemiesKilled = self.enemiesKilled + 1
@@ -397,7 +436,6 @@ function state:draw()
     local bAlpha = 0.6 + math.sin(time * 2) * 0.2
     
     love.graphics.setLineWidth(1)
-    local Colors = require('ui.colors')
     Colors.setColor("accent", bAlpha)
     
     -- Top Left
@@ -446,6 +484,7 @@ function state:draw()
 
     self.particles.draw()
     self.damageNumbers.draw()
+    self.telegraph:draw()
     
     love.graphics.pop()
 
@@ -525,6 +564,17 @@ function state:draw()
     love.graphics.setFont(oldFont)
 
     Scanlines.drawScanlines()
+
+    if self.screenFlash.active then
+        local sf = self.screenFlash
+        local progress = math.max(0, math.min(1, sf.elapsed / math.max(0.0001, sf.duration)))
+        local alpha = sf.intensity * (1 - progress)
+        if alpha > 0 then
+            love.graphics.setColor(sf.color[1], sf.color[2], sf.color[3], alpha)
+            love.graphics.rectangle("fill", 0, 0, vw, vh)
+        end
+    end
+
     love.graphics.setColor(1, 1, 1, 1)
 
     Screen.removeScale()

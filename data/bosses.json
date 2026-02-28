@@ -21,7 +21,15 @@
         "movementSpeed": 100,
         "patterns": ["aimed", "spread"],
         "shootInterval": 1.5,
-        "patternDuration": 5.0
+        "patternDuration": 5.0,
+        "specialAttack": {
+          "trigger": "once",
+          "healthPercent": 0.65,
+          "type": "spiral_barrage",
+          "duration": 3.0,
+          "pattern": "attack_spiral",
+          "burstCount": 15
+        }
       },
       {
         "healthPercent": 0.5,
@@ -29,7 +37,14 @@
         "movementSpeed": 120,
         "patterns": ["spiral", "aimed", "spread"],
         "shootInterval": 1.2,
-        "patternDuration": 4.0
+        "patternDuration": 4.0,
+        "specialAttack": {
+          "trigger": "once",
+          "healthPercent": 0.4,
+          "type": "aimed_storm",
+          "shotCount": 8,
+          "pattern": "attack_aimed"
+        }
       },
       {
         "healthPercent": 0.25,
@@ -37,7 +52,14 @@
         "movementSpeed": 150,
         "patterns": ["burst", "spiral", "aimed"],
         "shootInterval": 1.0,
-        "patternDuration": 3.0
+        "patternDuration": 3.0,
+        "specialAttack": {
+          "trigger": "repeat",
+          "interval": 12.0,
+          "type": "screen_clear",
+          "directions": 8,
+          "pattern": "attack_straight"
+        }
       }
     ],
     
