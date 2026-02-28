@@ -2,23 +2,24 @@ local Colors = require('ui/colors')
 
 local BossVisuals = {}
 
-local function drawGlow(color, drawFunction, scale1, scale2)
+local function drawGlow(color, drawFunction, scale1, scale2, intensity)
     local s1 = scale1 or 1.4
     local s2 = scale2 or 1.15
+    local glow = intensity or 1
 
     love.graphics.push()
     love.graphics.scale(s1, s1)
-    Colors.setColor(color, 0.08)
+    Colors.setColor(color, 0.08 * glow)
     drawFunction()
     love.graphics.pop()
 
     love.graphics.push()
     love.graphics.scale(s2, s2)
-    Colors.setColor(color, 0.15)
+    Colors.setColor(color, 0.15 * glow)
     drawFunction()
     love.graphics.pop()
 
-    Colors.setColor(color, 0.9)
+    Colors.setColor(color, math.min(1, 0.9 * glow))
     drawFunction()
 end
 
@@ -30,7 +31,20 @@ local function getDamageTier(healthPercent)
     return 3, hp
 end
 
-function BossVisuals.asteroid_guardian(flashTimer, overlayAlpha, aimAngle, chargeLevel, healthPercent)
+local function drawSpecialParticles(t, count, baseRadius)
+    local n = count or 12
+    local r = baseRadius or 54
+    for i = 1, n do
+        local a = t * 4.5 + i * (math.pi * 2 / n)
+        local px = math.cos(a) * (r + math.sin(t * 8 + i) * 4)
+        local py = math.sin(a) * (r + math.cos(t * 8 + i) * 4)
+        local alpha = 0.35 + (math.sin(t * 10 + i) + 1) * 0.2
+        love.graphics.setColor(1, 0.2, 0.2, alpha)
+        love.graphics.circle("fill", px, py, 1.5 + (i % 2))
+    end
+end
+
+function BossVisuals.asteroid_guardian(flashTimer, overlayAlpha, aimAngle, chargeLevel, healthPercent, isSpecialAttacking)
     local t = love.timer.getTime()
     local damageTier = getDamageTier(healthPercent)
     local baseAim = aimAngle or 0
@@ -72,7 +86,11 @@ function BossVisuals.asteroid_guardian(flashTimer, overlayAlpha, aimAngle, charg
     end
 
     -- Danger glow around the hull silhouette.
-    drawGlow("danger", hullShape, 1.4, 1.15)
+    local specialGlow = isSpecialAttacking and 1.6 or 1
+    drawGlow("danger", hullShape, 1.4, 1.15, specialGlow)
+    if isSpecialAttacking then
+        drawGlow("danger", hullShape, 1.7, 1.35, 0.9)
+    end
 
     -- Main hull body (dark red carrier profile).
     local hullR, hullA = 0.15, 0.95
@@ -104,9 +122,16 @@ function BossVisuals.asteroid_guardian(flashTimer, overlayAlpha, aimAngle, charg
 
     -- Central bridge weak point with pulsing cyan glow.
     local bridgeAlpha = 0.4 + math.sin(t * 4) * 0.3
-    Colors.setColor("accent", math.max(0.1, bridgeAlpha * 0.45))
-    love.graphics.circle("fill", 0, -10, 11)
-    Colors.setColor("accent", math.max(0.1, bridgeAlpha))
+    if isSpecialAttacking then
+        local corePulse = 0.65 + (math.sin(t * 14) + 1) * 0.175
+        love.graphics.setColor(1, 0.12, 0.12, math.min(1, corePulse * 0.6))
+        love.graphics.circle("fill", 0, -10, 13)
+        love.graphics.setColor(1, 0.2, 0.2, math.min(1, corePulse))
+    else
+        Colors.setColor("accent", math.max(0.1, bridgeAlpha * 0.45))
+        love.graphics.circle("fill", 0, -10, 11)
+        Colors.setColor("accent", math.max(0.1, bridgeAlpha))
+    end
     love.graphics.circle("fill", 0, -10, 6)
 
     -- Engine exhausts with orange flicker.
@@ -160,9 +185,13 @@ function BossVisuals.asteroid_guardian(flashTimer, overlayAlpha, aimAngle, charg
             love.graphics.line(sx, sy, ex, ey)
         end
     end
+
+    if isSpecialAttacking then
+        drawSpecialParticles(t, 14, 58)
+    end
 end
 
-function BossVisuals.void_destroyer(flashTimer, overlayAlpha, aimAngle, chargeLevel, healthPercent)
+function BossVisuals.void_destroyer(flashTimer, overlayAlpha, aimAngle, chargeLevel, healthPercent, isSpecialAttacking)
     local t = love.timer.getTime()
     local charge = math.max(0, math.min(1, chargeLevel or 0))
     local damageTier = getDamageTier(healthPercent)
@@ -220,7 +249,11 @@ function BossVisuals.void_destroyer(flashTimer, overlayAlpha, aimAngle, chargeLe
     end
 
     -- Glowing mechanical outer ring.
-    drawGlow("danger", ring, 1.4, 1.15)
+    local specialGlow = isSpecialAttacking and 1.6 or 1
+    drawGlow("danger", ring, 1.4, 1.15, specialGlow)
+    if isSpecialAttacking then
+        drawGlow("danger", ring, 1.75, 1.4, 0.9)
+    end
     Colors.setColor("danger", damageTier >= 1 and 0.8 or 1)
     drawRing(45, 3, 1)
 
@@ -254,9 +287,18 @@ function BossVisuals.void_destroyer(flashTimer, overlayAlpha, aimAngle, chargeLe
         coreAlpha = math.max(0.2, math.min(1, coreAlpha * flicker))
         coreRadius = coreRadius + math.sin(t * 41) * 1.5
     end
-    Colors.setColor("danger", math.max(pulse, coreAlpha))
+    if isSpecialAttacking then
+        local burst = 0.75 + (math.sin(t * 16) + 1) * 0.125
+        love.graphics.setColor(1, 0.18, 0.18, math.min(1, math.max(burst, coreAlpha)))
+    else
+        Colors.setColor("danger", math.max(pulse, coreAlpha))
+    end
     love.graphics.circle("fill", 0, 0, coreRadius)
-    Colors.setColor("danger", math.min(1, math.max(pulse, coreAlpha) + 0.15))
+    if isSpecialAttacking then
+        love.graphics.setColor(1, 0.3, 0.3, 1)
+    else
+        Colors.setColor("danger", math.min(1, math.max(pulse, coreAlpha) + 0.15))
+    end
     love.graphics.circle("line", 0, 0, coreRadius + 3)
 
     if charge > 0 then
@@ -283,9 +325,13 @@ function BossVisuals.void_destroyer(flashTimer, overlayAlpha, aimAngle, chargeLe
             love.graphics.line(sx, sy, ex, ey)
         end
     end
+
+    if isSpecialAttacking then
+        drawSpecialParticles(t, 16, 62)
+    end
 end
 
-function BossVisuals.default(flashTimer, overlayAlpha, aimAngle, chargeLevel, healthPercent)
+function BossVisuals.default(flashTimer, overlayAlpha, aimAngle, chargeLevel, healthPercent, isSpecialAttacking)
     local points = {0, 40, -40, -30, 40, -30}
 
     if flashTimer and flashTimer > 0 and overlayAlpha and overlayAlpha > 0 then
@@ -300,14 +346,17 @@ function BossVisuals.default(flashTimer, overlayAlpha, aimAngle, chargeLevel, he
         love.graphics.polygon("fill", points)
     end
 
-    drawGlow("danger", body, 1.4, 1.15)
+    drawGlow("danger", body, 1.4, 1.15, isSpecialAttacking and 1.5 or 1)
+    if isSpecialAttacking then
+        drawSpecialParticles(love.timer.getTime(), 10, 44)
+    end
 
     Colors.setColor("danger", 1)
     love.graphics.setLineWidth(2)
     love.graphics.polygon("line", points)
 end
 
-function BossVisuals.drawBoss(bossId, x, y, scale, rotation, flashTimer, aimAngle, chargeLevel, healthPercent)
+function BossVisuals.drawBoss(bossId, x, y, scale, rotation, flashTimer, aimAngle, chargeLevel, healthPercent, isSpecialAttacking)
     local drawFn = BossVisuals[bossId] or BossVisuals.default
 
     love.graphics.push()
@@ -315,11 +364,11 @@ function BossVisuals.drawBoss(bossId, x, y, scale, rotation, flashTimer, aimAngl
     love.graphics.rotate(rotation or 0)
     love.graphics.scale(scale or 1, scale or 1)
 
-    drawFn(flashTimer, nil, aimAngle, chargeLevel, healthPercent)
+    drawFn(flashTimer, nil, aimAngle, chargeLevel, healthPercent, isSpecialAttacking)
 
     if flashTimer and flashTimer > 0 then
         local alpha = math.min(1, flashTimer * 2)
-        drawFn(flashTimer, alpha, aimAngle, chargeLevel, healthPercent)
+        drawFn(flashTimer, alpha, aimAngle, chargeLevel, healthPercent, isSpecialAttacking)
     end
 
     love.graphics.pop()

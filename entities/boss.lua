@@ -92,24 +92,34 @@ function Boss.new(x, y, bossData)
     self.chargeDuration = 0.3
     self.pendingShot = nil
     self.shootDelay = 0
+    self.specialAttackUsed = {}
+    self.specialAttackTimer = 0
+    self.specialCooldownTimer = 0
+    self.specialAttackState = nil
+    self.isExecutingSpecial = false
+    self.isSpecialAttacking = false
+    self.prevHpPercent = 1.0
+    self.playerPositionHistory = {}
+    self.playerTrackTimer = 0
     
     return self
 end
 
-local function isAimedPattern(patternName)
+local function normalizePatternName(patternName)
     local name = patternName or ""
-    name = name:gsub("^attack_", "")
-    return name == "aimed"
+    return name:gsub("^attack_", "")
+end
+
+local function isAimedPattern(patternName)
+    return normalizePatternName(patternName) == "aimed"
 end
 
 local function isBurstPattern(patternName)
-    local name = patternName or ""
-    name = name:gsub("^attack_", "")
-    return name == "burst"
+    return normalizePatternName(patternName) == "burst"
 end
 
 local function firePattern(self, currentPattern, playerX, playerY, targetX, targetY, originX, originY)
-    local normalizedPattern = (currentPattern or ""):gsub("^attack_", "")
+    local normalizedPattern = normalizePatternName(currentPattern)
     local fileName = currentPattern
     if not fileName:find("^attack_") then
         fileName = "attack_" .. fileName
@@ -117,7 +127,7 @@ local function firePattern(self, currentPattern, playerX, playerY, targetX, targ
 
     local pattern = require("patterns/" .. fileName)
     local bulletData = {
-        pattern = currentPattern,
+        pattern = normalizedPattern,
         speed = self.bossData.bulletSpeed or 200,
         damage = self.bossData.bulletDamage or 10
     }
@@ -163,6 +173,122 @@ local function firePattern(self, currentPattern, playerX, playerY, targetX, targ
     end
 end
 
+function Boss:executeSpecialAttack(specialData, telegraph, playerX, playerY, usedKey)
+    if not specialData then return end
+
+    self.isExecutingSpecial = true
+    self.isCharging = false
+    self.chargeTimer = 0
+    self.chargeLevel = 0
+    self.pendingShot = nil
+    self.shootDelay = 0
+    self.shootTimer = 0
+    self.isSpecialAttacking = true
+
+    local specialType = specialData.type or "screen_clear"
+    local state = {
+        type = specialType,
+        pattern = normalizePatternName(specialData.pattern),
+        elapsed = 0,
+        warningDuration = 0.6,
+        shotTimer = 0,
+        usedKey = usedKey
+    }
+
+    if specialType == "spiral_barrage" then
+        state.warningDuration = 0.8
+        state.duration = specialData.duration or 3.0
+        state.shotsRemaining = specialData.burstCount or 15
+        state.shotInterval = 0.2
+        state.lockMovement = true
+        if telegraph and telegraph.createAreaTelegraph then
+            telegraph:createAreaTelegraph(self.x, self.y, self.radius + 20, state.warningDuration, Colors.COLORS.danger)
+            telegraph:createAreaTelegraph(self.x, self.y, self.radius + 40, state.warningDuration, Colors.COLORS.danger)
+            telegraph:createAreaTelegraph(self.x, self.y, self.radius + 60, state.warningDuration, Colors.COLORS.danger)
+        end
+    elseif specialType == "aimed_storm" then
+        state.warningDuration = 1.0
+        state.shotInterval = 0.2
+        state.shotTimer = state.shotInterval
+        state.targets = {}
+        state.nextTargetIndex = 1
+
+        local targetCount = specialData.shotCount or 8
+        local history = self.playerPositionHistory
+        local historyCount = #history
+
+        if historyCount > 0 then
+            local startIndex = math.max(1, historyCount - targetCount + 1)
+            for i = startIndex, historyCount do
+                local p = history[i]
+                table.insert(state.targets, {x = p.x, y = p.y})
+            end
+        else
+            local px = playerX or self.x
+            local py = playerY or (self.y + 100)
+            table.insert(state.targets, {x = px, y = py})
+        end
+
+        while #state.targets < targetCount do
+            local last = state.targets[#state.targets]
+            table.insert(state.targets, {x = last.x, y = last.y})
+        end
+        while #state.targets > targetCount do
+            table.remove(state.targets, 1)
+        end
+
+        state.shotsRemaining = #state.targets
+
+        if telegraph and telegraph.createAreaTelegraph then
+            for _, target in ipairs(state.targets) do
+                telegraph:createAreaTelegraph(target.x, target.y, 30, state.warningDuration, Colors.COLORS.danger)
+            end
+        end
+    elseif specialType == "screen_clear" then
+        state.warningDuration = 1.0
+        state.directions = specialData.directions or 8
+        state.fired = false
+        if telegraph and telegraph.createLineTelegraph then
+            local telegraphLength = math.max(Screen.getVirtualWidth(), Screen.getVirtualHeight())
+            for i = 1, state.directions do
+                local angle = (i - 1) * ((math.pi * 2) / state.directions)
+                local tx = self.x + math.cos(angle) * telegraphLength
+                local ty = self.y + math.sin(angle) * telegraphLength
+                telegraph:createLineTelegraph(self.x, self.y, tx, ty, state.warningDuration, Colors.COLORS.danger)
+            end
+        end
+    end
+
+    self.specialAttackState = state
+end
+
+function Boss:checkSpecialAttack(dt, telegraph, playerX, playerY)
+    local phase = self.currentPhaseData
+    if not phase or not phase.specialAttack or self.isExecutingSpecial then return false end
+
+    local specialData = phase.specialAttack
+    local trigger = specialData.trigger
+    local hpPercent = self.health / self.maxHealth
+
+    if trigger == "once" then
+        local threshold = specialData.healthPercent or 0
+        local key = tostring(self.currentPhaseIndex) .. ":" .. (specialData.type or "special")
+        if self.prevHpPercent > threshold and hpPercent <= threshold and not self.specialAttackUsed[key] then
+            self:executeSpecialAttack(specialData, telegraph, playerX, playerY, key)
+            return true
+        end
+    elseif trigger == "repeat" then
+        local interval = specialData.interval or 10.0
+        if self.specialCooldownTimer <= 0 then
+            self:executeSpecialAttack(specialData, telegraph, playerX, playerY, nil)
+            self.specialCooldownTimer = interval
+            return true
+        end
+    end
+
+    return false
+end
+
 function Boss:getCurrentPhase()
     if not self.phases or #self.phases == 0 then return nil, 1 end
     
@@ -187,6 +313,11 @@ function Boss:onPhaseChange(oldPhaseIndex, newPhaseIndex)
     self.isCharging = false
     self.chargeTimer = 0
     self.chargeLevel = 0
+    self.specialAttackTimer = 0
+    self.specialCooldownTimer = 0
+    self.specialAttackState = nil
+    self.isExecutingSpecial = false
+    self.isSpecialAttacking = false
     self.isTransitioning = true
     self.transitionTimer = 1.0
     return true
@@ -196,9 +327,20 @@ function Boss:update(dt, playerX, playerY, telegraph)
     if self.isDead then return end
 
     self.pulseTimer = self.pulseTimer + dt
+    if self.specialCooldownTimer > 0 then
+        self.specialCooldownTimer = math.max(0, self.specialCooldownTimer - dt)
+    end
 
     if playerX and playerY then
         self.aimAngle = math.atan2(playerY - self.y, playerX - self.x)
+        self.playerTrackTimer = self.playerTrackTimer + dt
+        if self.playerTrackTimer >= 0.1 then
+            self.playerTrackTimer = 0
+            table.insert(self.playerPositionHistory, {x = playerX, y = playerY})
+            if #self.playerPositionHistory > 20 then
+                table.remove(self.playerPositionHistory, 1)
+            end
+        end
     end
     
     if self.flashTimer > 0 then
@@ -232,7 +374,7 @@ function Boss:update(dt, playerX, playerY, telegraph)
     -- Movement Behavior
     local speed = phase.movementSpeed or self.bossData.baseSpeed or 80
     local behaviorName = phase.behavior or self.bossData.behavior
-    if behaviorName then
+    if behaviorName and not (self.isExecutingSpecial and self.specialAttackState and self.specialAttackState.lockMovement) then
         local behavior = require("behaviors/" .. behaviorName)
         if behavior and behavior.update then
             -- Store speed on self for behaviors that read boss.speed directly
@@ -263,8 +405,89 @@ function Boss:update(dt, playerX, playerY, telegraph)
         end
     end
 
+    self:checkSpecialAttack(dt, telegraph, playerX, playerY)
+
+    if self.isExecutingSpecial and self.specialAttackState then
+        local s = self.specialAttackState
+        s.elapsed = s.elapsed + dt
+
+        if s.elapsed >= s.warningDuration then
+            if s.type == "spiral_barrage" then
+                s.shotTimer = s.shotTimer + dt
+                while s.shotsRemaining > 0 and s.shotTimer >= s.shotInterval do
+                    s.shotTimer = s.shotTimer - s.shotInterval
+                    firePattern(self, s.pattern or "spiral", playerX, playerY, nil, nil, self.x, self.y)
+                    s.shotsRemaining = s.shotsRemaining - 1
+                end
+                if s.shotsRemaining <= 0 then
+                    if s.usedKey then
+                        self.specialAttackUsed[s.usedKey] = true
+                    end
+                    self.isExecutingSpecial = false
+                    self.isSpecialAttacking = false
+                    self.specialAttackState = nil
+                    self.shootTimer = -0.5
+                end
+            elseif s.type == "aimed_storm" then
+                s.shotTimer = s.shotTimer + dt
+                while s.shotsRemaining > 0 and s.shotTimer >= s.shotInterval do
+                    s.shotTimer = s.shotTimer - s.shotInterval
+                    local target = s.targets and s.targets[s.nextTargetIndex]
+                    if target then
+                        firePattern(self, s.pattern or "aimed", playerX, playerY, target.x, target.y, self.x, self.y)
+                    end
+                    s.nextTargetIndex = (s.nextTargetIndex or 1) + 1
+                    s.shotsRemaining = s.shotsRemaining - 1
+                end
+                if s.shotsRemaining <= 0 then
+                    if s.usedKey then
+                        self.specialAttackUsed[s.usedKey] = true
+                    end
+                    self.isExecutingSpecial = false
+                    self.isSpecialAttacking = false
+                    self.specialAttackState = nil
+                    self.shootTimer = -0.5
+                end
+            elseif s.type == "screen_clear" then
+                if not s.fired then
+                    local dirs = math.max(1, s.directions or 8)
+                    local speed = (self.bossData.bulletSpeed or 200) * 1.5
+                    for i = 1, dirs do
+                        local angle = (i - 1) * ((math.pi * 2) / dirs)
+                        local bData = {
+                            pattern = "aimed",
+                            speed = speed,
+                            damage = self.bossData.bulletDamage or 10,
+                            vx = math.cos(angle) * speed,
+                            vy = math.sin(angle) * speed,
+                            isDead = false,
+                            radius = 6
+                        }
+                        table.insert(self.bullets, EnemyBullet.new(self.x, self.y, bData))
+                    end
+                    s.fired = true
+                    if s.usedKey then
+                        self.specialAttackUsed[s.usedKey] = true
+                    end
+                    self.isExecutingSpecial = false
+                    self.isSpecialAttacking = false
+                    self.specialAttackState = nil
+                    self.shootTimer = -0.5
+                end
+            else
+                if s.usedKey then
+                    self.specialAttackUsed[s.usedKey] = true
+                end
+                self.isExecutingSpecial = false
+                self.isSpecialAttacking = false
+                self.specialAttackState = nil
+                self.shootTimer = -0.5
+            end
+        end
+    end
+
     -- Resolve delayed aimed shot after telegraph phase.
-    if self.pendingShot then
+    if self.pendingShot and not self.isExecutingSpecial then
         self.shootDelay = self.shootDelay - dt
         if self.shootDelay <= 0 then
             firePattern(
@@ -284,13 +507,13 @@ function Boss:update(dt, playerX, playerY, telegraph)
     end
 
     -- Shooting logic with pre-fire charge-up.
-    if not self.isCharging and not self.pendingShot then
+    if not self.isCharging and not self.pendingShot and not self.isExecutingSpecial then
         self.shootTimer = self.shootTimer + dt
     end
 
     local shootInterval = phase.shootInterval or 2.0
 
-    if not self.isCharging and not self.pendingShot and self.shootTimer >= shootInterval then
+    if not self.isCharging and not self.pendingShot and not self.isExecutingSpecial and self.shootTimer >= shootInterval then
         self.isCharging = true
         self.chargeTimer = 0
         self.chargeLevel = 0
@@ -347,6 +570,9 @@ function Boss:update(dt, playerX, playerY, telegraph)
             table.remove(self.bullets, i)
         end
     end
+
+    self.prevHpPercent = self.health / self.maxHealth
+    self.isSpecialAttacking = self.isExecutingSpecial and self.specialAttackState ~= nil
 end
 
 function Boss:getContactDamage()
@@ -369,8 +595,21 @@ end
 function Boss:draw()
     if self.isDead then return end
 
-    local scale = 1.0 + math.sin(self.pulseTimer * 2) * 0.05
-    BossVisuals.drawBoss(self.bossData.id, self.x, self.y, scale, self.rotation, self.flashTimer, self.aimAngle, self.chargeLevel)
+    local pulseSpeed = self.isSpecialAttacking and 5 or 2
+    local pulseAmp = self.isSpecialAttacking and 0.1 or 0.05
+    local scale = 1.0 + math.sin(self.pulseTimer * pulseSpeed) * pulseAmp
+    BossVisuals.drawBoss(
+        self.bossData.id,
+        self.x,
+        self.y,
+        scale,
+        self.rotation,
+        self.flashTimer,
+        self.aimAngle,
+        self.chargeLevel,
+        self.health / self.maxHealth,
+        self.isSpecialAttacking
+    )
 
     -- Draw Bullets
     for _, b in ipairs(self.bullets) do
