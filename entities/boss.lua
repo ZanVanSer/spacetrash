@@ -8,50 +8,104 @@ function Boss.new(x, y, bossData)
     self.bossData = bossData
     self.x = x or Screen.getVirtualWidth() / 2
     self.y = y or 100
-    self.health = bossData.health
-    self.maxHealth = bossData.health
-    self.speed = bossData.speed
-    self.radius = bossData.radius
-    self.direction = 1 -- Default direction for behaviors like side_to_side
-    self.isDead = false
+    
+    -- Stats from bossData
+    self.maxHealth = bossData.maxHealth or 500
+    self.health = self.maxHealth
+    self.radius = bossData.radius or 40
+    
+    -- Phase system initialization
+    self.phases = bossData.phases or {}
+    self.currentPhaseIndex = 1
+    self.currentPhaseData = self.phases[1] or {}
+    
+    self.patternIndex = 1
+    self.patternTimer = 0
     self.shootTimer = 0
+    
+    self.direction = 1
+    self.isDead = false
     self.bullets = {}
+    
     return self
+end
+
+function Boss:getCurrentPhase()
+    if not self.phases or #self.phases == 0 then return nil end
+    
+    local hpPercent = self.health / self.maxHealth
+    
+    -- Find first phase where hpPercent >= phase.healthPercent
+    for i, phase in ipairs(self.phases) do
+        if hpPercent >= phase.healthPercent then
+            return phase, i
+        end
+    end
+    
+    -- Fallback to last phase if none match (shouldn't happen with 0.25 as lowest)
+    return self.phases[#self.phases], #self.phases
 end
 
 function Boss:update(dt, playerX, playerY)
     if self.isDead then return end
 
-    -- Load and run behavior
-    local behavior = require("behaviors/" .. self.bossData.behavior)
-    if behavior and behavior.update then
-        behavior.update(self, dt)
+    -- Phase Management
+    local newPhase, newIndex = self:getCurrentPhase()
+    if newPhase and newIndex ~= self.currentPhaseIndex then
+        self.currentPhaseData = newPhase
+        self.currentPhaseIndex = newIndex
+        self.patternIndex = 1
+        self.patternTimer = 0
+        self.shootTimer = 0
+        -- Optional: Trigger visual effect or sound for phase change
     end
 
-    -- Boundary enforcement (Viewport: 220-800, padding 40)
-    if self.x < 260 then
-        self.x = 260
+    local phase = self.currentPhaseData or self.bossData
+    
+    -- Movement Behavior
+    self.speed = phase.movementSpeed or self.bossData.baseSpeed or 80
+    local behaviorName = phase.behavior or self.bossData.behavior
+    if behaviorName then
+        local behavior = require("behaviors/" .. behaviorName)
+        if behavior and behavior.update then
+            behavior.update(self, dt)
+        end
+    end
+
+    -- Boundary enforcement (Data-driven padding if needed, else standard)
+    local hudW = 220
+    if self.x < hudW + self.radius then
+        self.x = hudW + self.radius
         self.direction = 1
-    elseif self.x > Screen.getVirtualWidth() - 40 then
-        self.x = Screen.getVirtualWidth() - 40
+    elseif self.x > Screen.getVirtualWidth() - self.radius then
+        self.x = Screen.getVirtualWidth() - self.radius
         self.direction = -1
     end
 
-    -- Shooting logic
+    -- Shooting Logic
     self.shootTimer = self.shootTimer + dt
-    if self.shootTimer >= self.bossData.shootInterval then
-        local pattern = require("patterns/attack_" .. self.bossData.shootPattern)
+    local shootInterval = phase.shootInterval or self.bossData.shootInterval or 2.0
+    
+    if self.shootTimer >= shootInterval then
+        local patterns = phase.patterns or {phase.shootPattern or "spread"}
+        local patternName = patterns[self.patternIndex]
+        
+        -- Ensure pattern name has "attack_" prefix for require
+        local fullPatternName = patternName
+        if not patternName:find("^attack_") then
+            fullPatternName = "attack_" .. patternName
+        end
+        
+        local pattern = require("patterns/" .. fullPatternName)
         
         local bulletData = {
-            pattern = self.bossData.shootPattern,
+            pattern = patternName,
             speed = self.bossData.bulletSpeed or 200,
             damage = self.bossData.bulletDamage or 10
         }
 
         if pattern.createBullets then
-            -- Use passed player position or fallback
             local px, py = playerX or self.x, playerY or (self.y + 100)
-            
             local newBulletsData = pattern.createBullets(self.x, self.y, bulletData, px, py)
             for _, bData in ipairs(newBulletsData) do
                 table.insert(self.bullets, EnemyBullet.new(bData.x, bData.y, bData))
@@ -61,6 +115,16 @@ function Boss:update(dt, playerX, playerY)
         end
         
         self.shootTimer = 0
+    end
+    
+    -- Pattern Rotation within Phase
+    if phase.patterns and #phase.patterns > 1 then
+        self.patternTimer = self.patternTimer + dt
+        local patternDuration = phase.patternDuration or 5.0
+        if self.patternTimer >= patternDuration then
+            self.patternIndex = (self.patternIndex % #phase.patterns) + 1
+            self.patternTimer = 0
+        end
     end
 
     -- Update bullets
@@ -92,12 +156,19 @@ end
 function Boss:draw()
     if self.isDead then return end
 
-    -- Draw Boss: Red triangle pointing down
-    love.graphics.setColor(1, 0, 0)
+    -- Draw Boss: Visuals could vary by phase index
+    local r, g, b = 1, 0, 0
+    if self.currentPhaseIndex == 4 then
+        r, g, b = 1, 0.2, 0.2 -- More intense
+    elseif self.currentPhaseIndex == 3 then
+        r, g, b = 1, 0.5, 0   -- Orange
+    end
+    
+    love.graphics.setColor(r, g, b)
     love.graphics.polygon("fill", 
-        self.x - self.radius, self.y - self.radius, -- Top left
-        self.x + self.radius, self.y - self.radius, -- Top right
-        self.x, self.y + self.radius                 -- Bottom center
+        self.x - self.radius, self.y - self.radius,
+        self.x + self.radius, self.y - self.radius,
+        self.x, self.y + self.radius
     )
 
     -- Draw Bullets
