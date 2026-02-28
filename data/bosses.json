@@ -43,5 +43,42 @@
     
     "bulletSpeed": 200,
     "bulletDamage": 10
+  },
+  {
+    "id": "void_destroyer",
+    "name": "Void Destroyer",
+    "maxHealth": 600,
+    "radius": 45,
+    "baseSpeed": 60,
+    
+    "phases": [
+      {
+        "healthPercent": 1.0,
+        "behavior": "side_to_side",
+        "movementSpeed": 60,
+        "patterns": ["aimed"],
+        "shootInterval": 2.5,
+        "patternDuration": 8.0
+      },
+      {
+        "healthPercent": 0.6,
+        "behavior": "side_to_side",
+        "movementSpeed": 90,
+        "patterns": ["burst", "aimed"],
+        "shootInterval": 1.8,
+        "patternDuration": 5.0
+      },
+      {
+        "healthPercent": 0.3,
+        "behavior": "aggressive",
+        "movementSpeed": 120,
+        "patterns": ["spiral", "burst"],
+        "shootInterval": 1.2,
+        "patternDuration": 4.0
+      }
+    ],
+    
+    "bulletSpeed": 220,
+    "bulletDamage": 12
   }
 ]
