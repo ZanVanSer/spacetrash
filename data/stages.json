@@ -31,11 +31,11 @@
     "difficulty": 2,
     
     "enemies": ["basic_drone"],
-    "enemySpawnRate": 5.0,
+    "enemySpawnRate": 1.0,
     "maxEnemiesOnScreen": 15,
     
     "boss": "void_destroyer",
-    "survivalTime": 15,
+    "survivalTime": 10,
     
     "background": "space_complete",
     "music": "battle_theme_1",

@@ -1,6 +1,7 @@
 local Screen = require('systems.screen')
 local EnemyBullet = require('entities.enemy_bullet')
 local Particles = require('systems.particles')
+local BossVisuals = require('entities.boss_visuals')
 local Boss = {}
 Boss.__index = Boss
 
@@ -78,6 +79,11 @@ function Boss.new(x, y, bossData)
     self.direction = 1
     self.isDead = false
     self.bullets = {}
+    self.flashTimer = 0
+    self.rotation = 0
+    self.isTransitioning = false
+    self.transitionTimer = 0
+    self.pulseTimer = 0
     
     return self
 end
@@ -101,11 +107,29 @@ function Boss:onPhaseChange(oldPhaseIndex, newPhaseIndex)
     self.patternIndex = 1
     self.patternTimer = 0
     self.shootTimer = -1.0 -- Stop shooting briefly (1 second pause)
+    self.isTransitioning = true
+    self.transitionTimer = 1.0
     return true
 end
 
 function Boss:update(dt, playerX, playerY)
     if self.isDead then return end
+
+    self.pulseTimer = self.pulseTimer + dt
+    
+    if self.flashTimer > 0 then
+        self.flashTimer = math.max(0, self.flashTimer - dt)
+    end
+    
+    if self.isTransitioning then
+        self.rotation = self.rotation + 3 * dt
+        self.transitionTimer = self.transitionTimer - dt
+        if self.transitionTimer <= 0 then
+            self.isTransitioning = false
+            self.transitionTimer = 0
+            self.rotation = 0
+        end
+    end
 
     -- Phase Management
     local newPhase, newIndex = self:getCurrentPhase()
@@ -206,6 +230,7 @@ end
 
 function Boss:takeDamage(amount)
     self.health = self.health - amount
+    self.flashTimer = 0.1
     if self.health <= 0 then
         self.health = 0
         self.isDead = true
@@ -219,22 +244,8 @@ end
 function Boss:draw()
     if self.isDead then return end
 
-    -- Visual feedback based on current phase
-    local r, g, b = 1, 0, 0
-    if self.currentPhaseIndex >= 4 then
-        r, g, b = 1, 0.2, 0.2
-    elseif self.currentPhaseIndex == 3 then
-        r, g, b = 1, 0.5, 0
-    elseif self.currentPhaseIndex == 2 then
-        r, g, b = 1, 0.8, 0
-    end
-    
-    love.graphics.setColor(r, g, b)
-    love.graphics.polygon("fill", 
-        self.x - self.radius, self.y - self.radius,
-        self.x + self.radius, self.y - self.radius,
-        self.x, self.y + self.radius
-    )
+    local scale = 1.0 + math.sin(self.pulseTimer * 2) * 0.05
+    BossVisuals.drawBoss(self.bossData.id, self.x, self.y, scale, self.rotation, self.flashTimer)
 
     -- Draw Bullets
     for _, b in ipairs(self.bullets) do
