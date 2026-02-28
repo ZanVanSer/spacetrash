@@ -2,6 +2,7 @@ local Screen = require('systems.screen')
 local EnemyBullet = require('entities.enemy_bullet')
 local Particles = require('systems.particles')
 local BossVisuals = require('entities.boss_visuals')
+local Colors = require('ui/colors')
 local Boss = {}
 Boss.__index = Boss
 
@@ -89,8 +90,77 @@ function Boss.new(x, y, bossData)
     self.isCharging = false
     self.chargeTimer = 0
     self.chargeDuration = 0.3
+    self.pendingShot = nil
+    self.shootDelay = 0
     
     return self
+end
+
+local function isAimedPattern(patternName)
+    local name = patternName or ""
+    name = name:gsub("^attack_", "")
+    return name == "aimed"
+end
+
+local function isBurstPattern(patternName)
+    local name = patternName or ""
+    name = name:gsub("^attack_", "")
+    return name == "burst"
+end
+
+local function firePattern(self, currentPattern, playerX, playerY, targetX, targetY, originX, originY)
+    local normalizedPattern = (currentPattern or ""):gsub("^attack_", "")
+    local fileName = currentPattern
+    if not fileName:find("^attack_") then
+        fileName = "attack_" .. fileName
+    end
+
+    local pattern = require("patterns/" .. fileName)
+    local bulletData = {
+        pattern = currentPattern,
+        speed = self.bossData.bulletSpeed or 200,
+        damage = self.bossData.bulletDamage or 10
+    }
+
+    -- Burst telegraph shots should originate from the boss but travel toward the telegraphed point.
+    if normalizedPattern == "burst" and targetX and targetY then
+        local ox = originX or self.x
+        local oy = originY or self.y
+        local count = bulletData.count or 3
+        local speed = bulletData.speed * 1.3
+        local angle = math.atan2(targetY - oy, targetX - ox)
+        local vx = math.cos(angle) * speed
+        local vy = math.sin(angle) * speed
+
+        for i = 1, count do
+            local bData = {}
+            for k, v in pairs(bulletData) do bData[k] = v end
+            bData.x = ox
+            bData.y = oy
+            bData.vx = vx
+            bData.vy = vy
+            bData.delay = (i - 1) * 0.1
+            bData.isDead = false
+            bData.radius = 6
+            table.insert(self.bullets, EnemyBullet.new(bData.x, bData.y, bData))
+        end
+        return
+    end
+
+    if pattern.createBullets then
+        local ox = originX or self.x
+        local oy = originY or self.y
+        local px = targetX or playerX or self.x
+        local py = targetY or playerY or (self.y + 100)
+        local newBulletsData = pattern.createBullets(ox, oy, bulletData, px, py)
+        for _, bData in ipairs(newBulletsData) do
+            table.insert(self.bullets, EnemyBullet.new(bData.x, bData.y, bData))
+        end
+    else
+        local ox = originX or self.x
+        local oy = originY or self.y
+        table.insert(self.bullets, EnemyBullet.new(ox, oy, bulletData))
+    end
 end
 
 function Boss:getCurrentPhase()
@@ -112,12 +182,17 @@ function Boss:onPhaseChange(oldPhaseIndex, newPhaseIndex)
     self.patternIndex = 1
     self.patternTimer = 0
     self.shootTimer = -1.0 -- Stop shooting briefly (1 second pause)
+    self.pendingShot = nil
+    self.shootDelay = 0
+    self.isCharging = false
+    self.chargeTimer = 0
+    self.chargeLevel = 0
     self.isTransitioning = true
     self.transitionTimer = 1.0
     return true
 end
 
-function Boss:update(dt, playerX, playerY)
+function Boss:update(dt, playerX, playerY, telegraph)
     if self.isDead then return end
 
     self.pulseTimer = self.pulseTimer + dt
@@ -188,14 +263,34 @@ function Boss:update(dt, playerX, playerY)
         end
     end
 
+    -- Resolve delayed aimed shot after telegraph phase.
+    if self.pendingShot then
+        self.shootDelay = self.shootDelay - dt
+        if self.shootDelay <= 0 then
+            firePattern(
+                self,
+                self.pendingShot.pattern,
+                playerX,
+                playerY,
+                self.pendingShot.targetX,
+                self.pendingShot.targetY,
+                self.pendingShot.originX,
+                self.pendingShot.originY
+            )
+            self.pendingShot = nil
+            self.shootDelay = 0
+            self.shootTimer = 0
+        end
+    end
+
     -- Shooting logic with pre-fire charge-up.
-    if not self.isCharging then
+    if not self.isCharging and not self.pendingShot then
         self.shootTimer = self.shootTimer + dt
     end
 
     local shootInterval = phase.shootInterval or 2.0
 
-    if not self.isCharging and self.shootTimer >= shootInterval then
+    if not self.isCharging and not self.pendingShot and self.shootTimer >= shootInterval then
         self.isCharging = true
         self.chargeTimer = 0
         self.chargeLevel = 0
@@ -208,35 +303,39 @@ function Boss:update(dt, playerX, playerY)
         if self.chargeLevel >= 1.0 then
             local patterns = phase.patterns or {}
             local currentPattern = patterns[self.patternIndex] or "spread"
-            
-            -- Add attack_ prefix if missing for file require
-            local fileName = currentPattern
-            if not fileName:find("^attack_") then
-                fileName = "attack_" .. fileName
-            end
-            
-            local pattern = require("patterns/" .. fileName)
-            
-            local bulletData = {
-                pattern = currentPattern,
-                speed = self.bossData.bulletSpeed or 200,
-                damage = self.bossData.bulletDamage or 10
-            }
-
-            if pattern.createBullets then
-                local px, py = playerX or self.x, playerY or (self.y + 100)
-                local newBulletsData = pattern.createBullets(self.x, self.y, bulletData, px, py)
-                for _, bData in ipairs(newBulletsData) do
-                    table.insert(self.bullets, EnemyBullet.new(bData.x, bData.y, bData))
-                end
-            else
-                table.insert(self.bullets, EnemyBullet.new(self.x, self.y, bulletData))
-            end
 
             self.isCharging = false
             self.chargeTimer = 0
             self.chargeLevel = 0
-            self.shootTimer = 0
+
+            if isAimedPattern(currentPattern) then
+                local px = playerX or self.x
+                local py = playerY or (self.y + 100)
+                if telegraph and telegraph.createLineTelegraph then
+                    telegraph:createLineTelegraph(self.x, self.y, px, py, 0.5, Colors.COLORS.danger)
+                end
+                self.pendingShot = {
+                    pattern = currentPattern,
+                    targetX = px,
+                    targetY = py
+                }
+                self.shootDelay = 0.5
+            elseif isBurstPattern(currentPattern) then
+                local px = playerX or self.x
+                local py = playerY or (self.y + 100)
+                if telegraph and telegraph.createAreaTelegraph then
+                    telegraph:createAreaTelegraph(px, py, 30, 0.8, Colors.COLORS.danger)
+                end
+                self.pendingShot = {
+                    pattern = currentPattern,
+                    targetX = px,
+                    targetY = py
+                }
+                self.shootDelay = 0.8
+            else
+                firePattern(self, currentPattern, playerX, playerY)
+                self.shootTimer = 0
+            end
         end
     end
 

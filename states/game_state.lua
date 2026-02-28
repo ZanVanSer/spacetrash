@@ -15,6 +15,7 @@ local DamageNumbers = require('ui.damage_numbers')
 local Layout = require('ui/layout')
 local Fonts = require('ui/fonts')
 local HUD = require('ui/hud')
+local Telegraph = require('ui.attack_telegraph')
 local state = {}
 
 function state:enter(saveData, stageData, shipData)
@@ -29,6 +30,7 @@ function state:enter(saveData, stageData, shipData)
     self.screenshake = Screenshake
     self.particles = Particles
     self.damageNumbers = DamageNumbers
+    self.telegraph = Telegraph.new()
     
     self.isPaused = false
     self.upgradeMenu = nil
@@ -115,6 +117,7 @@ function state:update(dt)
     self.screenshake.update(dt)
     self.particles.update(dt)
     self.damageNumbers.update(dt)
+    self.telegraph:update(dt)
 
     if self.bossEntranceTimer > 0 then
         self.bossEntranceTimer = self.bossEntranceTimer - dt
@@ -147,7 +150,7 @@ function state:update(dt)
     self.enemySpawner:update(dt, self.player.x, self.player.y)
     
     if self.boss then
-        self.boss:update(dt, self.player.x, self.player.y)
+        self.boss:update(dt, self.player.x, self.player.y, self.telegraph)
         if self.boss.isDead then
             self.isVictory = true
             self.enemiesKilled = self.enemiesKilled + 1
@@ -446,6 +449,7 @@ function state:draw()
 
     self.particles.draw()
     self.damageNumbers.draw()
+    self.telegraph:draw()
     
     love.graphics.pop()
 
