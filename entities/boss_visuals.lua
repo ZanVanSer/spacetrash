@@ -22,8 +22,19 @@ local function drawGlow(color, drawFunction, scale1, scale2)
     drawFunction()
 end
 
-function BossVisuals.asteroid_guardian(flashTimer, overlayAlpha)
+function BossVisuals.asteroid_guardian(flashTimer, overlayAlpha, aimAngle)
     local t = love.timer.getTime()
+    local baseAim = aimAngle or 0
+    local leftAim = baseAim - math.rad(15)
+    local rightAim = baseAim + math.rad(15)
+    local leftBarrelStartX = -30 + math.cos(leftAim) * 8
+    local leftBarrelStartY = 0 + math.sin(leftAim) * 8
+    local leftBarrelEndX = -30 + math.cos(leftAim) * 18
+    local leftBarrelEndY = 0 + math.sin(leftAim) * 18
+    local rightBarrelStartX = 30 + math.cos(rightAim) * 8
+    local rightBarrelStartY = 0 + math.sin(rightAim) * 8
+    local rightBarrelEndX = 30 + math.cos(rightAim) * 18
+    local rightBarrelEndY = 0 + math.sin(rightAim) * 18
     local hullPoints = {
         0, -25, -50, -15, -60, 10, -50, 20, 50, 20, 60, 10, 50, -15
     }
@@ -38,8 +49,8 @@ function BossVisuals.asteroid_guardian(flashTimer, overlayAlpha)
         love.graphics.circle("fill", 30, 0, 8)
         love.graphics.circle("line", -30, 0, 8)
         love.graphics.circle("line", 30, 0, 8)
-        love.graphics.line(-38, 0, -50, 0)
-        love.graphics.line(38, 0, 50, 0)
+        love.graphics.line(leftBarrelStartX, leftBarrelStartY, leftBarrelEndX, leftBarrelEndY)
+        love.graphics.line(rightBarrelStartX, rightBarrelStartY, rightBarrelEndX, rightBarrelEndY)
 
         love.graphics.circle("fill", 0, -10, 6)
         love.graphics.rectangle("fill", -24, 16, 8, 4)
@@ -71,8 +82,8 @@ function BossVisuals.asteroid_guardian(flashTimer, overlayAlpha)
     love.graphics.circle("line", 30, 0, 8)
 
     -- Gun barrels extending outward.
-    love.graphics.line(-38, 0, -50, 0)
-    love.graphics.line(38, 0, 50, 0)
+    love.graphics.line(leftBarrelStartX, leftBarrelStartY, leftBarrelEndX, leftBarrelEndY)
+    love.graphics.line(rightBarrelStartX, rightBarrelStartY, rightBarrelEndX, rightBarrelEndY)
 
     -- Central bridge weak point with pulsing cyan glow.
     local bridgeAlpha = 0.4 + math.sin(t * 4) * 0.3
@@ -88,7 +99,7 @@ function BossVisuals.asteroid_guardian(flashTimer, overlayAlpha)
     love.graphics.rectangle("fill", 16, 16, 8, 4)
 end
 
-function BossVisuals.void_destroyer(flashTimer, overlayAlpha)
+function BossVisuals.void_destroyer(flashTimer, overlayAlpha, aimAngle)
     local t = love.timer.getTime()
 
     if flashTimer and flashTimer > 0 and overlayAlpha and overlayAlpha > 0 then
@@ -143,7 +154,7 @@ function BossVisuals.void_destroyer(flashTimer, overlayAlpha)
     love.graphics.circle("line", 0, 0, 8)
 end
 
-function BossVisuals.default(flashTimer, overlayAlpha)
+function BossVisuals.default(flashTimer, overlayAlpha, aimAngle)
     if flashTimer and flashTimer > 0 and overlayAlpha and overlayAlpha > 0 then
         love.graphics.setColor(1, 1, 1, overlayAlpha)
         love.graphics.circle("fill", 0, 0, 42)
@@ -163,27 +174,27 @@ function BossVisuals.default(flashTimer, overlayAlpha)
     love.graphics.circle("line", 0, 0, 42)
 end
 
-local function drawBossById(bossId, flashTimer, overlayAlpha)
+local function drawBossById(bossId, flashTimer, overlayAlpha, aimAngle)
     if bossId == "asteroid_boss" or bossId == "asteroid_guardian" then
-        BossVisuals.asteroid_guardian(flashTimer, overlayAlpha)
+        BossVisuals.asteroid_guardian(flashTimer, overlayAlpha, aimAngle)
     elseif bossId == "void_destroyer" then
-        BossVisuals.void_destroyer(flashTimer, overlayAlpha)
+        BossVisuals.void_destroyer(flashTimer, overlayAlpha, aimAngle)
     else
-        BossVisuals.default(flashTimer, overlayAlpha)
+        BossVisuals.default(flashTimer, overlayAlpha, aimAngle)
     end
 end
 
-function BossVisuals.drawBoss(bossId, x, y, scale, rotation, flashTimer)
+function BossVisuals.drawBoss(bossId, x, y, scale, rotation, flashTimer, aimAngle)
     love.graphics.push()
     love.graphics.translate(x, y)
     love.graphics.rotate(rotation or 0)
     love.graphics.scale(scale or 1, scale or 1)
 
-    drawBossById(bossId, flashTimer, nil)
+    drawBossById(bossId, flashTimer, nil, aimAngle)
 
     if flashTimer and flashTimer > 0 then
         local alpha = math.min(1, flashTimer * 2)
-        drawBossById(bossId, flashTimer, alpha)
+        drawBossById(bossId, flashTimer, alpha, aimAngle)
     end
 
     love.graphics.pop()

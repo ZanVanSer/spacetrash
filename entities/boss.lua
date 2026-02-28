@@ -84,6 +84,7 @@ function Boss.new(x, y, bossData)
     self.isTransitioning = false
     self.transitionTimer = 0
     self.pulseTimer = 0
+    self.aimAngle = math.pi / 2
     
     return self
 end
@@ -116,6 +117,10 @@ function Boss:update(dt, playerX, playerY)
     if self.isDead then return end
 
     self.pulseTimer = self.pulseTimer + dt
+
+    if playerX and playerY then
+        self.aimAngle = math.atan2(playerY - self.y, playerX - self.x)
+    end
     
     if self.flashTimer > 0 then
         self.flashTimer = math.max(0, self.flashTimer - dt)
@@ -245,7 +250,7 @@ function Boss:draw()
     if self.isDead then return end
 
     local scale = 1.0 + math.sin(self.pulseTimer * 2) * 0.05
-    BossVisuals.drawBoss(self.bossData.id, self.x, self.y, scale, self.rotation, self.flashTimer)
+    BossVisuals.drawBoss(self.bossData.id, self.x, self.y, scale, self.rotation, self.flashTimer, self.aimAngle)
 
     -- Draw Bullets
     for _, b in ipairs(self.bullets) do
