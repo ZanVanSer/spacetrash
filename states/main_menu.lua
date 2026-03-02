@@ -13,7 +13,7 @@ function state:keypressed(key)
     if selection == 1 then
         sm.switch("save_select")
     elseif selection == 2 then
-        print("Settings - coming soon")
+        sm.switch("settings_menu")
     elseif selection == 3 then
         print("Library - coming soon")
     elseif selection == 4 then

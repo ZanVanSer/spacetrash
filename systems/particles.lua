@@ -1,10 +1,12 @@
 local Colors = require('ui.colors')
 
 local Particles = {
-    list = {}
+    list = {},
+    enabled = true
 }
 
 function Particles.spawn(x, y, count, colorKey, speed, size)
+    if not Particles.enabled then return end
     for i = 1, count do
         local angle = math.random() * math.pi * 2
         local s = speed * (0.5 + math.random())

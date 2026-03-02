@@ -2,10 +2,12 @@ local ScreenShake = {
     intensity = 0,
     duration = 0,
     offsetX = 0,
-    offsetY = 0
+    offsetY = 0,
+    enabled = true
 }
 
 function ScreenShake.trigger(intensity, duration)
+    if not ScreenShake.enabled then return end
     ScreenShake.intensity = intensity
     ScreenShake.duration = duration
 end
