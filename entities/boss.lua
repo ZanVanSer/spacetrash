@@ -101,6 +101,10 @@ function Boss.new(x, y, bossData)
     self.isSpecialAttacking = false
     self.prevHpPercent = 1.0
     
+    self.invulnerableTimer = 0
+    self.phaseText = ""
+    self.phaseTextTimer = 0
+    
     return self
 end
 
