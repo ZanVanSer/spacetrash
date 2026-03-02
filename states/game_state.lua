@@ -182,11 +182,21 @@ function state:update(dt)
     
     if self.boss then
         self.boss:update(dt, self.player.x, self.player.y, self.telegraph)
+        
+        -- Special Attack Flash
         if self.boss.isSpecialAttacking and not self.wasBossSpecialAttacking then
             self:flashScreen(Colors.COLORS.danger, 0.5, 0.3)
             self.screenshake.trigger(10, 0.5)
         end
         self.wasBossSpecialAttacking = self.boss.isSpecialAttacking
+
+        -- Phase Transition Flash
+        if self.boss.isTransitioning and not self.wasBossTransitioning then
+            self:flashScreen({1, 1, 1, 1}, 0.4, 0.5) -- White flash for phase change
+            self.screenshake.trigger(15, 0.6)
+        end
+        self.wasBossTransitioning = self.boss.isTransitioning
+
         if self.boss.isDead then
             self.isVictory = true
             self.enemiesKilled = self.enemiesKilled + 1
