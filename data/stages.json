@@ -30,7 +30,7 @@
     "description": "survive again",
     "difficulty": 2,
     
-    "enemies": ["basic_drone"],
+    "enemies": ["basic_drone", "zigzag_fighter", "bomber", "swarm_bee"],
     "enemySpawnRate": 1.0,
     "maxEnemiesOnScreen": 15,
     

@@ -1,6 +1,7 @@
 local Screen = require('systems.screen')
 local EnemyBullet = require('entities.enemy_bullet')
 local Particles = require('systems.particles')
+local Screenshake = require('systems.screenshake')
 local BossVisuals = require('entities.boss_visuals')
 local Colors = require('ui/colors')
 local SpecialAttacks = require('systems/special_attacks')
@@ -19,7 +20,8 @@ function Boss.new(x, y, bossData)
         bulletDamage = 10
     }
     self.x = x or Screen.getVirtualWidth() / 2
-    self.y = y or 100
+    self.targetY = y or 80
+    self.y = -100 -- Start above screen
     
     -- Stats from bossData
     self.maxHealth = self.bossData.maxHealth or 500
@@ -102,8 +104,14 @@ function Boss.new(x, y, bossData)
     self.prevHpPercent = 1.0
     
     self.invulnerableTimer = 0
-    self.phaseText = ""
-    self.phaseTextTimer = 0
+    
+    -- Entrance State
+    self.isEntering = true
+    self.entranceTimer = 2.0
+    
+    -- Death Sequence State
+    self.isDying = false
+    self.dyingTimer = 0
     
     return self
 end
@@ -241,7 +249,7 @@ end
 function Boss:onPhaseChange(oldPhaseIndex, newPhaseIndex)
     self.patternIndex = 1
     self.patternTimer = 0
-    self.shootTimer = -1.0 -- Stop shooting briefly (1 second pause)
+    self.shootTimer = -1.5 -- 1.5s delay
     self.pendingShot = nil
     self.shootDelay = 0
     self.isCharging = false
@@ -254,15 +262,92 @@ function Boss:onPhaseChange(oldPhaseIndex, newPhaseIndex)
     self.isSpecialAttacking = false
     self.isTransitioning = true
     self.transitionTimer = 1.0
+    self.invulnerableTimer = 1.0 -- 1s invulnerability
+    
+    Screenshake.trigger(10, 0.5)
+    for i=1,30 do Particles.bossHit(self.x, self.y) end
+    -- flash effect would be triggered by game_state watching isTransitioning or similar
+    -- but we can't easily flash screen from here without game_state reference
+    
     return true
 end
 
 function Boss:update(dt, playerX, playerY, telegraph)
     if self.isDead then return end
 
+    if self.isDying then
+        self.dyingTimer = self.dyingTimer - dt
+        
+        -- Disable normal logic
+        self.isExecutingSpecial = false
+        self.isCharging = false
+        self.activeSpecial = nil
+        self.pendingShot = nil
+        
+        -- Spin faster over time
+        local spinSpeed = (3.0 - self.dyingTimer) * 15
+        self.rotation = self.rotation + spinSpeed * dt
+        
+        -- Rapid flashing
+        if math.floor(self.dyingTimer * 20) % 2 == 0 then
+            self.flashTimer = 0.05
+        end
+        
+        -- Random explosions on boss
+        if math.random() < 0.2 then
+            local ox = self.x + math.random(-self.radius, self.radius)
+            local oy = self.y + math.random(-self.radius, self.radius)
+            Particles.bossHit(ox, oy)
+            Screenshake.trigger(5, 0.1)
+        end
+        
+        -- Continuous shake
+        Screenshake.trigger(3, 0.05)
+        
+        if self.dyingTimer <= 0 then
+            -- Final massive explosion
+            Screenshake.trigger(25, 1.0)
+            for i=1,50 do
+                local ox = self.x + math.random(-self.radius * 1.5, self.radius * 1.5)
+                local oy = self.y + math.random(-self.radius * 1.5, self.radius * 1.5)
+                Particles.enemyDeath(ox, oy)
+            end
+            -- Note: Game state handles the white flash by watching boss transition or death if needed
+            self.isDead = true
+        end
+        return
+    end
+
     self.pulseTimer = self.pulseTimer + dt
     if self.specialCooldownTimer > 0 then
         self.specialCooldownTimer = math.max(0, self.specialCooldownTimer - dt)
+    end
+    
+    if self.invulnerableTimer > 0 then
+        self.invulnerableTimer = math.max(0, self.invulnerableTimer - dt)
+    end
+
+    if self.isEntering then
+        self.entranceTimer = self.entranceTimer - dt
+        local progress = 1 - (self.entranceTimer / 2.0)
+        -- Smooth interpolation
+        self.y = -100 + (self.targetY - (-100)) * (1 - (1 - progress)^2)
+        
+        -- Effects
+        if math.random() < 0.3 then Particles.bossHit(self.x, self.y) end
+        if math.floor(self.entranceTimer * 10) % 2 == 0 then
+            Screenshake.trigger(3, 0.05)
+        end
+        
+        if self.entranceTimer <= 0 then
+            self.isEntering = false
+            self.y = self.targetY
+            Screenshake.trigger(10, 0.3)
+            for i=1,15 do Particles.bossHit(self.x, self.y) end
+        end
+        
+        self.invulnerableTimer = 0.1 -- Keep invulnerable during entrance
+        return -- Skip normal update
     end
 
     if playerX and playerY then
@@ -289,9 +374,6 @@ function Boss:update(dt, playerX, playerY, telegraph)
         self:onPhaseChange(self.currentPhaseIndex, newIndex)
         self.currentPhaseIndex = newIndex
         self.currentPhaseData = newPhase
-        
-        -- Optional: visual effect for phase change
-        Particles.bossHit(self.x, self.y)
     end
 
     -- Use currentPhaseData for behavior and stats
@@ -440,11 +522,14 @@ function Boss:getContactDamage()
 end
 
 function Boss:takeDamage(amount)
+    if self.invulnerableTimer > 0 or self.isEntering or self.isDying then return end
+    
     self.health = self.health - amount
     self.flashTimer = 0.1
     if self.health <= 0 then
         self.health = 0
-        self.isDead = true
+        self.isDying = true
+        self.dyingTimer = 3.0
     end
 end
 
