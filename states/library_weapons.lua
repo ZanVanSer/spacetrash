@@ -41,8 +41,24 @@ function state:isPassiveUnlocked(passiveId)
     for _, id in ipairs(self.saveData.unlockedPassives) do
         if id == passiveId then return true end
     end
-    -- Also check if it's unlocked in the current session if applicable, but saveData is primary
     return false
+end
+
+function state:applyFilter()
+    local filtered = {}
+    for _, weapon in ipairs(self.allWeapons) do
+        local unlocked = self:isWeaponUnlocked(weapon)
+        if self.filterIndex == 1 then -- All
+            table.insert(filtered, weapon)
+        elseif self.filterIndex == 2 and unlocked then -- Unlocked
+            table.insert(filtered, weapon)
+        elseif self.filterIndex == 3 and not unlocked then -- Locked
+            table.insert(filtered, weapon)
+        end
+    end
+    self.weapons = filtered
+    self.selectedIndex = 1
+    self.bullets = {}
 end
 
 function state:enter(saveData)
@@ -51,14 +67,14 @@ function state:enter(saveData)
         unlockedPassives = {}
     }
     
-    local allWeapons = DataLoader.getWeapons()
+    self.allWeapons = DataLoader.getWeapons()
+    self.filterIndex = 1 -- 1: All, 2: Unlocked, 3: Locked
+    self.filters = {"All", "Unlocked", "Locked"}
     
-    -- Filter and Sort: Unlocked first, then locked
-    self.weapons = {}
+    -- Sort initial list: Unlocked first for "All" view
     local unlocked = {}
     local locked = {}
-    
-    for _, weapon in ipairs(allWeapons) do
+    for _, weapon in ipairs(self.allWeapons) do
         if self:isWeaponUnlocked(weapon) then
             table.insert(unlocked, weapon)
         else
@@ -66,10 +82,11 @@ function state:enter(saveData)
         end
     end
     
-    for _, w in ipairs(unlocked) do table.insert(self.weapons, w) end
-    for _, w in ipairs(locked) do table.insert(self.weapons, w) end
+    self.allWeapons = {}
+    for _, w in ipairs(unlocked) do table.insert(self.allWeapons, w) end
+    for _, w in ipairs(locked) do table.insert(self.allWeapons, w) end
     
-    self.selectedIndex = 1
+    self:applyFilter()
     self.animTimer = 0
     self.bullets = {}
 end
@@ -88,7 +105,7 @@ function state:update(dt)
     end
     
     -- Spawn preview bullet
-    if #self.weapons > 0 then
+    if #self.weapons > 0 and self.selectedIndex <= #self.weapons then
         local weapon = self.weapons[self.selectedIndex]
         if self:isWeaponUnlocked(weapon) then
             local fireRate = weapon.fireRate or 0.5
@@ -105,18 +122,28 @@ function state:update(dt)
 end
 
 function state:keypressed(key)
-    if key == "left" then
-        self.selectedIndex = self.selectedIndex - 1
-        if self.selectedIndex < 1 then
-            self.selectedIndex = #self.weapons
+    if key == "tab" then
+        self.filterIndex = self.filterIndex + 1
+        if self.filterIndex > #self.filters then
+            self.filterIndex = 1
         end
-        self.bullets = {} -- Clear preview on change
+        self:applyFilter()
+    elseif key == "left" then
+        if #self.weapons > 0 then
+            self.selectedIndex = self.selectedIndex - 1
+            if self.selectedIndex < 1 then
+                self.selectedIndex = #self.weapons
+            end
+            self.bullets = {}
+        end
     elseif key == "right" then
-        self.selectedIndex = self.selectedIndex + 1
-        if self.selectedIndex > #self.weapons then
-            self.selectedIndex = 1
+        if #self.weapons > 0 then
+            self.selectedIndex = self.selectedIndex + 1
+            if self.selectedIndex > #self.weapons then
+                self.selectedIndex = 1
+            end
+            self.bullets = {}
         end
-        self.bullets = {} -- Clear preview on change
     elseif key == "x" or key == "escape" then
         sm.switch("library", self.saveData)
     end
@@ -132,10 +159,39 @@ function state:draw()
     Colors.setColor("bg")
     love.graphics.rectangle("fill", 0, 0, screenWidth, screenHeight)
     
+    -- Title
+    Colors.setColor("accent")
+    love.graphics.setFont(Fonts.getFont("huge"))
+    love.graphics.printf("WEAPON ARCHIVES", 0, 40, screenWidth, "center")
+    
+    -- Filter Display
+    love.graphics.setFont(Fonts.getFont("small"))
+    local filterX = screenWidth / 2 - 120
+    local filterY = 85
+    Colors.setColor("dim")
+    love.graphics.print("Filter [TAB]:", filterX, filterY)
+    
+    for i, f in ipairs(self.filters) do
+        local x = filterX + 85 + (i-1) * 70
+        if i == self.filterIndex then
+            Colors.setColor("accent")
+            love.graphics.print("[" .. f .. "]", x, filterY)
+        else
+            Colors.setColor("dim", 0.5)
+            love.graphics.print(f, x + 5, filterY)
+        end
+    end
+    
     if #self.weapons == 0 then
-        Colors.setColor("accent")
+        Colors.setColor("accent", 0.6)
         love.graphics.setFont(Fonts.getFont("normal"))
-        love.graphics.printf("No weapon data found.", 0, screenHeight/2, screenWidth, "center")
+        love.graphics.printf("No weapons match the current filter.", 0, screenHeight/2, screenWidth, "center")
+        
+        -- Controls Hint
+        love.graphics.setFont(Fonts.getFont("small"))
+        Colors.setColor("dim")
+        love.graphics.printf("TAB: Change Filter | X: Back to Library", 0, screenHeight - 50, screenWidth, "center")
+        
         Screen.removeScale()
         return
     end
@@ -144,16 +200,10 @@ function state:draw()
     local unlocked = self:isWeaponUnlocked(weapon)
     local evo = evolutions[weapon.id]
     
-    -- Title
-    Colors.setColor("accent")
-    love.graphics.setFont(Fonts.getFont("huge"))
-    love.graphics.printf("WEAPON ARCHIVES", 0, 40, screenWidth, "center")
-    
     -- Left Side: Weapon Visual & Firing Preview
     local previewX = screenWidth * 0.25
     local previewY = screenHeight * 0.55
     
-    -- Draw weapon "base"
     if unlocked then
         Colors.setColor("accent", 0.4)
         love.graphics.circle("line", previewX, previewY, 30 + math.sin(self.animTimer * 4) * 5)
@@ -177,9 +227,9 @@ function state:draw()
     
     -- Right Side: Information Panel
     local panelX = screenWidth * 0.5
-    local panelY = 90
+    local panelY = 110
     local panelW = screenWidth * 0.45
-    local panelH = screenHeight - 140
+    local panelH = screenHeight - 170
     
     love.graphics.setColor(0.05, 0.1, 0.12, 0.8)
     love.graphics.rectangle("fill", panelX, panelY, panelW, panelH, 12)
@@ -189,7 +239,7 @@ function state:draw()
     local contentX = panelX + 30
     local currY = panelY + 25
     
-    -- Weapon Name and Rarity
+    -- Weapon Name
     love.graphics.setFont(Fonts.getFont("large"))
     if unlocked then
         Colors.setColor("accent")
@@ -244,11 +294,6 @@ function state:draw()
         if passiveUnlocked then
             Colors.setColor("health")
             love.graphics.print(evo.requiredPassiveName, contentX + 80, currY)
-            
-            -- Connection Line
-            love.graphics.setLineWidth(1)
-            love.graphics.setColor(Colors.getColor("health", 0.4))
-            love.graphics.line(contentX + 120, currY + 20, contentX + 120, currY + 40)
         else
             Colors.setColor("danger")
             love.graphics.print(evo.requiredPassiveName .. " (Locked)", contentX + 80, currY)
@@ -288,7 +333,7 @@ function state:draw()
     
     -- Controls Hint
     love.graphics.setFont(Fonts.getFont("small"))
-    love.graphics.printf("LEFT/RIGHT: Browse Weapons | X: Back to Library", 0, screenHeight - 50, screenWidth, "center")
+    love.graphics.printf("TAB: Filter | LEFT/RIGHT: Browse | X: Back", 0, screenHeight - 50, screenWidth, "center")
     
     love.graphics.setFont(oldFont)
     Screen.removeScale()

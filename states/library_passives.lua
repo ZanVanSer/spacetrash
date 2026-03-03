@@ -8,9 +8,7 @@ local state = {}
 
 function state:isPassiveUnlocked(passive)
     if not passive then return false end
-    -- By default all upgrades are unlocked unless specified otherwise in saveData
     if not self.saveData or not self.saveData.unlockedPassives then return true end
-    -- If the set is empty, we assume starting items or all unlocked for now
     if #self.saveData.unlockedPassives == 0 then return true end
     
     for _, unlockedId in ipairs(self.saveData.unlockedPassives) do
@@ -21,19 +19,35 @@ function state:isPassiveUnlocked(passive)
     return false
 end
 
+function state:applyFilter()
+    local filtered = {}
+    for _, passive in ipairs(self.allPassives) do
+        local unlocked = self:isPassiveUnlocked(passive)
+        if self.filterIndex == 1 then -- All
+            table.insert(filtered, passive)
+        elseif self.filterIndex == 2 and unlocked then -- Unlocked
+            table.insert(filtered, passive)
+        elseif self.filterIndex == 3 and not unlocked then -- Locked
+            table.insert(filtered, passive)
+        end
+    end
+    self.passives = filtered
+    self.selectedIndex = 1
+end
+
 function state:enter(saveData)
     self.saveData = saveData or {
         unlockedPassives = {}
     }
     
-    local allPassives = DataLoader.getUpgrades()
+    self.allPassives = DataLoader.getUpgrades()
+    self.filterIndex = 1 -- 1: All, 2: Unlocked, 3: Locked
+    self.filters = {"All", "Unlocked", "Locked"}
     
-    -- Filter and Sort: Unlocked first, then locked
-    self.passives = {}
+    -- Filter and Sort initial list
     local unlocked = {}
     local locked = {}
-    
-    for _, passive in ipairs(allPassives) do
+    for _, passive in ipairs(self.allPassives) do
         if self:isPassiveUnlocked(passive) then
             table.insert(unlocked, passive)
         else
@@ -41,10 +55,11 @@ function state:enter(saveData)
         end
     end
     
-    for _, p in ipairs(unlocked) do table.insert(self.passives, p) end
-    for _, p in ipairs(locked) do table.insert(self.passives, p) end
+    self.allPassives = {}
+    for _, p in ipairs(unlocked) do table.insert(self.allPassives, p) end
+    for _, p in ipairs(locked) do table.insert(self.allPassives, p) end
     
-    self.selectedIndex = 1
+    self:applyFilter()
     self.animTimer = 0
 end
 
@@ -53,15 +68,25 @@ function state:update(dt)
 end
 
 function state:keypressed(key)
-    if key == "left" then
-        self.selectedIndex = self.selectedIndex - 1
-        if self.selectedIndex < 1 then
-            self.selectedIndex = #self.passives
+    if key == "tab" then
+        self.filterIndex = self.filterIndex + 1
+        if self.filterIndex > #self.filters then
+            self.filterIndex = 1
+        end
+        self:applyFilter()
+    elseif key == "left" then
+        if #self.passives > 0 then
+            self.selectedIndex = self.selectedIndex - 1
+            if self.selectedIndex < 1 then
+                self.selectedIndex = #self.passives
+            end
         end
     elseif key == "right" then
-        self.selectedIndex = self.selectedIndex + 1
-        if self.selectedIndex > #self.passives then
-            self.selectedIndex = 1
+        if #self.passives > 0 then
+            self.selectedIndex = self.selectedIndex + 1
+            if self.selectedIndex > #self.passives then
+                self.selectedIndex = 1
+            end
         end
     elseif key == "x" or key == "escape" then
         sm.switch("library", self.saveData)
@@ -78,21 +103,45 @@ function state:draw()
     Colors.setColor("bg")
     love.graphics.rectangle("fill", 0, 0, screenWidth, screenHeight)
     
+    -- Title
+    Colors.setColor("accent")
+    love.graphics.setFont(Fonts.getFont("huge"))
+    love.graphics.printf("PASSIVE ARCHIVES", 0, 40, screenWidth, "center")
+    
+    -- Filter Display
+    love.graphics.setFont(Fonts.getFont("small"))
+    local filterX = screenWidth / 2 - 120
+    local filterY = 85
+    Colors.setColor("dim")
+    love.graphics.print("Filter [TAB]:", filterX, filterY)
+    
+    for i, f in ipairs(self.filters) do
+        local x = filterX + 85 + (i-1) * 70
+        if i == self.filterIndex then
+            Colors.setColor("accent")
+            love.graphics.print("[" .. f .. "]", x, filterY)
+        else
+            Colors.setColor("dim", 0.5)
+            love.graphics.print(f, x + 5, filterY)
+        end
+    end
+    
     if #self.passives == 0 then
-        Colors.setColor("accent")
+        Colors.setColor("accent", 0.6)
         love.graphics.setFont(Fonts.getFont("normal"))
-        love.graphics.printf("No passive data found.", 0, screenHeight/2, screenWidth, "center")
+        love.graphics.printf("No modules match the current filter.", 0, screenHeight/2, screenWidth, "center")
+        
+        -- Controls Hint
+        love.graphics.setFont(Fonts.getFont("small"))
+        Colors.setColor("dim")
+        love.graphics.printf("TAB: Change Filter | X: Back to Library", 0, screenHeight - 50, screenWidth, "center")
+        
         Screen.removeScale()
         return
     end
     
     local passive = self.passives[self.selectedIndex]
     local unlocked = self:isPassiveUnlocked(passive)
-    
-    -- Title
-    Colors.setColor("accent")
-    love.graphics.setFont(Fonts.getFont("huge"))
-    love.graphics.printf("PASSIVE ARCHIVES", 0, 40, screenWidth, "center")
     
     -- Left Side: Passive Item Icon
     local iconX = screenWidth * 0.25
@@ -106,7 +155,6 @@ function state:draw()
         love.graphics.setLineWidth(2)
         love.graphics.circle("line", iconX, iconY, 55 + pulse)
         
-        -- Diamond/Gem shape
         love.graphics.polygon("fill", iconX, iconY - 30, iconX - 30, iconY, iconX, iconY + 30, iconX + 30, iconY)
         Colors.setColor("white", 0.5)
         love.graphics.polygon("line", iconX, iconY - 30, iconX - 30, iconY, iconX, iconY + 30, iconX + 30, iconY)
@@ -115,7 +163,6 @@ function state:draw()
         love.graphics.circle("fill", iconX, iconY, 50)
         love.graphics.polygon("fill", iconX, iconY - 30, iconX - 30, iconY, iconX, iconY + 30, iconX + 30, iconY)
         
-        -- LOCKED Overlay
         love.graphics.setFont(Fonts.getFont("large"))
         love.graphics.setColor(1, 0, 0, 0.8 + math.sin(self.animTimer * 5) * 0.2)
         love.graphics.printf("LOCKED", iconX - 100, iconY + 90, 200, "center")
@@ -123,9 +170,9 @@ function state:draw()
     
     -- Right Side: Information Panel
     local panelX = screenWidth * 0.5
-    local panelY = 100
+    local panelY = 110
     local panelW = screenWidth * 0.45
-    local panelH = screenHeight - 160
+    local panelH = screenHeight - 170
     
     love.graphics.setColor(0.05, 0.1, 0.12, 0.8)
     love.graphics.rectangle("fill", panelX, panelY, panelW, panelH, 12)
@@ -174,27 +221,16 @@ function state:draw()
         love.graphics.setFont(Fonts.getFont("small"))
         love.graphics.setColor(0.7, 0.7, 0.7)
         
-        -- Simulated progression based on name/effect
         local baseVal = passive.effect and passive.effect.value or 1.1
         local isMult = passive.effect and passive.effect.type == "stat_mult"
         local step = isMult and 0.05 or 5
         
-        local levels = {}
         for i = 1, 5 do
             local val = baseVal + (i-1) * step
             local valStr = isMult and string.format("+%d%%", (val-1)*100) or string.format("+%d", val)
-            table.insert(levels, string.format("Lv%d: %s Potency", i, valStr))
-        end
-        
-        for _, lvl in ipairs(levels) do
-            love.graphics.print(lvl, contentX + 10, currY)
+            love.graphics.print(string.format("Lv%d: %s Potency", i, valStr), contentX + 10, currY)
             currY = currY + 22
         end
-        
-        -- Evolution hint
-        currY = currY + 15
-        Colors.setColor("health")
-        love.graphics.print("Evolves: No data", contentX, currY)
     else
         love.graphics.setColor(0.3, 0.3, 0.3)
         love.graphics.print("PROGRESSION: ENCRYPTED", contentX, currY)
@@ -215,7 +251,7 @@ function state:draw()
     
     -- Controls Hint
     love.graphics.setFont(Fonts.getFont("small"))
-    love.graphics.printf("LEFT/RIGHT: Browse Passives | X: Back to Library", 0, screenHeight - 50, screenWidth, "center")
+    love.graphics.printf("TAB: Filter | LEFT/RIGHT: Browse | X: Back", 0, screenHeight - 50, screenWidth, "center")
     
     love.graphics.setFont(oldFont)
     Screen.removeScale()

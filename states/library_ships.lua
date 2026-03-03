@@ -19,19 +19,35 @@ function state:isShipUnlocked(ship)
     return false
 end
 
+function state:applyFilter()
+    local filtered = {}
+    for _, ship in ipairs(self.allShips) do
+        local unlocked = self:isShipUnlocked(ship)
+        if self.filterIndex == 1 then -- All
+            table.insert(filtered, ship)
+        elseif self.filterIndex == 2 and unlocked then -- Unlocked
+            table.insert(filtered, ship)
+        elseif self.filterIndex == 3 and not unlocked then -- Locked
+            table.insert(filtered, ship)
+        end
+    end
+    self.ships = filtered
+    self.selectedIndex = 1
+end
+
 function state:enter(saveData)
     self.saveData = saveData or {
         unlockedShips = {"vanguard"} -- Fallback
     }
     
-    local allShips = DataLoader.getShips()
+    self.allShips = DataLoader.getShips()
+    self.filterIndex = 1 -- 1: All, 2: Unlocked, 3: Locked
+    self.filters = {"All", "Unlocked", "Locked"}
     
-    -- Filter and Sort: Unlocked ships first, locked after
-    self.ships = {}
+    -- Filter and Sort initial list: Unlocked ships first for "All" view
     local unlocked = {}
     local locked = {}
-    
-    for _, ship in ipairs(allShips) do
+    for _, ship in ipairs(self.allShips) do
         if self:isShipUnlocked(ship) then
             table.insert(unlocked, ship)
         else
@@ -39,10 +55,11 @@ function state:enter(saveData)
         end
     end
     
-    for _, s in ipairs(unlocked) do table.insert(self.ships, s) end
-    for _, s in ipairs(locked) do table.insert(self.ships, s) end
+    self.allShips = {}
+    for _, s in ipairs(unlocked) do table.insert(self.allShips, s) end
+    for _, s in ipairs(locked) do table.insert(self.allShips, s) end
     
-    self.selectedIndex = 1
+    self:applyFilter()
     self.animTimer = 0
 end
 
@@ -51,15 +68,25 @@ function state:update(dt)
 end
 
 function state:keypressed(key)
-    if key == "left" then
-        self.selectedIndex = self.selectedIndex - 1
-        if self.selectedIndex < 1 then
-            self.selectedIndex = #self.ships
+    if key == "tab" then
+        self.filterIndex = self.filterIndex + 1
+        if self.filterIndex > #self.filters then
+            self.filterIndex = 1
+        end
+        self:applyFilter()
+    elseif key == "left" then
+        if #self.ships > 0 then
+            self.selectedIndex = self.selectedIndex - 1
+            if self.selectedIndex < 1 then
+                self.selectedIndex = #self.ships
+            end
         end
     elseif key == "right" then
-        self.selectedIndex = self.selectedIndex + 1
-        if self.selectedIndex > #self.ships then
-            self.selectedIndex = 1
+        if #self.ships > 0 then
+            self.selectedIndex = self.selectedIndex + 1
+            if self.selectedIndex > #self.ships then
+                self.selectedIndex = 1
+            end
         end
     elseif key == "x" or key == "escape" then
         sm.switch("library", self.saveData)
@@ -76,21 +103,45 @@ function state:draw()
     Colors.setColor("bg")
     love.graphics.rectangle("fill", 0, 0, screenWidth, screenHeight)
     
+    -- Title
+    Colors.setColor("accent")
+    love.graphics.setFont(Fonts.getFont("huge"))
+    love.graphics.printf("SHIP ARCHIVES", 0, 40, screenWidth, "center")
+    
+    -- Filter Display
+    love.graphics.setFont(Fonts.getFont("small"))
+    local filterX = screenWidth / 2 - 120
+    local filterY = 85
+    Colors.setColor("dim")
+    love.graphics.print("Filter [TAB]:", filterX, filterY)
+    
+    for i, f in ipairs(self.filters) do
+        local x = filterX + 85 + (i-1) * 70
+        if i == self.filterIndex then
+            Colors.setColor("accent")
+            love.graphics.print("[" .. f .. "]", x, filterY)
+        else
+            Colors.setColor("dim", 0.5)
+            love.graphics.print(f, x + 5, filterY)
+        end
+    end
+    
     if #self.ships == 0 then
-        Colors.setColor("accent")
+        Colors.setColor("accent", 0.6)
         love.graphics.setFont(Fonts.getFont("normal"))
-        love.graphics.printf("No ship data found.", 0, screenHeight/2, screenWidth, "center")
+        love.graphics.printf("No ships match the current filter.", 0, screenHeight/2, screenWidth, "center")
+        
+        -- Controls Hint
+        love.graphics.setFont(Fonts.getFont("small"))
+        Colors.setColor("dim")
+        love.graphics.printf("TAB: Change Filter | X: Back to Library", 0, screenHeight - 50, screenWidth, "center")
+        
         Screen.removeScale()
         return
     end
     
     local ship = self.ships[self.selectedIndex]
     local unlocked = self:isShipUnlocked(ship)
-    
-    -- Title
-    Colors.setColor("accent")
-    love.graphics.setFont(Fonts.getFont("huge"))
-    love.graphics.printf("SHIP ARCHIVES", 0, 40, screenWidth, "center")
     
     -- Left Side: Ship Visual Preview
     local previewX = screenWidth * 0.25
@@ -113,9 +164,9 @@ function state:draw()
     
     -- Right Side: Information Panel
     local panelX = screenWidth * 0.5
-    local panelY = 100
+    local panelY = 110
     local panelW = screenWidth * 0.45
-    local panelH = screenHeight - 160
+    local panelH = screenHeight - 170
     
     love.graphics.setColor(0.05, 0.1, 0.12, 0.8)
     love.graphics.rectangle("fill", panelX, panelY, panelW, panelH, 12)
@@ -202,7 +253,7 @@ function state:draw()
     
     -- Controls Hint
     love.graphics.setFont(Fonts.getFont("small"))
-    love.graphics.printf("LEFT/RIGHT: Browse Ships | X: Back to Library", 0, screenHeight - 50, screenWidth, "center")
+    love.graphics.printf("TAB: Filter | LEFT/RIGHT: Browse | X: Back", 0, screenHeight - 50, screenWidth, "center")
     
     love.graphics.setFont(oldFont)
     Screen.removeScale()
