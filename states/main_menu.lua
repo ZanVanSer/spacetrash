@@ -2,6 +2,7 @@ local sm = require "states/statemanager"
 local Menu = require "ui/menu"
 local Screen = require('systems.screen')
 local Fonts = require('ui/fonts')
+local savemanager = require "systems/savemanager"
 local state = {}
 
 function state:enter()
@@ -15,7 +16,9 @@ function state:keypressed(key)
     elseif selection == 2 then
         sm.switch("settings_menu")
     elseif selection == 3 then
-        print("Library - coming soon")
+        -- Get current save data (or slot 1 as default for meta-progression view)
+        local saveData = _G.currentSaveData or savemanager.loadSave(1)
+        sm.switch("library", saveData)
     elseif selection == 4 then
         love.event.quit()
     end

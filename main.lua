@@ -19,6 +19,7 @@ function love.load()
     sm.register("settings_menu", require "states/settings_menu")
     sm.register("game", require "states/game_state")
     sm.register("gameover", require "states/gameover_state")
+    sm.register("library", require "states/library")
     
     -- Start with main menu
     sm.switch("main_menu")
