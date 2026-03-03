@@ -6,6 +6,23 @@ local Screen = require "systems/screen"
 
 local state = {}
 
+-- Define weapon evolutions mapping
+local evolutions = {
+    basic_laser = {
+        name = "Hyper Beam",
+        requiredPassiveId = "damage_boost",
+        requiredPassiveName = "Damage +10%",
+        changes = "Increases damage by 100%, gains piercing and increased beam width.",
+        evolvedStats = {
+            damage = 20,
+            fireRate = 0.25,
+            bulletSpeed = 600,
+            pattern = "Pulse",
+            area = 1.5
+        }
+    }
+}
+
 function state:isWeaponUnlocked(weapon)
     if not weapon then return false end
     -- Basic laser is always unlocked
@@ -19,9 +36,19 @@ function state:isWeaponUnlocked(weapon)
     return false
 end
 
+function state:isPassiveUnlocked(passiveId)
+    if not self.saveData or not self.saveData.unlockedPassives then return false end
+    for _, id in ipairs(self.saveData.unlockedPassives) do
+        if id == passiveId then return true end
+    end
+    -- Also check if it's unlocked in the current session if applicable, but saveData is primary
+    return false
+end
+
 function state:enter(saveData)
     self.saveData = saveData or {
-        unlockedWeapons = {"basic_laser"}
+        unlockedWeapons = {"basic_laser"},
+        unlockedPassives = {}
     }
     
     local allWeapons = DataLoader.getWeapons()
@@ -115,6 +142,7 @@ function state:draw()
     
     local weapon = self.weapons[self.selectedIndex]
     local unlocked = self:isWeaponUnlocked(weapon)
+    local evo = evolutions[weapon.id]
     
     -- Title
     Colors.setColor("accent")
@@ -149,9 +177,9 @@ function state:draw()
     
     -- Right Side: Information Panel
     local panelX = screenWidth * 0.5
-    local panelY = 100
+    local panelY = 90
     local panelW = screenWidth * 0.45
-    local panelH = screenHeight - 160
+    local panelH = screenHeight - 140
     
     love.graphics.setColor(0.05, 0.1, 0.12, 0.8)
     love.graphics.rectangle("fill", panelX, panelY, panelW, panelH, 12)
@@ -159,7 +187,7 @@ function state:draw()
     love.graphics.rectangle("line", panelX, panelY, panelW, panelH, 12)
     
     local contentX = panelX + 30
-    local currY = panelY + 30
+    local currY = panelY + 25
     
     -- Weapon Name and Rarity
     love.graphics.setFont(Fonts.getFont("large"))
@@ -167,72 +195,90 @@ function state:draw()
         Colors.setColor("accent")
         love.graphics.print(weapon.name:upper(), contentX, currY)
         currY = currY + 30
-        Colors.setColor("xp") -- Use XP color for rarity/type info
-        love.graphics.setFont(Fonts.getFont("normal"))
-        love.graphics.print("Rarity: Common", contentX, currY)
     else
         love.graphics.setColor(0.3, 0.3, 0.3)
         love.graphics.print("UNKNOWN ARMAMENT", contentX, currY)
         currY = currY + 30
-        love.graphics.setFont(Fonts.getFont("normal"))
-        love.graphics.print("Rarity: Unknown", contentX, currY)
     end
-    currY = currY + 50
     
     -- Stats
     local function drawStat(label, value, color)
-        love.graphics.setFont(Fonts.getFont("small"))
+        love.graphics.setFont(Fonts.getFont("tiny"))
         love.graphics.setColor(0.5, 0.5, 0.5)
         love.graphics.print(label .. ":", contentX, currY)
         
-        love.graphics.setFont(Fonts.getFont("normal"))
+        love.graphics.setFont(Fonts.getFont("small"))
         if unlocked then
             love.graphics.setColor(unpack(color or {1, 1, 1}))
-            love.graphics.print(tostring(value), contentX + 130, currY - 2)
+            love.graphics.print(tostring(value), contentX + 100, currY - 1)
         else
             love.graphics.setColor(0.15, 0.15, 0.15)
-            love.graphics.print("???", contentX + 130, currY - 2)
+            love.graphics.print("???", contentX + 100, currY - 1)
         end
-        currY = currY + 24
+        currY = currY + 20
     end
     
     drawStat("Damage", weapon.damage, {1, 0.3, 0.3})
     drawStat("Fire Rate", weapon.fireRate .. "s", {0.6, 1, 0.6})
     drawStat("Bullet Speed", weapon.bulletSpeed, {1, 1, 1})
     drawStat("Pattern", (weapon.pattern or "Straight"):gsub("^%l", string.upper), {0.6, 0.6, 1})
-    drawStat("Area", (weapon.area or 1.0), {1, 0.9, 0.4})
     
-    currY = currY + 20
-    
-    -- Level Progression
-    love.graphics.setFont(Fonts.getFont("normal"))
-    if unlocked then
-        Colors.setColor("accent")
-        love.graphics.print("UPGRADES", contentX, currY)
-        currY = currY + 25
-        love.graphics.setFont(Fonts.getFont("small"))
-        love.graphics.setColor(0.8, 0.8, 0.8)
-        local levels = {
-            "Lv2: +20% Damage",
-            "Lv3: +1 Projectile",
-            "Lv4: +10% Fire Rate",
-            "Lv5: +30% Area"
-        }
-        for _, lvl in ipairs(levels) do
-            love.graphics.print(lvl, contentX + 10, currY)
-            currY = currY + 18
-        end
-    else
-        love.graphics.setColor(0.3, 0.3, 0.3)
-        love.graphics.print("UPGRADES: LOCKED", contentX, currY)
-    end
-    
-    -- Unlock Condition
-    if not unlocked then
-        currY = panelY + panelH - 60
-        Colors.setColor("xp")
+    -- Evolution Section
+    if evo then
+        currY = currY + 15
+        love.graphics.setColor(1, 1, 1, 0.1)
+        love.graphics.line(contentX, currY, panelX + panelW - 30, currY)
+        currY = currY + 15
+        
         love.graphics.setFont(Fonts.getFont("normal"))
-        love.graphics.print("Unlock: " .. (weapon.unlockCondition or "Complete Missions"), contentX, currY)
+        Colors.setColor("xp")
+        love.graphics.print("EVOLUTION: " .. evo.name, contentX, currY)
+        currY = currY + 25
+        
+        -- Required Passive
+        local passiveUnlocked = self:isPassiveUnlocked(evo.requiredPassiveId)
+        love.graphics.setFont(Fonts.getFont("small"))
+        Colors.setColor("dim")
+        love.graphics.print("Requires: ", contentX, currY)
+        
+        if passiveUnlocked then
+            Colors.setColor("health")
+            love.graphics.print(evo.requiredPassiveName, contentX + 80, currY)
+            
+            -- Connection Line
+            love.graphics.setLineWidth(1)
+            love.graphics.setColor(Colors.getColor("health", 0.4))
+            love.graphics.line(contentX + 120, currY + 20, contentX + 120, currY + 40)
+        else
+            Colors.setColor("danger")
+            love.graphics.print(evo.requiredPassiveName .. " (Locked)", contentX + 80, currY)
+        end
+        currY = currY + 30
+        
+        -- Evolution Details
+        if unlocked and passiveUnlocked then
+            Colors.setColor("health")
+            love.graphics.setFont(Fonts.getFont("tiny"))
+            love.graphics.printf("Evolution Available! " .. evo.changes, contentX, currY, panelW - 60, "left")
+            currY = currY + 45
+            
+            -- Evolved Stats Preview
+            local function drawEvoStat(label, value, base)
+                love.graphics.setFont(Fonts.getFont("tiny"))
+                Colors.setColor("dim")
+                love.graphics.print(label .. ":", contentX, currY)
+                Colors.setColor("health")
+                love.graphics.print(tostring(base) .. " -> " .. tostring(value), contentX + 100, currY)
+                currY = currY + 15
+            end
+            
+            drawEvoStat("Evo Damage", evo.evolvedStats.damage, weapon.damage)
+            drawEvoStat("Evo Pattern", evo.evolvedStats.pattern, weapon.pattern)
+        else
+            love.graphics.setFont(Fonts.getFont("tiny"))
+            Colors.setColor(0.4, 0.4, 0.4)
+            love.graphics.printf("Evolution potential detected. Master the base armament and acquire the " .. evo.requiredPassiveName .. " to transcend.", contentX, currY, panelW - 60, "left")
+        end
     end
     
     -- Navigation Bottom Info
