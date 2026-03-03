@@ -25,6 +25,8 @@ function love.load()
     sm.register("library_passives", require "states/library_passives")
     sm.register("library_enemies", require "states/library_enemies")
     sm.register("library_bosses", require "states/library_bosses")
+    sm.register("library_stats", require "states/library_stats")
+    sm.register("library_save_select", require "states/library_save_select")
     
     -- Start with main menu
     sm.switch("main_menu")

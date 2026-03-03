@@ -4,6 +4,7 @@ local ShipVisuals = require "entities/ship_visuals"
 local Colors = require "ui/colors"
 local Fonts = require "ui/fonts"
 local Screen = require "systems/screen"
+local Scanlines = require "ui/scanlines"
 
 local state = {}
 
@@ -33,18 +34,19 @@ function state:applyFilter()
     end
     self.ships = filtered
     self.selectedIndex = 1
+    self.transitionAlpha = 0
+    self.slideOffset = 20
 end
 
 function state:enter(saveData)
     self.saveData = saveData or {
-        unlockedShips = {"vanguard"} -- Fallback
+        unlockedShips = {"vanguard"}
     }
     
     self.allShips = DataLoader.getShips()
-    self.filterIndex = 1 -- 1: All, 2: Unlocked, 3: Locked
+    self.filterIndex = 1
     self.filters = {"All", "Unlocked", "Locked"}
     
-    -- Filter and Sort initial list: Unlocked ships first for "All" view
     local unlocked = {}
     local locked = {}
     for _, ship in ipairs(self.allShips) do
@@ -61,36 +63,57 @@ function state:enter(saveData)
     
     self:applyFilter()
     self.animTimer = 0
+    self.transitionAlpha = 1
+    self.slideOffset = 0
+    
+    -- Background particles
+    self.particles = {}
+    for i = 1, 25 do
+        table.insert(self.particles, {
+            x = math.random(Screen.getVirtualWidth()),
+            y = math.random(Screen.getVirtualHeight()),
+            speed = math.random(15, 45),
+            size = math.random(1, 2),
+            alpha = math.random() * 0.3
+        })
+    end
 end
 
 function state:update(dt)
     self.animTimer = self.animTimer + dt
+    self.transitionAlpha = math.min(1, self.transitionAlpha + dt * 5)
+    self.slideOffset = self.slideOffset * math.exp(-12 * dt)
+    
+    for _, p in ipairs(self.particles) do
+        p.y = p.y + p.speed * dt
+        if p.y > Screen.getVirtualHeight() then p.y = -10 end
+    end
 end
 
 function state:keypressed(key)
     if key == "tab" then
         self.filterIndex = self.filterIndex + 1
-        if self.filterIndex > #self.filters then
-            self.filterIndex = 1
-        end
+        if self.filterIndex > #self.filters then self.filterIndex = 1 end
         self:applyFilter()
-    elseif key == "left" then
+    elseif key == "left" or key == "right" then
         if #self.ships > 0 then
-            self.selectedIndex = self.selectedIndex - 1
-            if self.selectedIndex < 1 then
-                self.selectedIndex = #self.ships
-            end
-        end
-    elseif key == "right" then
-        if #self.ships > 0 then
-            self.selectedIndex = self.selectedIndex + 1
-            if self.selectedIndex > #self.ships then
-                self.selectedIndex = 1
-            end
+            self.selectedIndex = (key == "left") and (self.selectedIndex - 1) or (self.selectedIndex + 1)
+            if self.selectedIndex < 1 then self.selectedIndex = #self.ships end
+            if self.selectedIndex > #self.ships then self.selectedIndex = 1 end
+            self.transitionAlpha = 0
+            self.slideOffset = (key == "left") and -40 or 40
         end
     elseif key == "x" or key == "escape" then
         sm.switch("library", self.saveData)
     end
+end
+
+function state:drawCornerBrackets(x, y, w, h, size)
+    local s = size or 15
+    love.graphics.line(x, y + s, x, y, x + s, y)
+    love.graphics.line(x + w - s, y, x + w, y, x + w, y + s)
+    love.graphics.line(x, y + h - s, x, y + h, x + s, y + h)
+    love.graphics.line(x + w - s, y + h, x + w, y + h, x + w, y + h - s)
 end
 
 function state:draw()
@@ -99,22 +122,26 @@ function state:draw()
     local screenWidth = Screen.getVirtualWidth()
     local screenHeight = Screen.getVirtualHeight()
     
-    -- Dark background
     Colors.setColor("bg")
     love.graphics.rectangle("fill", 0, 0, screenWidth, screenHeight)
+    
+    -- Background Particles
+    for _, p in ipairs(self.particles) do
+        Colors.setColor("accent", p.alpha)
+        love.graphics.circle("fill", p.x, p.y, p.size)
+    end
     
     -- Title
     Colors.setColor("accent")
     love.graphics.setFont(Fonts.getFont("huge"))
     love.graphics.printf("SHIP ARCHIVES", 0, 40, screenWidth, "center")
     
-    -- Filter Display
+    -- Filter
     love.graphics.setFont(Fonts.getFont("small"))
     local filterX = screenWidth / 2 - 120
     local filterY = 85
     Colors.setColor("dim")
     love.graphics.print("Filter [TAB]:", filterX, filterY)
-    
     for i, f in ipairs(self.filters) do
         local x = filterX + 85 + (i-1) * 70
         if i == self.filterIndex then
@@ -126,132 +153,88 @@ function state:draw()
         end
     end
     
-    if #self.ships == 0 then
-        Colors.setColor("accent", 0.6)
-        love.graphics.setFont(Fonts.getFont("normal"))
-        love.graphics.printf("No ships match the current filter.", 0, screenHeight/2, screenWidth, "center")
+    if #self.ships > 0 then
+        local ship = self.ships[self.selectedIndex]
+        local unlocked = self:isShipUnlocked(ship)
         
-        -- Controls Hint
-        love.graphics.setFont(Fonts.getFont("small"))
-        Colors.setColor("dim")
-        love.graphics.printf("TAB: Change Filter | X: Back to Library", 0, screenHeight - 50, screenWidth, "center")
+        love.graphics.push()
+        love.graphics.translate(self.slideOffset, 0)
         
-        Screen.removeScale()
-        return
-    end
-    
-    local ship = self.ships[self.selectedIndex]
-    local unlocked = self:isShipUnlocked(ship)
-    
-    -- Left Side: Ship Visual Preview
-    local previewX = screenWidth * 0.25
-    local previewY = screenHeight * 0.5
-    local bob = math.sin(self.animTimer * 2) * 10
-    local rotation = math.sin(self.animTimer * 1.5) * 0.1
-    
-    if unlocked then
-        ShipVisuals.drawShip(ship.id, previewX, previewY + bob, 3.0, rotation)
-    else
-        -- Draw as silhouette / grayed out
-        love.graphics.setColor(0.1, 0.1, 0.1, 0.8)
-        ShipVisuals.drawShip(ship.id, previewX, previewY + bob, 3.0, rotation)
+        -- Preview
+        local previewX, previewY = screenWidth * 0.25, screenHeight * 0.5
+        local bob = math.sin(self.animTimer * 2) * 10
         
-        -- LOCKED Overlay
-        love.graphics.setFont(Fonts.getFont("large"))
-        love.graphics.setColor(1, 0, 0, 0.8 + math.sin(self.animTimer * 5) * 0.2)
-        love.graphics.printf("LOCKED", previewX - 100, previewY + 100, 200, "center")
-    end
-    
-    -- Right Side: Information Panel
-    local panelX = screenWidth * 0.5
-    local panelY = 110
-    local panelW = screenWidth * 0.45
-    local panelH = screenHeight - 170
-    
-    love.graphics.setColor(0.05, 0.1, 0.12, 0.8)
-    love.graphics.rectangle("fill", panelX, panelY, panelW, panelH, 12)
-    love.graphics.setColor(Colors.getColor("accent", 0.2))
-    love.graphics.rectangle("line", panelX, panelY, panelW, panelH, 12)
-    
-    local contentX = panelX + 30
-    local currY = panelY + 30
-    
-    -- Ship Name and Class
-    love.graphics.setFont(Fonts.getFont("large"))
-    if unlocked then
-        Colors.setColor("accent")
-        love.graphics.print(ship.name:upper(), contentX, currY)
-        currY = currY + 30
-        Colors.setColor("dim")
-        love.graphics.setFont(Fonts.getFont("normal"))
-        love.graphics.print(ship.class or "Standard Class", contentX, currY)
-    else
-        love.graphics.setColor(0.3, 0.3, 0.3)
-        love.graphics.print("UNKNOWN VESSEL", contentX, currY)
-        currY = currY + 30
-        love.graphics.setFont(Fonts.getFont("normal"))
-        love.graphics.print("Class: Redacted", contentX, currY)
-    end
-    currY = currY + 50
-    
-    -- Description
-    love.graphics.setFont(Fonts.getFont("small"))
-    if unlocked then
-        love.graphics.setColor(0.9, 0.9, 0.9)
-        love.graphics.printf(ship.description or "No data available.", contentX, currY, panelW - 60, "left")
-    else
-        love.graphics.setColor(0.2, 0.2, 0.2)
-        love.graphics.printf("Scanning... Ship signature recognized. Access denied. Please unlock this ship in the hangar to view technical specifications.", contentX, currY, panelW - 60, "left")
-    end
-    currY = currY + 80
-    
-    -- Stats
-    local function drawStat(label, value, color)
-        love.graphics.setFont(Fonts.getFont("small"))
-        love.graphics.setColor(0.5, 0.5, 0.5)
-        love.graphics.print(label .. ":", contentX, currY)
-        
-        love.graphics.setFont(Fonts.getFont("normal"))
         if unlocked then
-            love.graphics.setColor(unpack(color or {1, 1, 1}))
-            love.graphics.print(tostring(value), contentX + 150, currY - 2)
+            Colors.setColor("accent", 0.1 * self.transitionAlpha)
+            love.graphics.circle("fill", previewX, previewY + bob, 70 + math.sin(self.animTimer * 4) * 15)
+            ShipVisuals.drawShip(ship.id, previewX, previewY + bob, 3.0, math.sin(self.animTimer * 1.5) * 0.1)
         else
-            love.graphics.setColor(0.15, 0.15, 0.15)
-            love.graphics.print("???", contentX + 150, currY - 2)
+            love.graphics.setColor(0.02, 0.05, 0.05, self.transitionAlpha)
+            ShipVisuals.drawShip(ship.id, previewX, previewY + bob, 3.0, 0)
+            Colors.setColor("danger", 0.5 * self.transitionAlpha)
+            love.graphics.setFont(Fonts.getFont("large"))
+            love.graphics.printf("LOCKED", previewX - 100, previewY + 100, 200, "center")
         end
-        currY = currY + 28
+        
+        -- Info Panel
+        local panelX, panelY = screenWidth * 0.5, 115
+        local panelW, panelH = screenWidth * 0.45, screenHeight - 180
+        
+        love.graphics.setColor(0.05, 0.1, 0.12, 0.85 * self.transitionAlpha)
+        love.graphics.rectangle("fill", panelX, panelY, panelW, panelH, 12)
+        Colors.setColor("accent", 0.3 * self.transitionAlpha)
+        love.graphics.setLineWidth(2)
+        self:drawCornerBrackets(panelX, panelY, panelW, panelH, 25)
+        
+        local contentX, currY = panelX + 30, panelY + 30
+        love.graphics.setFont(Fonts.getFont("large"))
+        if unlocked then
+            Colors.setColor("accent", self.transitionAlpha)
+            love.graphics.print(ship.name:upper(), contentX, currY)
+            currY = currY + 30
+            Colors.setColor("dim", self.transitionAlpha)
+            love.graphics.setFont(Fonts.getFont("normal"))
+            love.graphics.print(ship.class or "Standard Class", contentX, currY)
+        else
+            Colors.setColor("dim", 0.3 * self.transitionAlpha)
+            love.graphics.print("UNKNOWN VESSEL", contentX, currY)
+            currY = currY + 30
+            love.graphics.setFont(Fonts.getFont("normal"))
+            love.graphics.print("Class: [REDACTED]", contentX, currY)
+        end
+        currY = currY + 50
+        
+        love.graphics.setFont(Fonts.getFont("small"))
+        Colors.setColor("white", (unlocked and 0.9 or 0.2) * self.transitionAlpha)
+        local desc = unlocked and (ship.description or "") or "Technical data restricted. Please secure pilot clearance."
+        love.graphics.printf(desc, contentX, currY, panelW - 60, "left")
+        currY = currY + 80
+        
+        local function drawStat(label, value, color)
+            Colors.setColor("dim", 0.6 * self.transitionAlpha)
+            love.graphics.print(label .. ":", contentX, currY)
+            Colors.setColor(color[1], color[2], color[3], (unlocked and 1 or 0.15) * self.transitionAlpha)
+            love.graphics.print(unlocked and tostring(value) or "???", contentX + 150, currY)
+            currY = currY + 28
+        end
+        drawStat("Max Health", ship.maxHealth, {1, 0.3, 0.3})
+        drawStat("Armor", ship.armor, {0.5, 0.5, 1})
+        drawStat("Might", math.floor((ship.might or 1) * 100) .. "%", {1, 0.7, 0.2})
+        drawStat("Speed", ship.speed, {1, 1, 1})
+        
+        if not unlocked then
+            currY = currY + 20
+            Colors.setColor("xp", self.transitionAlpha)
+            love.graphics.print("Unlock: " .. (ship.unlockCondition or "Locked"), contentX, currY)
+        end
+        love.graphics.pop()
     end
     
-    drawStat("Max Health", ship.maxHealth, {1, 0.3, 0.3})
-    drawStat("Armor", ship.armor, {0.5, 0.5, 1})
-    drawStat("Might", math.floor((ship.might or 1) * 100) .. "%", {1, 0.7, 0.2})
-    drawStat("Speed", ship.speed, {1, 1, 1})
-    drawStat("Area", math.floor((ship.area or 1) * 100) .. "%", {1, 0.9, 0.4})
-    
-    currY = currY + 10
-    local weaponName = (ship.startWeapon or "Unknown"):gsub("_", " "):gsub("^%l", string.upper)
-    drawStat("Starting Weapon", weaponName, {1, 1, 0.6})
-    
-    -- Unlock Condition if locked
-    if not unlocked then
-        currY = currY + 20
-        Colors.setColor("xp")
-        love.graphics.setFont(Fonts.getFont("normal"))
-        local hint = "Unlock: "
-        if ship.unlockCondition == "default" then hint = hint .. "Starter Ship"
-        elseif ship.unlockCondition == "stage_1" then hint = hint .. "Complete Stage 1"
-        elseif ship.unlockCondition == "level_10" then hint = hint .. "Reach Level 10"
-        else hint = hint .. (ship.unlockCondition or "Locked")
-        end
-        love.graphics.print(hint, contentX, currY)
-    end
-    
-    -- Navigation Bottom Info
     Colors.setColor("dim")
     love.graphics.setFont(Fonts.getFont("normal"))
-    love.graphics.printf(string.format("Ship %d of %d", self.selectedIndex, #self.ships), 0, screenHeight - 110, screenWidth, "center")
+    love.graphics.printf(string.format("Entry %d / %d", self.selectedIndex, #self.ships), 0, screenHeight - 110, screenWidth, "center")
     
-    -- Controls Hint
+    Scanlines.drawScanlines()
     love.graphics.setFont(Fonts.getFont("small"))
     love.graphics.printf("TAB: Filter | LEFT/RIGHT: Browse | X: Back", 0, screenHeight - 50, screenWidth, "center")
     
