@@ -82,18 +82,25 @@ function state:draw()
     love.graphics.setFont(Fonts.getFont("huge"))
     love.graphics.printf("LIBRARY", 0, screenHeight * 0.1, screenWidth, "center")
     
-    -- Category List with counts
+    -- Category List with counts and progress bars
     love.graphics.setFont(Fonts.getFont("normal"))
     
     local startY = screenHeight * 0.3
-    local lineHeight = 40
+    local lineHeight = 50
     
     for i, category in ipairs(self.categories) do
         local isSelected = (i == self.menu.selectedIndex)
         local y = startY + (i - 1) * lineHeight
         
-        local text = category
-        if category ~= "Back" then
+        if category == "Back" then
+            if isSelected then
+                Colors.setColor("accent")
+                love.graphics.print("> " .. category .. " <", screenWidth / 2 - 100, y)
+            else
+                Colors.setColor("dim")
+                love.graphics.print(category, screenWidth / 2 - 80, y)
+            end
+        else
             local unlocked = self.unlockedCounts[category] or 0
             local total = 0
             if category == "Ships" then total = self.totalShips
@@ -102,15 +109,40 @@ function state:draw()
             elseif category == "Enemies" then total = self.totalEnemies
             elseif category == "Bosses" then total = self.totalBosses
             end
-            text = string.format("%s [%d/%d]", category, unlocked, total)
-        end
-        
-        if isSelected then
-            Colors.setColor("accent")
-            love.graphics.print("> " .. text .. " <", screenWidth / 2 - 100, y)
-        else
-            Colors.setColor("dim")
-            love.graphics.print(text, screenWidth / 2 - 80, y)
+            
+            local percent = (total > 0) and (unlocked / total) or 0
+            local text = string.format("%s [%d/%d]", category, unlocked, total)
+            
+            local labelX = screenWidth / 2 - 180
+            if isSelected then
+                Colors.setColor("accent")
+                love.graphics.print("> " .. text, labelX, y)
+            else
+                Colors.setColor("dim")
+                love.graphics.print(text, labelX + 20, y)
+            end
+            
+            -- Progress Bar
+            local barW = 150
+            local barH = 12
+            local barX = screenWidth / 2 + 30
+            local barY = y + 4
+            
+            -- Bar Background
+            love.graphics.setColor(0.1, 0.1, 0.1, 1)
+            love.graphics.rectangle("fill", barX, barY, barW, barH, 2)
+            
+            -- Bar Fill
+            if percent >= 1 then
+                Colors.setColor("health") -- Green for 100%
+            else
+                Colors.setColor("accent") -- Cyan for partial
+            end
+            love.graphics.rectangle("fill", barX, barY, barW * percent, barH, 2)
+            
+            -- Bar Border
+            love.graphics.setColor(1, 1, 1, 0.15)
+            love.graphics.rectangle("line", barX, barY, barW, barH, 2)
         end
     end
     
