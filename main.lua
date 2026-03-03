@@ -20,6 +20,11 @@ function love.load()
     sm.register("game", require "states/game_state")
     sm.register("gameover", require "states/gameover_state")
     sm.register("library", require "states/library")
+    sm.register("library_ships", require "states/library_ships")
+    sm.register("library_weapons", require "states/library_weapons")
+    sm.register("library_passives", require "states/library_passives")
+    sm.register("library_enemies", require "states/library_enemies")
+    sm.register("library_bosses", require "states/library_bosses")
     
     -- Start with main menu
     sm.switch("main_menu")

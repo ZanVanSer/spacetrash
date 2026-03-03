@@ -52,20 +52,15 @@ function state:keypressed(key)
     if selection == -1 or (key == "x" or key == "escape") then
         sm.switch("main_menu")
     elseif selection == 1 then
-        -- Open Ships
-        print("Opening Ships...")
+        sm.switch("library_ships", self.saveData)
     elseif selection == 2 then
-        -- Open Weapons
-        print("Opening Weapons...")
+        sm.switch("library_weapons", self.saveData)
     elseif selection == 3 then
-        -- Open Passives
-        print("Opening Passives...")
+        sm.switch("library_passives", self.saveData)
     elseif selection == 4 then
-        -- Open Enemies
-        print("Opening Enemies...")
+        sm.switch("library_enemies", self.saveData)
     elseif selection == 5 then
-        -- Open Bosses
-        print("Opening Bosses...")
+        sm.switch("library_bosses", self.saveData)
     elseif selection == 6 then
         sm.switch("main_menu")
     end
