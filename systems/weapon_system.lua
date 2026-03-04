@@ -30,42 +30,68 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus)
             
             if self.shootTimers[id] >= finalFireRate then
                 local weaponAmount = wd.amount or 1
-                local finalAmount = math.floor(weaponAmount * (1 + (amountBonus or 0)))
+                local finalAmount = weaponAmount + (amountBonus or 0)
                 
-                for i = 1, finalAmount do
-                    local bulletWeaponData = {
-                        damage = wd.damage * (might or 1.0),
-                        bulletSpeed = wd.bulletSpeed,
-                        pattern = wd.pattern,
-                        area = (wd.area or 1.0) * (area or 1.0)
-                    }
-                    
-                    local b = Bullet.new(playerX, playerY, bulletWeaponData)
-                    
-                    -- Pattern-specific initialization
-                    if wd.pattern == "spread" then
-                        local spreadAngle = wd.spreadAngle or 30
-                        local angleRad = math.rad(spreadAngle)
-                        if finalAmount > 1 then
-                            local startAngle = -math.pi/2 - angleRad/2
-                            local angleStep = angleRad / (finalAmount - 1)
-                            b.angle = startAngle + (i - 1) * angleStep
-                        else
-                            b.angle = -math.pi/2
+                if wd.pattern == "orbital" then
+                    -- Count existing orbital bullets for this weapon
+                    local currentCount = 0
+                    for _, b in ipairs(self.bullets) do
+                        if b.weaponData.id == id then
+                            currentCount = currentCount + 1
                         end
-                    elseif wd.pattern == "orbital" then
-                        b.orbitAngle = ((i - 1) / finalAmount) * math.pi * 2
-                        b.orbitRadius = 80 * (bulletWeaponData.area or 1.0)
-                    else
-                        -- Default horizontal offset for multiple bullets
-                        local xOffset = 0
-                        if finalAmount > 1 then
-                            xOffset = (i - (finalAmount + 1) / 2) * 15
-                        end
-                        b.x = b.x + xOffset
                     end
                     
-                    table.insert(self.bullets, b)
+                    if currentCount < finalAmount then
+                        local toSpawn = finalAmount - currentCount
+                        for i = 1, toSpawn do
+                            local bulletWeaponData = {
+                                id = id,
+                                damage = wd.damage * (might or 1.0),
+                                bulletSpeed = wd.bulletSpeed,
+                                pattern = wd.pattern,
+                                area = (wd.area or 1.0) * (area or 1.0)
+                            }
+                            local b = Bullet.new(playerX, playerY, bulletWeaponData)
+                            -- Spread out new drones based on total count
+                            b.orbitAngle = ((currentCount + i - 1) / finalAmount) * math.pi * 2
+                            b.orbitRadius = 80 * (bulletWeaponData.area or 1.0)
+                            table.insert(self.bullets, b)
+                        end
+                    end
+                else
+                    for i = 1, finalAmount do
+                        local bulletWeaponData = {
+                            id = id,
+                            damage = wd.damage * (might or 1.0),
+                            bulletSpeed = wd.bulletSpeed,
+                            pattern = wd.pattern,
+                            area = (wd.area or 1.0) * (area or 1.0)
+                        }
+                        
+                        local b = Bullet.new(playerX, playerY, bulletWeaponData)
+                        
+                        -- Pattern-specific initialization
+                        if wd.pattern == "spread" then
+                            local spreadAngle = wd.spreadAngle or 30
+                            local angleRad = math.rad(spreadAngle)
+                            if finalAmount > 1 then
+                                local startAngle = -math.pi/2 - angleRad/2
+                                local angleStep = angleRad / (finalAmount - 1)
+                                b.angle = startAngle + (i - 1) * angleStep
+                            else
+                                b.angle = -math.pi/2
+                            end
+                        else
+                            -- Default horizontal offset for multiple bullets
+                            local xOffset = 0
+                            if finalAmount > 1 then
+                                xOffset = (i - (finalAmount + 1) / 2) * 15
+                            end
+                            b.x = b.x + xOffset
+                        end
+                        
+                        table.insert(self.bullets, b)
+                    end
                 end
                 self.shootTimers[id] = 0
             end

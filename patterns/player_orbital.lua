@@ -9,7 +9,7 @@ return {
         
         -- Initialize orbit properties on first update
         if not bullet.orbitAngle then
-            -- Randomize start angle to spread out multiple drones
+            -- Randomize start angle to spread out multiple drones if not set by WS
             bullet.orbitAngle = (love.math.random() * math.pi * 2)
         end
         if not bullet.orbitRadius then
@@ -41,32 +41,41 @@ return {
             -- "Facing" is the tangent direction of the orbit
             local facingAngle = bullet.orbitAngle + math.pi/2
             
+            local bestTarget = nil
+            local bestAngleDiff = 0.5 -- Max tolerance
+            
             for _, target in ipairs(targets) do
                 local dx = target.x - bullet.x
                 local dy = target.y - bullet.y
                 local distSq = dx*dx + dy*dy
                 
-                -- Check if target is within range (e.g., 250 units)
-                if distSq < 250*250 then
+                -- Check if target is within range (e.g., 300 units)
+                if distSq < 300*300 then
                     local angleToTarget = math.atan2(dy, dx)
                     local angleDiff = (angleToTarget - facingAngle + math.pi) % (math.pi * 2) - math.pi
                     
-                    -- If facing within ~17 degrees
-                    if math.abs(angleDiff) < 0.3 then
-                        local BulletClass = require("entities/bullet")
-                        local shootData = {
-                            damage = bullet.weaponData.damage,
-                            bulletSpeed = bullet.weaponData.bulletSpeed or 400,
-                            pattern = "spread" -- Uses bullet.angle for direction
-                        }
-                        local b = BulletClass.new(bullet.x, bullet.y, shootData)
-                        b.angle = facingAngle
-                        table.insert(player.ws.bullets, b)
-                        
-                        bullet.fireTimer = 0.5 -- Cooldown between shots
-                        break -- Fire at only one target per cycle
+                    if math.abs(angleDiff) < bestAngleDiff then
+                        bestAngleDiff = math.abs(angleDiff)
+                        bestTarget = target
                     end
                 end
+            end
+            
+            if bestTarget then
+                local BulletClass = require("entities/bullet")
+                -- Use weapon's fireRate if available, otherwise default
+                local cooldown = bullet.weaponData.fireRate or 0.5
+                
+                local shootData = {
+                    damage = bullet.weaponData.damage,
+                    bulletSpeed = bullet.weaponData.bulletSpeed or 400,
+                    pattern = "spread" -- Uses bullet.angle for direction
+                }
+                local b = BulletClass.new(bullet.x, bullet.y, shootData)
+                b.angle = facingAngle
+                table.insert(player.ws.bullets, b)
+                
+                bullet.fireTimer = cooldown
             end
         end
     end
