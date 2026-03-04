@@ -199,7 +199,7 @@ function Player:update(dt)
     end
     
     -- Weapon System
-    self.ws:update(dt, self.x, self.y, self.might, self.cooldown, self.area, self.amount)
+    self.ws:update(dt, self.x, self.y, self.might, self.cooldown, self.area, self.amount, self.pierce)
 end
 
 function Player:draw()

@@ -256,14 +256,85 @@ function state:update(dt)
 
     -- Bullet-Enemy Collisions
     for _, b in ipairs(bullets) do
+        -- Initialize hit tracking if needed
+        b.hitEnemies = b.hitEnemies or {}
+        
         for _, e in ipairs(enemies) do
-            if not b.isDead and not e.isDead then
+            if not b.isDead and not e.isDead and not b.hitEnemies[e] then
                 if checkCircleCollision(b.x, b.y, 4, e.x, e.y, e.radius) then
                     local damage = b.weaponData.damage
                     e:takeDamage(damage)
                     self.damageNumbers.spawn(e.x, e.y, damage, false)
                     self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
-                    b.isDead = true
+                    
+                    b.hitEnemies[e] = true
+                    
+                    -- Handle Special: Chains
+                    if b.weaponData.special == "chains" then
+                        local chainCount = b.weaponData.amount or 1
+                        local chainRange = 150 * (b.weaponData.area or 1.0)
+                        local currentSource = e
+                        
+                        for i = 1, chainCount do
+                            local nearest = nil
+                            local minDist = chainRange
+                            
+                            -- Check regular enemies
+                            for _, nextE in ipairs(enemies) do
+                                if not nextE.isDead and nextE ~= currentSource and not b.hitEnemies[nextE] then
+                                    local dx, dy = nextE.x - currentSource.x, nextE.y - currentSource.y
+                                    local distSq = dx*dx + dy*dy
+                                    if distSq < minDist*minDist then
+                                        minDist = math.sqrt(distSq)
+                                        nearest = nextE
+                                    end
+                                end
+                            end
+                            
+                            -- Check boss
+                            if self.boss and not self.boss.isDead and self.boss ~= currentSource and not b.hitEnemies[self.boss] then
+                                local dx, dy = self.boss.x - currentSource.x, self.boss.y - currentSource.y
+                                local distSq = dx*dx + dy*dy
+                                if distSq < minDist*minDist then
+                                    minDist = math.sqrt(distSq)
+                                    nearest = self.boss
+                                end
+                            end
+                            
+                            if nearest then
+                                local chainDamage = math.floor(b.weaponData.damage * 0.5)
+                                nearest:takeDamage(chainDamage)
+                                self.damageNumbers.spawn(nearest.x, nearest.y, chainDamage, false)
+                                self.runStatistics.damageDealt = self.runStatistics.damageDealt + chainDamage
+                                b.hitEnemies[nearest] = true
+                                
+                                -- Visual Effect
+                                self.particles.lightningChain(currentSource.x, currentSource.y, nearest.x, nearest.y, "accent")
+                                
+                                currentSource = nearest
+                                
+                                -- Handle enemy death for each link in the chain
+                                if nearest ~= self.boss and nearest.isDead and not nearest.xpGiven then
+                                    self.player:addXP(nearest.xpValue)
+                                    nearest.xpGiven = true
+                                    self.enemiesKilled = self.enemiesKilled + 1
+                                    self.runStatistics.kills = self.runStatistics.kills + 1
+                                    self.screenshake.trigger(2, 0.1)
+                                    self.particles.enemyDeath(nearest.x, nearest.y)
+                                    self.particles.xpPickup(self.player.x, self.player.y)
+                                end
+                            else
+                                break
+                            end
+                        end
+                    end
+                    
+                    -- Handle Pierce
+                    if b.weaponData.pierce and b.weaponData.pierce > 0 then
+                        b.weaponData.pierce = b.weaponData.pierce - 1
+                    else
+                        b.isDead = true
+                    end
                     
                     if e.isDead and not e.xpGiven then
                         self.player:addXP(e.xpValue)
@@ -274,18 +345,29 @@ function state:update(dt)
                         self.particles.enemyDeath(e.x, e.y)
                         self.particles.xpPickup(self.player.x, self.player.y)
                     end
+                    
+                    -- Break the enemy loop since this bullet might have moved or died
+                    break 
                 end
             end
         end
 
         -- Bullet-Boss Collisions
-        if self.boss and not self.boss.isDead and not b.isDead then
+        if self.boss and not self.boss.isDead and not b.isDead and not b.hitEnemies[self.boss] then
             if checkCircleCollision(b.x, b.y, 4, self.boss.x, self.boss.y, self.boss.radius) then
                 local damage = b.weaponData.damage
                 self.boss:takeDamage(damage)
                 self.damageNumbers.spawn(b.x, b.y, damage, false)
                 self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
-                b.isDead = true
+                
+                b.hitEnemies[self.boss] = true
+                
+                if b.weaponData.pierce and b.weaponData.pierce > 0 then
+                    b.weaponData.pierce = b.weaponData.pierce - 1
+                else
+                    b.isDead = true
+                end
+                
                 self.screenshake.trigger(5, 0.15)
                 self.particles.bossHit(b.x, b.y)
             end

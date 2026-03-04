@@ -32,7 +32,7 @@
     "fireRate": 1.8,
     "bulletSpeed": 999,
     "pattern": "straight",
-    "pierce": 6,
+    "pierce": 0,
     "area": 3.0,
     "amount": 2,
     "critMult": 1.3,

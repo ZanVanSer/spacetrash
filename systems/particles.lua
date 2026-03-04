@@ -2,6 +2,7 @@ local Colors = require('ui.colors')
 
 local Particles = {
     list = {},
+    chains = {}, -- New list for persistent line effects
     enabled = true
 }
 
@@ -25,6 +26,44 @@ function Particles.spawn(x, y, count, colorKey, speed, size)
     end
 end
 
+-- New function for lightning visual effect
+function Particles.lightningChain(x1, y1, x2, y2, colorKey)
+    if not Particles.enabled then return end
+    local life = 0.15
+    local points = {}
+    local segments = 5
+    local dx, dy = x2 - x1, y2 - y1
+    local dist = math.sqrt(dx*dx + dy*dy)
+    
+    table.insert(points, x1)
+    table.insert(points, y1)
+    
+    for i = 1, segments - 1 do
+        local t = i / segments
+        local px = x1 + dx * t
+        local py = y1 + dy * t
+        
+        -- Offset perpendicular to the line for "jagged" look
+        local offset = (math.random() - 0.5) * 20 * (dist/100)
+        local nx, ny = -dy/dist, dx/dist
+        px = px + nx * offset
+        py = py + ny * offset
+        
+        table.insert(points, px)
+        table.insert(points, py)
+    end
+    
+    table.insert(points, x2)
+    table.insert(points, y2)
+    
+    table.insert(Particles.chains, {
+        points = points,
+        life = life,
+        maxLife = life,
+        colorKey = colorKey or "accent"
+    })
+end
+
 -- Presets
 function Particles.enemyDeath(x, y)
     Particles.spawn(x, y, 8, "danger", 150, 2)
@@ -43,6 +82,7 @@ function Particles.bossHit(x, y)
 end
 
 function Particles.update(dt)
+    -- Update standard particles
     for i = #Particles.list, 1, -1 do
         local p = Particles.list[i]
         
@@ -58,9 +98,33 @@ function Particles.update(dt)
             table.remove(Particles.list, i)
         end
     end
+    
+    -- Update chain effects
+    for i = #Particles.chains, 1, -1 do
+        local c = Particles.chains[i]
+        c.life = c.life - dt
+        if c.life <= 0 then
+            table.remove(Particles.chains, i)
+        end
+    end
 end
 
 function Particles.draw()
+    -- Draw chains (lightning lines)
+    for _, c in ipairs(Particles.chains) do
+        local alpha = (c.life / c.maxLife) * 0.8
+        Colors.setColor(c.colorKey, alpha)
+        love.graphics.setLineWidth(2)
+        love.graphics.line(c.points)
+        
+        -- Inner bright core
+        Colors.setColor("bg", alpha * 1.5)
+        love.graphics.setLineWidth(1)
+        love.graphics.line(c.points)
+    end
+    love.graphics.setLineWidth(1)
+
+    -- Draw particles
     for _, p in ipairs(Particles.list) do
         local alpha = p.life / p.maxLife
         local drawSize = p.size * alpha

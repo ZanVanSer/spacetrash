@@ -18,7 +18,7 @@ function WS:equipWeapon(weaponId)
     self.shootTimers[weaponId] = 0
 end
 
-function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus)
+function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pierceBonus)
     if not self.lookup then self.lookup = dl.createLookup(dl.getWeapons(), "id") end
 
     for _, id in ipairs(self.equippedWeapons) do
@@ -49,7 +49,10 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus)
                                 damage = wd.damage * (might or 1.0),
                                 bulletSpeed = wd.bulletSpeed,
                                 pattern = wd.pattern,
-                                area = (wd.area or 1.0) * (area or 1.0)
+                                area = (wd.area or 1.0) * (area or 1.0),
+                                pierce = (wd.pierce or 0) + (pierceBonus or 0),
+                                amount = finalAmount,
+                                special = wd.special
                             }
                             local b = Bullet.new(playerX, playerY, bulletWeaponData)
                             -- Spread out new drones based on total count
@@ -65,7 +68,10 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus)
                             damage = wd.damage * (might or 1.0),
                             bulletSpeed = wd.bulletSpeed,
                             pattern = wd.pattern,
-                            area = (wd.area or 1.0) * (area or 1.0)
+                            area = (wd.area or 1.0) * (area or 1.0),
+                            pierce = (wd.pierce or 0) + (pierceBonus or 0),
+                            amount = finalAmount,
+                            special = wd.special
                         }
                         
                         local b = Bullet.new(playerX, playerY, bulletWeaponData)
