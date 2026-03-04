@@ -1,0 +1,262 @@
+[
+  {
+    "id": "energy_matrix",
+    "name": "Energy Matrix",
+    "description": "Increases weapon damage and duration.",
+    "rarity": 70,
+    "effects": [
+      [{"stat": "might", "value": 0.08, "type": "multiply"}, {"stat": "duration", "value": 0.05, "type": "multiply"}],
+      [{"stat": "might", "value": 0.16, "type": "multiply"}, {"stat": "duration", "value": 0.10, "type": "multiply"}],
+      [{"stat": "might", "value": 0.24, "type": "multiply"}, {"stat": "duration", "value": 0.15, "type": "multiply"}],
+      [{"stat": "might", "value": 0.32, "type": "multiply"}, {"stat": "duration", "value": 0.20, "type": "multiply"}],
+      [{"stat": "might", "value": 0.40, "type": "multiply"}, {"stat": "duration", "value": 0.25, "type": "multiply"}]
+    ]
+  },
+  {
+    "id": "targeting_ai",
+    "name": "Targeting AI",
+    "description": "Increases attack area and projectile count.",
+    "rarity": 70,
+    "effects": [
+      [{"stat": "area", "value": 0.10, "type": "multiply"}, {"stat": "amount", "value": 1, "type": "add"}],
+      [{"stat": "area", "value": 0.20, "type": "multiply"}, {"stat": "amount", "value": 2, "type": "add"}],
+      [{"stat": "area", "value": 0.30, "type": "multiply"}, {"stat": "amount", "value": 3, "type": "add"}],
+      [{"stat": "area", "value": 0.40, "type": "multiply"}, {"stat": "amount", "value": 4, "type": "add"}],
+      [{"stat": "area", "value": 0.50, "type": "multiply"}, {"stat": "amount", "value": 5, "type": "add"}]
+    ]
+  },
+  {
+    "id": "capacitor_core",
+    "name": "Capacitor Core",
+    "description": "Improves weapon cooldown and ship speed.",
+    "rarity": 70,
+    "effects": [
+      [{"stat": "cooldown", "value": 0.10, "type": "multiply"}, {"stat": "speed", "value": 0.05, "type": "multiply"}],
+      [{"stat": "cooldown", "value": 0.20, "type": "multiply"}, {"stat": "speed", "value": 0.10, "type": "multiply"}],
+      [{"stat": "cooldown", "value": 0.30, "type": "multiply"}, {"stat": "speed", "value": 0.15, "type": "multiply"}],
+      [{"stat": "cooldown", "value": 0.40, "type": "multiply"}, {"stat": "speed", "value": 0.20, "type": "multiply"}],
+      [{"stat": "cooldown", "value": 0.50, "type": "multiply"}, {"stat": "speed", "value": 0.25, "type": "multiply"}]
+    ]
+  },
+  {
+    "id": "fragmenter",
+    "name": "Fragmenter",
+    "description": "Increases damage and projectile count.",
+    "rarity": 70,
+    "effects": [
+      [{"stat": "might", "value": 0.08, "type": "multiply"}, {"stat": "amount", "value": 1, "type": "add"}],
+      [{"stat": "might", "value": 0.16, "type": "multiply"}, {"stat": "amount", "value": 2, "type": "add"}],
+      [{"stat": "might", "value": 0.24, "type": "multiply"}, {"stat": "amount", "value": 3, "type": "add"}],
+      [{"stat": "might", "value": 0.32, "type": "multiply"}, {"stat": "amount", "value": 4, "type": "add"}],
+      [{"stat": "might", "value": 0.40, "type": "multiply"}, {"stat": "amount", "value": 5, "type": "add"}]
+    ]
+  },
+  {
+    "id": "drone_bay",
+    "name": "Drone Bay",
+    "description": "Grants extra projectiles and longer duration.",
+    "rarity": 60,
+    "effects": [
+      [{"stat": "amount", "value": 1, "type": "add"}, {"stat": "duration", "value": 0.08, "type": "multiply"}],
+      [{"stat": "amount", "value": 2, "type": "add"}, {"stat": "duration", "value": 0.16, "type": "multiply"}],
+      [{"stat": "amount", "value": 3, "type": "add"}, {"stat": "duration", "value": 0.24, "type": "multiply"}],
+      [{"stat": "amount", "value": 4, "type": "add"}, {"stat": "duration", "value": 0.32, "type": "multiply"}],
+      [{"stat": "amount", "value": 5, "type": "add"}, {"stat": "duration", "value": 0.40, "type": "multiply"}]
+    ]
+  },
+  {
+    "id": "dark_matter_core",
+    "name": "Dark Matter Core",
+    "description": "Strongly boosts attack area and damage.",
+    "rarity": 40,
+    "effects": [
+      [{"stat": "area", "value": 0.10, "type": "multiply"}, {"stat": "might", "value": 0.10, "type": "multiply"}],
+      [{"stat": "area", "value": 0.20, "type": "multiply"}, {"stat": "might", "value": 0.20, "type": "multiply"}],
+      [{"stat": "area", "value": 0.30, "type": "multiply"}, {"stat": "might", "value": 0.30, "type": "multiply"}],
+      [{"stat": "area", "value": 0.40, "type": "multiply"}, {"stat": "might", "value": 0.40, "type": "multiply"}],
+      [{"stat": "area", "value": 0.50, "type": "multiply"}, {"stat": "might", "value": 0.50, "type": "multiply"}]
+    ]
+  },
+  {
+    "id": "overcharge_unit",
+    "name": "Overcharge Unit",
+    "description": "Massive damage boost and increased critical multiplier.",
+    "rarity": 40,
+    "effects": [
+      [{"stat": "might", "value": 0.15, "type": "multiply"}, {"stat": "critMult", "value": 0.3, "type": "add"}],
+      [{"stat": "might", "value": 0.30, "type": "multiply"}, {"stat": "critMult", "value": 0.6, "type": "add"}],
+      [{"stat": "might", "value": 0.45, "type": "multiply"}, {"stat": "critMult", "value": 0.9, "type": "add"}],
+      [{"stat": "might", "value": 0.60, "type": "multiply"}, {"stat": "critMult", "value": 1.2, "type": "add"}],
+      [{"stat": "might", "value": 0.75, "type": "multiply"}, {"stat": "critMult", "value": 1.5, "type": "add"}]
+    ]
+  },
+  {
+    "id": "replicator",
+    "name": "Replicator",
+    "description": "Increases weapon duration and area.",
+    "rarity": 60,
+    "effects": [
+      [{"stat": "duration", "value": 0.08, "type": "multiply"}, {"stat": "area", "value": 0.10, "type": "multiply"}],
+      [{"stat": "duration", "value": 0.16, "type": "multiply"}, {"stat": "area", "value": 0.20, "type": "multiply"}],
+      [{"stat": "duration", "value": 0.24, "type": "multiply"}, {"stat": "area", "value": 0.30, "type": "multiply"}],
+      [{"stat": "duration", "value": 0.32, "type": "multiply"}, {"stat": "area", "value": 0.40, "type": "multiply"}],
+      [{"stat": "duration", "value": 0.40, "type": "multiply"}, {"stat": "area", "value": 0.50, "type": "multiply"}]
+    ]
+  },
+  {
+    "id": "fusion_core",
+    "name": "Fusion Core",
+    "description": "Balances duration and damage increases.",
+    "rarity": 60,
+    "effects": [
+      [{"stat": "duration", "value": 0.10, "type": "multiply"}, {"stat": "might", "value": 0.08, "type": "multiply"}],
+      [{"stat": "duration", "value": 0.20, "type": "multiply"}, {"stat": "might", "value": 0.16, "type": "multiply"}],
+      [{"stat": "duration", "value": 0.30, "type": "multiply"}, {"stat": "might", "value": 0.24, "type": "multiply"}],
+      [{"stat": "duration", "value": 0.40, "type": "multiply"}, {"stat": "might", "value": 0.32, "type": "multiply"}],
+      [{"stat": "duration", "value": 0.50, "type": "multiply"}, {"stat": "might", "value": 0.40, "type": "multiply"}]
+    ]
+  },
+  {
+    "id": "amplifier_array",
+    "name": "Amplifier Array",
+    "description": "Large area boost but increases cooldown slightly.",
+    "rarity": 40,
+    "effects": [
+      [{"stat": "area", "value": 0.12, "type": "multiply"}, {"stat": "cooldown", "value": 0.10, "type": "multiply"}],
+      [{"stat": "area", "value": 0.24, "type": "multiply"}, {"stat": "cooldown", "value": 0.20, "type": "multiply"}],
+      [{"stat": "area", "value": 0.36, "type": "multiply"}, {"stat": "cooldown", "value": 0.30, "type": "multiply"}],
+      [{"stat": "area", "value": 0.48, "type": "multiply"}, {"stat": "cooldown", "value": 0.40, "type": "multiply"}],
+      [{"stat": "area", "value": 0.60, "type": "multiply"}, {"stat": "cooldown", "value": 0.50, "type": "multiply"}]
+    ]
+  },
+  {
+    "id": "reinforced_hull",
+    "name": "Reinforced Hull",
+    "description": "Increases ship's maximum health.",
+    "rarity": 120,
+    "effects": [
+      [{"stat": "maxHealth", "value": 20, "type": "add"}],
+      [{"stat": "maxHealth", "value": 40, "type": "add"}],
+      [{"stat": "maxHealth", "value": 60, "type": "add"}],
+      [{"stat": "maxHealth", "value": 80, "type": "add"}],
+      [{"stat": "maxHealth", "value": 100, "type": "add"}]
+    ]
+  },
+  {
+    "id": "nano_repair",
+    "name": "Nano-Repair",
+    "description": "Gradually regenerates health over time.",
+    "rarity": 100,
+    "effects": [
+      [{"stat": "recovery", "value": 0.3, "type": "add"}],
+      [{"stat": "recovery", "value": 0.6, "type": "add"}],
+      [{"stat": "recovery", "value": 0.9, "type": "add"}],
+      [{"stat": "recovery", "value": 1.2, "type": "add"}],
+      [{"stat": "recovery", "value": 1.5, "type": "add"}]
+    ]
+  },
+  {
+    "id": "ablative_plating",
+    "name": "Ablative Plating",
+    "description": "Reduces incoming damage by a flat amount.",
+    "rarity": 100,
+    "effects": [
+      [{"stat": "armor", "value": 2, "type": "add"}],
+      [{"stat": "armor", "value": 4, "type": "add"}],
+      [{"stat": "armor", "value": 6, "type": "add"}],
+      [{"stat": "armor", "value": 8, "type": "add"}],
+      [{"stat": "armor", "value": 10, "type": "add"}]
+    ]
+  },
+  {
+    "id": "overclocked_thrusters",
+    "name": "Overclocked Thrusters",
+    "description": "Increases ship movement speed.",
+    "rarity": 110,
+    "effects": [
+      [{"stat": "speed", "value": 0.08, "type": "multiply"}],
+      [{"stat": "speed", "value": 0.16, "type": "multiply"}],
+      [{"stat": "speed", "value": 0.24, "type": "multiply"}],
+      [{"stat": "speed", "value": 0.32, "type": "multiply"}],
+      [{"stat": "speed", "value": 0.40, "type": "multiply"}]
+    ]
+  },
+  {
+    "id": "extended_magazines",
+    "name": "Extended Magazines",
+    "description": "Adds additional projectiles to all weapons.",
+    "rarity": 110,
+    "effects": [
+      [{"stat": "amount", "value": 1, "type": "add"}],
+      [{"stat": "amount", "value": 2, "type": "add"}],
+      [{"stat": "amount", "value": 3, "type": "add"}],
+      [{"stat": "amount", "value": 4, "type": "add"}],
+      [{"stat": "amount", "value": 5, "type": "add"}]
+    ]
+  },
+  {
+    "id": "auxiliary_reactor",
+    "name": "Auxiliary Reactor",
+    "description": "Reduces weapon cooldowns.",
+    "rarity": 80,
+    "effects": [
+      [{"stat": "cooldown", "value": 0.10, "type": "multiply"}],
+      [{"stat": "cooldown", "value": 0.20, "type": "multiply"}],
+      [{"stat": "cooldown", "value": 0.30, "type": "multiply"}],
+      [{"stat": "cooldown", "value": 0.40, "type": "multiply"}],
+      [{"stat": "cooldown", "value": 0.50, "type": "multiply"}]
+    ]
+  },
+  {
+    "id": "field_expander",
+    "name": "Field Expander",
+    "description": "Increases attack area of all weapons.",
+    "rarity": 80,
+    "effects": [
+      [{"stat": "area", "value": 0.12, "type": "multiply"}],
+      [{"stat": "area", "value": 0.24, "type": "multiply"}],
+      [{"stat": "area", "value": 0.36, "type": "multiply"}],
+      [{"stat": "area", "value": 0.48, "type": "multiply"}],
+      [{"stat": "area", "value": 0.60, "type": "multiply"}]
+    ]
+  },
+  {
+    "id": "critical_enhancer",
+    "name": "Critical Enhancer",
+    "description": "Increases damage of critical hits.",
+    "rarity": 90,
+    "effects": [
+      [{"stat": "critMult", "value": 0.2, "type": "add"}],
+      [{"stat": "critMult", "value": 0.4, "type": "add"}],
+      [{"stat": "critMult", "value": 0.6, "type": "add"}],
+      [{"stat": "critMult", "value": 0.8, "type": "add"}],
+      [{"stat": "critMult", "value": 1.0, "type": "add"}]
+    ]
+  },
+  {
+    "id": "piercing_module",
+    "name": "Piercing Module",
+    "description": "Allows projectiles to pass through more enemies.",
+    "rarity": 90,
+    "effects": [
+      [{"stat": "pierce", "value": 1, "type": "add"}],
+      [{"stat": "pierce", "value": 2, "type": "add"}],
+      [{"stat": "pierce", "value": 3, "type": "add"}],
+      [{"stat": "pierce", "value": 4, "type": "add"}],
+      [{"stat": "pierce", "value": 5, "type": "add"}]
+    ]
+  },
+  {
+    "id": "temporal_accelerator",
+    "name": "Temporal Accelerator",
+    "description": "Boosts both ship speed and weapon fire rate.",
+    "rarity": 50,
+    "effects": [
+      [{"stat": "speed", "value": 0.08, "type": "multiply"}, {"stat": "cooldown", "value": 0.08, "type": "multiply"}],
+      [{"stat": "speed", "value": 0.16, "type": "multiply"}, {"stat": "cooldown", "value": 0.16, "type": "multiply"}],
+      [{"stat": "speed", "value": 0.24, "type": "multiply"}, {"stat": "cooldown", "value": 0.24, "type": "multiply"}],
+      [{"stat": "speed", "value": 0.32, "type": "multiply"}, {"stat": "cooldown", "value": 0.32, "type": "multiply"}],
+      [{"stat": "speed", "value": 0.40, "type": "multiply"}, {"stat": "cooldown", "value": 0.40, "type": "multiply"}]
+    ]
+  }
+]
