@@ -40,21 +40,60 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus)
                         area = (wd.area or 1.0) * (area or 1.0)
                     }
                     
-                    -- Simple horizontal spread for multiple bullets
-                    local xOffset = 0
-                    if finalAmount > 1 then
-                        xOffset = (i - (finalAmount + 1) / 2) * 15
+                    local b = Bullet.new(playerX, playerY, bulletWeaponData)
+                    
+                    -- Pattern-specific initialization
+                    if wd.pattern == "spread" then
+                        local spreadAngle = wd.spreadAngle or 30
+                        local angleRad = math.rad(spreadAngle)
+                        if finalAmount > 1 then
+                            local startAngle = -math.pi/2 - angleRad/2
+                            local angleStep = angleRad / (finalAmount - 1)
+                            b.angle = startAngle + (i - 1) * angleStep
+                        else
+                            b.angle = -math.pi/2
+                        end
+                    elseif wd.pattern == "orbital" then
+                        b.orbitAngle = ((i - 1) / finalAmount) * math.pi * 2
+                        b.orbitRadius = 80 * (bulletWeaponData.area or 1.0)
+                    else
+                        -- Default horizontal offset for multiple bullets
+                        local xOffset = 0
+                        if finalAmount > 1 then
+                            xOffset = (i - (finalAmount + 1) / 2) * 15
+                        end
+                        b.x = b.x + xOffset
                     end
                     
-                    table.insert(self.bullets, Bullet.new(playerX + xOffset, playerY, bulletWeaponData))
+                    table.insert(self.bullets, b)
                 end
                 self.shootTimers[id] = 0
             end
         end
     end
 
+    -- Get enemies for homing/orbital patterns
+    local sm = require("states/statemanager")
+    local enemies = {}
+    if sm.current and sm.current.enemySpawner then
+        local spawnerEnemies = sm.current.enemySpawner:getEnemies()
+        for _, e in ipairs(spawnerEnemies) do
+            if not e.isDead then table.insert(enemies, e) end
+        end
+    end
+    -- Include boss as a potential target
+    local boss = sm.current and sm.current.boss
+    if boss and not boss.isDead then
+        table.insert(enemies, boss)
+    end
+
     for i = #self.bullets, 1, -1 do
         local b = self.bullets[i]
+        -- Pass context to bullet for pattern logic
+        b.enemies = enemies
+        b.playerX = playerX
+        b.playerY = playerY
+        
         b:update(dt)
         if b.isDead then table.remove(self.bullets, i) end
     end
