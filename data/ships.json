@@ -13,7 +13,7 @@
     "cooldown": 1.0,
     "area": 1.0,
     "amount": 0,
-    "startWeapon": "basic_laser",
+    "startWeapon": "pulse_wave",
     "unlockCondition": "default"
   },
   {
