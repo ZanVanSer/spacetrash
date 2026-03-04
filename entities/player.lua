@@ -1,6 +1,7 @@
 local WS = require "systems/weapon_system"
 local ShipVisuals = require "entities/ship_visuals"
 local Screen = require('systems.screen')
+local dl = require "systems/dataloader"
 
 local Player = {}
 Player.__index = Player
@@ -13,17 +14,51 @@ function Player.new(shipData)
     -- Store Ship ID for drawing
     self.shipId = shipData.id
     
-    -- Ship Stats
-    self.maxHp = shipData.maxHealth or 100
+    -- Base Stats (Backup for recalculation)
+    self.baseStats = {
+        maxHealth = shipData.maxHealth or 100,
+        recovery = shipData.recovery or 0,
+        armor = shipData.armor or 0,
+        speed = shipData.speed or 200,
+        might = shipData.might or 1.0,
+        duration = shipData.duration or 1.0,
+        cooldown = shipData.cooldown or 1.0,
+        area = shipData.area or 1.0,
+        amount = shipData.amount or 0,
+        pierce = shipData.pierce or 0,
+        critMult = shipData.critMult or 2.0
+    }
+    
+    -- Passive Modifiers (1.0 for multipliers, 0 for additions)
+    self.passiveModifiers = {
+        might = 1.0,
+        speed = 1.0,
+        area = 1.0,
+        cooldown = 1.0,
+        duration = 1.0,
+        critMult = 1.0,
+        maxHealth = 0,
+        recovery = 0,
+        armor = 0,
+        amount = 0,
+        pierce = 0
+    }
+    
+    self.passives = {} -- { [id] = level }
+    
+    -- Current Active Stats
+    self.maxHp = self.baseStats.maxHealth
     self.hp = self.maxHp
-    self.recovery = shipData.recovery or 0
-    self.armor = shipData.armor or 0
-    self.speed = shipData.speed or 200
-    self.might = shipData.might or 1.0
-    self.duration = shipData.duration or 1.0
-    self.cooldown = shipData.cooldown or 1.0
-    self.area = shipData.area or 1.0
-    self.amount = shipData.amount or 0
+    self.recovery = self.baseStats.recovery
+    self.armor = self.baseStats.armor
+    self.speed = self.baseStats.speed
+    self.might = self.baseStats.might
+    self.duration = self.baseStats.duration
+    self.cooldown = self.baseStats.cooldown
+    self.area = self.baseStats.area
+    self.amount = self.baseStats.amount
+    self.pierce = self.baseStats.pierce
+    self.critMult = self.baseStats.critMult
     
     self.radius = 15
     self.ws = WS.new()
@@ -33,6 +68,74 @@ function Player.new(shipData)
     self.level = 1
     self.xpToNext = 10
     return self
+end
+
+function Player:addPassive(id)
+    self.passives[id] = math.min(5, (self.passives[id] or 0) + 1)
+    self:recalculateStats()
+end
+
+function Player:recalculateStats()
+    -- Reset modifiers to default
+    self.passiveModifiers.might = 1.0
+    self.passiveModifiers.speed = 1.0
+    self.passiveModifiers.area = 1.0
+    self.passiveModifiers.cooldown = 1.0
+    self.passiveModifiers.duration = 1.0
+    self.passiveModifiers.critMult = 1.0
+    
+    self.passiveModifiers.maxHealth = 0
+    self.passiveModifiers.recovery = 0
+    self.passiveModifiers.armor = 0
+    self.passiveModifiers.amount = 0
+    self.passiveModifiers.pierce = 0
+    
+    -- Load passive data
+    local allPassives = dl.loadJSON("passives")
+    local lookup = dl.createLookup(allPassives, "id")
+    
+    for id, level in pairs(self.passives) do
+        local data = lookup[id]
+        if data and data.effects and data.effects[level] then
+            for _, effect in ipairs(data.effects[level]) do
+                local stat = effect.stat
+                local val = effect.value
+                
+                if effect.type == "multiply" then
+                    -- Multiplicative accumulation
+                    if stat == "cooldown" then
+                        -- Cooldown reduction: +10% cooldown means -10% fire delay
+                        self.passiveModifiers.cooldown = self.passiveModifiers.cooldown * (1 - val)
+                    else
+                        self.passiveModifiers[stat] = (self.passiveModifiers[stat] or 1.0) * (1 + val)
+                    end
+                elseif effect.type == "add" then
+                    -- Additive accumulation
+                    self.passiveModifiers[stat] = (self.passiveModifiers[stat] or 0) + val
+                end
+            end
+        end
+    end
+    
+    -- Apply to active stats
+    self.might = self.baseStats.might * self.passiveModifiers.might
+    self.speed = self.baseStats.speed * self.passiveModifiers.speed
+    self.area = self.baseStats.area * self.passiveModifiers.area
+    self.duration = self.baseStats.duration * self.passiveModifiers.duration
+    self.cooldown = self.baseStats.cooldown * self.passiveModifiers.cooldown
+    -- critMult bonus is additive to base multiplier
+    self.critMult = self.baseStats.critMult + (self.passiveModifiers.critMult - 1.0)
+    
+    local oldMax = self.maxHp
+    self.maxHp = self.baseStats.maxHealth + self.passiveModifiers.maxHealth
+    if self.maxHp > oldMax then
+        self.hp = self.hp + (self.maxHp - oldMax)
+    end
+    
+    self.recovery = self.baseStats.recovery + self.passiveModifiers.recovery
+    self.armor = self.baseStats.armor + self.passiveModifiers.armor
+    self.amount = self.baseStats.amount + self.passiveModifiers.amount
+    self.pierce = self.baseStats.pierce + self.passiveModifiers.pierce
 end
 
 function Player:addXP(amount)
@@ -96,7 +199,7 @@ function Player:update(dt)
     end
     
     -- Weapon System
-    self.ws:update(dt, self.x, self.y, self.might, self.cooldown, self.area, self.amount)
+    self.ws:update(dt, self.x, self.y, self.might, self.cooldown, self.area, self.amount, self.pierce)
 end
 
 function Player:draw()

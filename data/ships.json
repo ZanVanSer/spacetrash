@@ -13,7 +13,7 @@
     "cooldown": 1.0,
     "area": 1.0,
     "amount": 0,
-    "startWeapon": "basic_laser",
+    "startWeapon": "arc_conductor",
     "unlockCondition": "default"
   },
   {
@@ -64,7 +64,7 @@
     "cooldown": 1.0,
     "area": 1.2,
     "amount": 2,
-    "startWeapon": "basic_laser",
+    "startWeapon": "orbital_drones",
     "unlockCondition": "default"
   },
   {
