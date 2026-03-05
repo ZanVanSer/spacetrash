@@ -4,6 +4,7 @@ local Particles = {
     list = {},
     chains = {}, -- New list for persistent line effects
     rings = {},  -- New list for expanding circle effects
+    beams = {},  -- New list for lingering railgun beams
     enabled = true
 }
 
@@ -101,6 +102,17 @@ function Particles.explosion(x, y, area)
     })
 end
 
+function Particles.railgunBeam(x, y, width)
+    table.insert(Particles.beams, {
+        x = x,
+        y = y,
+        width = width or 4,
+        life = 0.6,
+        maxLife = 0.6,
+        colorKey = "accent"
+    })
+end
+
 function Particles.update(dt)
     -- Update standard particles
     for i = #Particles.list, 1, -1 do
@@ -137,6 +149,15 @@ function Particles.update(dt)
             table.remove(Particles.rings, i)
         end
     end
+
+    -- Update beam effects
+    for i = #Particles.beams, 1, -1 do
+        local b = Particles.beams[i]
+        b.life = b.life - dt
+        if b.life <= 0 then
+            table.remove(Particles.beams, i)
+        end
+    end
 end
 
 function Particles.draw()
@@ -160,6 +181,28 @@ function Particles.draw()
         Colors.setColor(r.colorKey, alpha)
         love.graphics.setLineWidth(2)
         love.graphics.circle("line", r.x, r.y, r.radius)
+    end
+    love.graphics.setLineWidth(1)
+
+    -- Draw beams
+    for _, b in ipairs(Particles.beams) do
+        local alpha = (b.life / b.maxLife)
+        local flicker = (math.floor(love.timer.getTime() * 30) % 2 == 0) and 1.0 or 0.7
+        
+        -- Outer glow
+        Colors.setColor(b.colorKey, alpha * 0.2 * flicker)
+        love.graphics.setLineWidth(b.width * 2)
+        love.graphics.line(b.x, b.y, b.x, -100)
+        
+        -- Main beam
+        Colors.setColor(b.colorKey, alpha * 0.8 * flicker)
+        love.graphics.setLineWidth(b.width)
+        love.graphics.line(b.x, b.y, b.x, -100)
+        
+        -- Core
+        Colors.setColor("bg", alpha * flicker)
+        love.graphics.setLineWidth(b.width * 0.4)
+        love.graphics.line(b.x, b.y, b.x, -100)
     end
     love.graphics.setLineWidth(1)
 

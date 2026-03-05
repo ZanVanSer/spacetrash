@@ -8,6 +8,7 @@ Bullet.__index = Bullet
 function Bullet.new(x, y, weaponData)
     local self = setmetatable({}, Bullet)
     self.x, self.y = x, y
+    self.oldX, self.oldY = x, y
     self.weaponData = weaponData
     self.isDead = false
     self.lifeTimer = weaponData.duration or nil
@@ -43,6 +44,7 @@ function Bullet:explode()
     end
 end
 function Bullet:update(dt)
+    self.oldX, self.oldY = self.x, self.y
     local pattern = require("patterns/player_" .. self.weaponData.pattern)
     pattern.update(self, dt)
 
@@ -85,6 +87,9 @@ function Bullet:draw()
             love.graphics.circle("fill", 0, 0, 6)
             love.graphics.rectangle("fill", -8, -2, 16, 4)
             love.graphics.rectangle("fill", -2, -8, 4, 16)
+        elseif self.weaponData.pattern == "railgun" then
+            -- Railgun: High-speed streak
+            love.graphics.rectangle("fill", -2, -20, 4, 40)
         else
             -- Diamond/Rectangle shape for standard bullets
             love.graphics.polygon("fill", 0, -5, -2, 0, 0, 5, 2, 0)

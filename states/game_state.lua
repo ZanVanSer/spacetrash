@@ -104,6 +104,32 @@ local function checkCircleCollision(x1, y1, r1, x2, y2, r2)
     return distSq <= (r1 + r2)^2
 end
 
+local function checkSegmentCircleCollision(x1, y1, x2, y2, cx, cy, cr)
+    -- Vector from p1 to p2
+    local dx = x2 - x1
+    local dy = y2 - y1
+    
+    -- Vector from p1 to center
+    local lcx = cx - x1
+    local lcy = cy - y1
+    
+    -- Projection of center onto line p1-p2
+    local lenSq = dx*dx + dy*dy
+    local t = 0
+    if lenSq > 0 then
+        t = (lcx * dx + lcy * dy) / lenSq
+        t = math.max(0, math.min(1, t))
+    end
+    
+    -- Closest point on segment
+    local closestX = x1 + t * dx
+    local closestY = y1 + t * dy
+    
+    -- Distance squared from closest point to center
+    local distSq = (cx - closestX)^2 + (cy - closestY)^2
+    return distSq <= cr^2
+end
+
 function state:saveProgress(isTerminal)
     if not self.currentSaveData then return end
     
@@ -261,15 +287,10 @@ function state:update(dt)
         
         for _, e in ipairs(enemies) do
             if not b.isDead and not e.isDead and not b.hitEnemies[e] then
-                if checkCircleCollision(b.x, b.y, 4, e.x, e.y, e.radius) then
+                -- Continuous Collision Check (Segment vs Circle)
+                if checkSegmentCircleCollision(b.oldX, b.oldY, b.x, b.y, e.x, e.y, e.radius + 4) then
                     if b.weaponData.pattern == "mines" then
                         b:explode()
-                        
-                        -- Since explosion handles AOE and damage numbers, 
-                        -- we just need to ensure the bullet is removed.
-                        -- We also need to check for enemy deaths triggered by the explosion,
-                        -- but Bullet:explode doesn't handle XP. 
-                        -- We'll just let the regular death check handle it if the enemy is dead.
                         break
                     end
                     
@@ -281,6 +302,7 @@ function state:update(dt)
                     b.hitEnemies[e] = true
                     
                     -- Handle Special: Chains
+                    -- ... (logic remains same)
                     -- ... (the rest of the logic)
                     if b.weaponData.special == "chains" then
                         local chainCount = b.weaponData.amount or 1
@@ -366,7 +388,7 @@ function state:update(dt)
 
         -- Bullet-Boss Collisions
         if self.boss and not self.boss.isDead and not b.isDead and not b.hitEnemies[self.boss] then
-            if checkCircleCollision(b.x, b.y, 4, self.boss.x, self.boss.y, self.boss.radius) then
+            if checkSegmentCircleCollision(b.oldX, b.oldY, b.x, b.y, self.boss.x, self.boss.y, self.boss.radius + 4) then
                 if b.weaponData.pattern == "mines" then
                     b:explode()
                 else
