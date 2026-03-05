@@ -2,8 +2,8 @@
   {
     "id": "plasma_lance",
     "name": "Plasma Lance",
-    "damage": 12,
-    "fireRate": 0.4,
+    "damage": 8,
+    "fireRate": 0.8,
     "bulletSpeed": 400,
     "pattern": "straight",
     "pierce": 999,
@@ -15,7 +15,7 @@
   {
     "id": "missile_swarm",
     "name": "Missile Swarm",
-    "damage": 25,
+    "damage": 30,
     "fireRate": 4.0,
     "bulletSpeed": 350,
     "pattern": "homing",
@@ -28,8 +28,8 @@
   {
     "id": "arc_conductor",
     "name": "Arc Conductor",
-    "damage": 8,
-    "fireRate": 1.8,
+    "damage": 6,
+    "fireRate": 1.5,
     "bulletSpeed": 999,
     "pattern": "straight",
     "pierce": 0,
@@ -42,7 +42,7 @@
   {
     "id": "scatter_blaster",
     "name": "Scatter Blaster",
-    "damage": 6,
+    "damage": 4,
     "fireRate": 1.2,
     "bulletSpeed": 450,
     "pattern": "spread",
@@ -56,8 +56,8 @@
   {
     "id": "orbital_drones",
     "name": "Orbital Drones",
-    "damage": 10,
-    "fireRate": 0.8,
+    "damage": 12,
+    "fireRate": 2.0,
     "bulletSpeed": 400,
     "pattern": "orbital",
     "pierce": 1,
@@ -70,7 +70,7 @@
   {
     "id": "gravity_mines",
     "name": "Gravity Mines",
-    "damage": 18,
+    "damage": 40,
     "fireRate": 1.0,
     "bulletSpeed": 200,
     "pattern": "mines",
@@ -97,7 +97,7 @@
   {
     "id": "nanite_swarm",
     "name": "Nanite Swarm",
-    "damage": 4,
+    "damage": 10,
     "fireRate": 3.5,
     "bulletSpeed": 80,
     "pattern": "cloud",
@@ -111,7 +111,7 @@
   {
     "id": "photon_whip",
     "name": "Photon Whip",
-    "damage": 14,
+    "damage": 12,
     "fireRate": 0.5,
     "bulletSpeed": 1.0,
     "pattern": "whip",
@@ -125,7 +125,7 @@
   {
     "id": "pulse_wave",
     "name": "Pulse Wave",
-    "damage": 5,
+    "damage": 25,
     "fireRate": 3.0,
     "bulletSpeed": 100,
     "pattern": "wave",
