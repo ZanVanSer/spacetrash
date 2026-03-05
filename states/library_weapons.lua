@@ -1,9 +1,10 @@
 local sm = require "states/statemanager"
 local DataLoader = require "systems/dataloader"
-local Colors = require "ui/colors"
-local Fonts = require "ui/fonts"
-local Screen = require "systems/screen"
-local Scanlines = require "ui/scanlines"
+local Colors = require "ui.colors"
+local Fonts = require "ui.fonts"
+local Screen = require "systems.screen"
+local Scanlines = require "ui.scanlines"
+local WeaponIcons = require "ui.weapon_icons"
 
 local state = {}
 
@@ -198,28 +199,37 @@ function state:draw()
         local weapon = self.weapons[self.selectedIndex]
         local unlocked = self:isWeaponUnlocked(weapon)
         local evo = evolutions[weapon.id]
-        local accentColor = (weapon.rarity and weapon.rarity < 50) and "xp" or "accent" -- Gold for rare, cyan for common
+        local accentColor = (weapon.rarity and weapon.rarity < 50) and "xp" or "accent" 
         
         love.graphics.push()
         love.graphics.translate(self.slideOffset, 0)
         
         -- Visual Preview
         local previewX, previewY = screenWidth * 0.25, screenHeight * 0.55
+        local iconScale = 3.0
+        
         if unlocked then
-            Colors.setColor(accentColor, 0.15 * self.transitionAlpha)
-            love.graphics.circle("fill", previewX, previewY, 40 + math.sin(self.animTimer * 4) * 8)
-            Colors.setColor(accentColor, 0.4 * self.transitionAlpha)
-            love.graphics.circle("line", previewX, previewY, 30 + math.sin(self.animTimer * 4) * 5)
-            Colors.setColor(accentColor, 0.8 * self.transitionAlpha)
-            love.graphics.polygon("fill", previewX, previewY - 20, previewX - 15, previewY + 10, previewX + 15, previewY + 10)
+            -- Pulsing background glow
+            local pulse = math.sin(self.animTimer * 3) * 0.1
+            Colors.setColor(accentColor, 0.1 * self.transitionAlpha)
+            love.graphics.circle("fill", previewX, previewY, 60 + pulse * 100)
+            
+            -- Draw large weapon icon
+            WeaponIcons.drawWeaponIcon(weapon.id, previewX, previewY, iconScale * (1.0 + pulse))
             
             for _, b in ipairs(self.bullets) do
                 Colors.setColor(accentColor, b.life * self.transitionAlpha)
                 love.graphics.rectangle("fill", b.x - 2, b.y - 5, 4, 10)
             end
         else
-            love.graphics.setColor(0.02, 0.05, 0.05, self.transitionAlpha)
-            love.graphics.polygon("fill", previewX, previewY - 20, previewX - 15, previewY + 10, previewX + 15, previewY + 10)
+            -- Locked: Draw icon grayed out (simulated with low alpha overlay)
+            love.graphics.push("all")
+            WeaponIcons.drawWeaponIcon(weapon.id, previewX, previewY, iconScale)
+            -- Dimming overlay to simulate lower alpha/grayed out
+            love.graphics.setColor(0, 0, 0, 0.7 * self.transitionAlpha)
+            love.graphics.circle("fill", previewX, previewY, 60)
+            love.graphics.pop()
+            
             Colors.setColor("danger", 0.5 * self.transitionAlpha)
             love.graphics.setFont(Fonts.getFont("large"))
             love.graphics.printf("LOCKED", previewX - 100, previewY + 100, 200, "center")

@@ -31,7 +31,7 @@ local function createGetter(name)
     end
 end
 
-local types = {"weapons", "ships", "enemies", "bosses", "stages", "upgrades", "backgrounds"}
+local types = {"weapons", "ships", "enemies", "bosses", "stages", "upgrades", "backgrounds", "passives"}
 for _, t in ipairs(types) do createGetter(t) end
 
 function dl.getStages()

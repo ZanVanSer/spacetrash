@@ -64,6 +64,9 @@ function Player.new(shipData)
     self.ws = WS.new()
     self.ws:equipWeapon(shipData.startWeapon)
     
+    self.weaponLevels = { [shipData.startWeapon] = 1 }
+    self.passives = {} -- { [id] = level }
+    
     self.xp = 0
     self.level = 1
     self.xpToNext = 10
@@ -73,6 +76,20 @@ end
 function Player:addPassive(id)
     self.passives[id] = math.min(5, (self.passives[id] or 0) + 1)
     self:recalculateStats()
+end
+
+function Player:upgradeWeapon(id)
+    if self.weaponLevels[id] then
+        self.weaponLevels[id] = math.min(8, self.weaponLevels[id] + 1)
+    else
+        -- Equip new weapon
+        self.ws:equipWeapon(id)
+        self.weaponLevels[id] = 1
+    end
+end
+
+function Player:upgradePassive(id)
+    self:addPassive(id)
 end
 
 function Player:recalculateStats()

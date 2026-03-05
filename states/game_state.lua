@@ -496,7 +496,7 @@ function state:update(dt)
 
     if self.player.level > oldLevel then
         self.isPaused = true
-        self.upgradeMenu = UpgradeMenu.new()
+        self.upgradeMenu = UpgradeMenu.new(self.player)
     end
 
     -- Global Death Processing (Catch-all for AOE/Chains)
@@ -560,31 +560,12 @@ function state:keypressed(key)
 end
 
 function state:applyUpgrade(upgrade)
-    local effect = upgrade.effect
-    local p = self.player
-    
-    if effect.type == "stat_mult" then
-        if effect.stat == "damage" then
-            p.might = p.might * effect.value
-        elseif effect.stat == "fireRate" then
-            p.cooldown = p.cooldown * effect.value
-        elseif effect.stat == "speed" then
-            p.speed = p.speed * effect.value
-        elseif effect.stat == "area" then
-            p.area = p.area * effect.value
-        elseif effect.stat == "duration" then
-            p.duration = p.duration * effect.value
-        end
-    elseif effect.type == "stat_add" then
-        if effect.stat == "maxHealth" then
-            p.maxHp = p.maxHp + effect.value
-            p.hp = p.hp + effect.value
-        elseif effect.stat == "amount" then
-            p.amount = p.amount + effect.value
-        end
+    if upgrade.type == "weapon" then
+        self.player:upgradeWeapon(upgrade.id)
+    elseif upgrade.type == "passive" then
+        self.player:upgradePassive(upgrade.id)
     end
 end
-
 function state:draw()
     Screen.applyScale()
     local oldFont = love.graphics.getFont()

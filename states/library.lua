@@ -40,7 +40,7 @@ function state:enter(saveData)
     
     self.totalShips = #(DataLoader.getShips() or {})
     self.totalWeapons = #(DataLoader.getWeapons() or {})
-    self.totalPassives = #(DataLoader.getUpgrades() or {})
+    self.totalPassives = #(DataLoader.getPassives() or {})
     self.totalEnemies = #(DataLoader.getEnemies() or {})
     self.totalBosses = #(DataLoader.getBosses() or {})
     

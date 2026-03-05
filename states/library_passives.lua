@@ -1,9 +1,10 @@
 local sm = require "states/statemanager"
 local DataLoader = require "systems/dataloader"
-local Colors = require "ui/colors"
-local Fonts = require "ui/fonts"
-local Screen = require "systems/screen"
-local Scanlines = require "ui/scanlines"
+local Colors = require "ui.colors"
+local Fonts = require "ui.fonts"
+local Screen = require "systems.screen"
+local Scanlines = require "ui.scanlines"
+local PassiveIcons = require "ui.passive_icons"
 
 local state = {}
 
@@ -34,7 +35,7 @@ end
 
 function state:enter(saveData)
     self.saveData = saveData or { unlockedPassives = {} }
-    self.allPassives = DataLoader.getUpgrades()
+    self.allPassives = DataLoader.getPassives()
     self.filterIndex = 1
     self.filters = {"All", "Unlocked", "Locked"}
     
@@ -140,23 +141,28 @@ function state:draw()
         love.graphics.translate(self.slideOffset, 0)
         
         local iconX, iconY = screenWidth * 0.25, screenHeight * 0.5
-        local pulse = math.sin(self.animTimer * 2) * 5
+        local iconScale = 3.5
+        
         if unlocked then
+            -- Pulsing background glow
+            local pulse = math.sin(self.animTimer * 2.5) * 0.1
             Colors.setColor("accent", 0.1 * self.transitionAlpha)
-            love.graphics.circle("fill", iconX, iconY, 60 + pulse)
-            Colors.setColor("accent", 0.3 * self.transitionAlpha)
-            love.graphics.circle("fill", iconX, iconY, 50 + pulse)
-            Colors.setColor("accent", 0.9 * self.transitionAlpha)
-            love.graphics.setLineWidth(2)
-            love.graphics.circle("line", iconX, iconY, 55 + pulse)
-            love.graphics.polygon("fill", iconX, iconY - 30, iconX - 30, iconY, iconX, iconY + 30, iconX + 30, iconY)
+            love.graphics.circle("fill", iconX, iconY, 70 + pulse * 100)
+            
+            -- Draw large passive icon
+            PassiveIcons.drawPassiveIcon(passive.id, iconX, iconY, iconScale * (1.0 + pulse))
         else
-            love.graphics.setColor(0.02, 0.05, 0.05, self.transitionAlpha)
-            love.graphics.circle("fill", iconX, iconY, 50)
-            love.graphics.polygon("fill", iconX, iconY - 30, iconX - 30, iconY, iconX, iconY + 30, iconX + 30, iconY)
+            -- Locked: Draw icon grayed out
+            love.graphics.push("all")
+            PassiveIcons.drawPassiveIcon(passive.id, iconX, iconY, iconScale)
+            -- Dimming overlay
+            love.graphics.setColor(0, 0, 0, 0.7 * self.transitionAlpha)
+            love.graphics.circle("fill", iconX, iconY, 60)
+            love.graphics.pop()
+            
             Colors.setColor("danger", 0.5 * self.transitionAlpha)
             love.graphics.setFont(Fonts.getFont("large"))
-            love.graphics.printf("LOCKED", iconX - 100, iconY + 90, 200, "center")
+            love.graphics.printf("LOCKED", iconX - 100, iconY + 100, 200, "center")
         end
         
         local panelX, panelY = screenWidth * 0.5, 115
