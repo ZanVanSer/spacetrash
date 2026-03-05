@@ -293,6 +293,8 @@ function state:update(dt)
                     bRadius = 5 * (b.weaponData.area or 1.0)
                 elseif b.weaponData.pattern == "whip" then
                     bRadius = 3 * (b.weaponData.area or 1.0)
+                elseif b.weaponData.pattern == "wave" then
+                    bRadius = b.waveRadius or 0
                 end
 
                 -- Continuous Collision Check (Segment vs Circle)
@@ -309,8 +311,8 @@ function state:update(dt)
                     
                     b.hitEnemies[e] = true
                     
-                    -- Only break if not a cloud or whip (these can hit multiple enemies)
-                    if b.weaponData.pattern ~= "cloud" and b.weaponData.pattern ~= "whip" then
+                    -- Only break if not a cloud, whip, or wave (these can hit multiple enemies)
+                    if b.weaponData.pattern ~= "cloud" and b.weaponData.pattern ~= "whip" and b.weaponData.pattern ~= "wave" then
                         -- Handle Special: Chains
                         if b.weaponData.special == "chains" then
                             local chainCount = b.weaponData.amount or 1
@@ -402,6 +404,8 @@ function state:update(dt)
                 bRadius = 5 * (b.weaponData.area or 1.0)
             elseif b.weaponData.pattern == "whip" then
                 bRadius = 3 * (b.weaponData.area or 1.0)
+            elseif b.weaponData.pattern == "wave" then
+                bRadius = b.waveRadius or 0
             end
 
             if checkSegmentCircleCollision(b.oldX, b.oldY, b.x, b.y, self.boss.x, self.boss.y, self.boss.radius + bRadius) then
@@ -412,18 +416,18 @@ function state:update(dt)
                     self.boss:takeDamage(damage)
                     self.damageNumbers.spawn(b.x, b.y, damage, false)
                     self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
-                    
+
                     b.hitEnemies[self.boss] = true
-                    
+
                     if b.weaponData.pierce and b.weaponData.pierce > 0 then
                         b.weaponData.pierce = b.weaponData.pierce - 1
                     else
-                        -- Don't kill clouds or whips on boss hit
-                        if b.weaponData.pattern ~= "cloud" and b.weaponData.pattern ~= "whip" then
+                        -- Don't kill clouds, whips, or waves on boss hit
+                        if b.weaponData.pattern ~= "cloud" and b.weaponData.pattern ~= "whip" and b.weaponData.pattern ~= "wave" then
                             b.isDead = true
                         end
                     end
-                    
+
                     self.screenshake.trigger(5, 0.15)
                     self.particles.bossHit(b.x, b.y)
                 end

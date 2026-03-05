@@ -125,12 +125,12 @@
   {
     "id": "pulse_wave",
     "name": "Pulse Wave",
-    "damage": 20,
-    "fireRate": 7.0,
-    "bulletSpeed": 300,
-    "pattern": "straight",
+    "damage": 5,
+    "fireRate": 3.0,
+    "bulletSpeed": 100,
+    "pattern": "wave",
     "pierce": 999,
-    "area": 8.0,
+    "area": 1.2,
     "amount": 1,
     "critMult": 1.2,
     "rarity": 40

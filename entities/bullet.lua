@@ -16,7 +16,7 @@ function Bullet.new(x, y, weaponData)
     self.hitEnemies = {} 
     self.hitResetTimer = 0
     
-    -- Cloud/Whip pre-generation
+    -- Pattern initialization
     if weaponData.pattern == "cloud" then
         self.naniteOffsets = {}
         local step = 0.15 
@@ -32,6 +32,10 @@ function Bullet.new(x, y, weaponData)
                 end
             end
         end
+    elseif weaponData.pattern == "wave" then
+        self.waveRadius = 5 * (weaponData.area or 1.0)
+        self.maxWaveRadius = 150 * (weaponData.area or 1.0)
+        self.lifeTimer = 0.6 -- Tighter pulse duration
     end
     
     return self
@@ -71,7 +75,7 @@ function Bullet:update(dt)
     pattern.update(self, dt)
 
     -- Tick reset for DoT patterns
-    if self.weaponData.pattern == "cloud" or self.weaponData.pattern == "whip" then
+    if self.weaponData.pattern == "cloud" or self.weaponData.pattern == "whip" or self.weaponData.pattern == "wave" then
         self.hitResetTimer = self.hitResetTimer + dt
         local resetTime = (self.weaponData.pattern == "whip") and 0.25 or 0.5
         if self.hitResetTimer >= resetTime then 
@@ -92,7 +96,7 @@ function Bullet:update(dt)
     end
 
     -- Bounds check
-    if self.weaponData.pattern ~= "orbital" and self.weaponData.pattern ~= "whip" then
+    if self.weaponData.pattern ~= "orbital" and self.weaponData.pattern ~= "whip" and self.weaponData.pattern ~= "wave" then
         local margin = 100
         if self.y < -margin or self.y > Screen.getVirtualHeight() + margin or
            self.x < -margin or self.x > Screen.getVirtualWidth() + margin then
@@ -116,13 +120,22 @@ function Bullet:draw()
         Colors.setColor("xp", 0.15)
         love.graphics.circle("line", self.x, self.y, areaRange * pulse)
     elseif self.weaponData.pattern == "whip" then
-        -- Draw the whip tail connecting to player
         if self.playerX and self.playerY then
             love.graphics.setLineWidth(3)
             Colors.setColor("accent", 0.4)
             love.graphics.line(self.playerX, self.playerY, self.x, self.y)
             love.graphics.setLineWidth(1)
         end
+    elseif self.weaponData.pattern == "wave" then
+        -- Large expanding energy wave
+        local alpha = 0.4 * (self.lifeTimer / 0.6)
+        Colors.setColor("accent", alpha)
+        love.graphics.setLineWidth(4)
+        love.graphics.circle("line", self.x, self.y, self.waveRadius)
+        
+        Colors.setColor("accent", alpha * 0.3)
+        love.graphics.circle("fill", self.x, self.y, self.waveRadius)
+        love.graphics.setLineWidth(1)
     end
 
     local drawShape = function()
@@ -150,13 +163,17 @@ function Bullet:draw()
                 end
             end
         elseif self.weaponData.pattern == "whip" then
-            -- Whip head: Glowing energy ball affected by area
             local ballSize = 3 * (self.weaponData.area or 1.0)
             love.graphics.circle("fill", 0, 0, ballSize)
+        elseif self.weaponData.pattern == "wave" then
+            -- Wave core is handled above
         else
             love.graphics.polygon("fill", 0, -5, -2, 0, 0, 5, 2, 0)
         end
     end
+
+    -- Special case for wave: skip standard glow passes since it's huge
+    if self.weaponData.pattern == "wave" then return end
 
     love.graphics.push()
     love.graphics.translate(self.x, self.y)
@@ -183,7 +200,7 @@ function Bullet:draw()
             Colors.setColor("accent", 0.9)
         end
     elseif self.weaponData.pattern == "cloud" then
-        -- Handled inside
+        -- Core handled inside
     else
         Colors.setColor("accent", 0.9)
         drawShape()

@@ -8,7 +8,8 @@ function WS.new()
     local self = setmetatable({
         equippedWeapons = {},
         bullets = {},
-        shootTimers = {}
+        shootTimers = {},
+        bursts = {}
     }, WS)
     return self
 end
@@ -30,15 +31,14 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
             
             if self.shootTimers[id] >= finalFireRate then
                 local weaponAmount = wd.amount or 1
-                local finalAmount = weaponAmount + (amountBonus or 0)
+                -- Adjusted formula: Base + Bonus - 1 (Assuming 1 is the default ship amount)
+                -- This ensures Amount 1 ship + Amount 1 weapon = 1 projectile
+                local finalAmount = math.max(1, weaponAmount + (amountBonus or 1) - 1)
                 
                 if wd.pattern == "orbital" or wd.pattern == "whip" then
-                    -- Count existing orbital/whip bullets for this weapon
                     local currentCount = 0
                     for _, b in ipairs(self.bullets) do
-                        if b.weaponData.id == id then
-                            currentCount = currentCount + 1
-                        end
+                        if b.weaponData.id == id then currentCount = currentCount + 1 end
                     end
                     
                     if currentCount < finalAmount then
@@ -55,56 +55,29 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
                                 special = wd.special
                             }
                             local b = Bullet.new(playerX, playerY, bulletWeaponData)
-                            -- Spread out based on final count
                             b.orbitAngle = ((currentCount + i - 1) / finalAmount) * math.pi * 2
                             table.insert(self.bullets, b)
                         end
                     end
-                else
-                    -- Mines: Only fire if NO bullets of this weapon already exist
-                    if wd.pattern == "mines" then
-                        local exists = false
-                        for _, b in ipairs(self.bullets) do
-                            if b.weaponData.id == id then
-                                exists = true
-                                break
-                            end
-                        end
-                        if exists then
-                            -- Reset timer to 0 so it only starts counting AFTER they are gone
-                            self.shootTimers[id] = 0
-                        else
-                            -- Original spawn logic
-                            for i = 1, finalAmount do
-                                local bulletWeaponData = {
-                                    id = id,
-                                    damage = wd.damage * (might or 1.0),
-                                    bulletSpeed = wd.bulletSpeed,
-                                    pattern = wd.pattern,
-                                    area = (wd.area or 1.0) * (area or 1.0),
-                                    pierce = (wd.pierce or 0) + (pierceBonus or 0),
-                                    amount = finalAmount,
-                                    special = wd.special,
-                                    duration = (wd.duration or 3.0) * (cooldown or 1.0)
-                                }
-                                
-                                local b = Bullet.new(playerX, playerY, bulletWeaponData)
-                                
-                                -- Default horizontal offset for multiple bullets
-                                local xOffset = 0
-                                if finalAmount > 1 then
-                                    xOffset = (i - (finalAmount + 1) / 2) * 15
-                                end
-                                b.x = b.x + xOffset
-                                
-                                table.insert(self.bullets, b)
-                            end
-                            self.shootTimers[id] = 0
-                        end
+                    self.shootTimers[id] = 0
+                elseif wd.pattern == "wave" then
+                    if not self.bursts[id] then
+                        self.bursts[id] = {
+                            count = finalAmount,
+                            timer = 0.25, -- Start slightly delayed or immediate
+                            interval = 0.25 
+                        }
+                    end
+                elseif wd.pattern == "mines" then
+                    local exists = false
+                    for _, b in ipairs(self.bullets) do
+                        if b.weaponData.id == id then exists = true; break end
+                    end
+                    if exists then
+                        self.shootTimers[id] = 0
                     else
-                        -- Regular spawn logic for non-mines
                         for i = 1, finalAmount do
-                            local bulletWeaponData = {
+                            local bData = {
                                 id = id,
                                 damage = wd.damage * (might or 1.0),
                                 bulletSpeed = wd.bulletSpeed,
@@ -113,63 +86,96 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
                                 pierce = (wd.pierce or 0) + (pierceBonus or 0),
                                 amount = finalAmount,
                                 special = wd.special,
-                                duration = wd.duration
+                                duration = (wd.duration or 3.0) * (cooldown or 1.0)
                             }
-                            
-                            local b = Bullet.new(playerX, playerY, bulletWeaponData)
-                            
-                            -- Pattern-specific initialization
-                            if wd.pattern == "spread" then
-                                local spreadAngle = wd.spreadAngle or 30
-                                local angleRad = math.rad(spreadAngle)
-                                if finalAmount > 1 then
-                                    local startAngle = -math.pi/2 - angleRad/2
-                                    local angleStep = angleRad / (finalAmount - 1)
-                                    b.angle = startAngle + (i - 1) * angleStep
-                                else
-                                    b.angle = -math.pi/2
-                                end
-                            else
-                                -- Default horizontal offset for multiple bullets
-                                local xOffset = 0
-                                if finalAmount > 1 then
-                                    xOffset = (i - (finalAmount + 1) / 2) * 15
-                                end
-                                b.x = b.x + xOffset
-                            end
-                            
+                            local b = Bullet.new(playerX, playerY, bData)
+                            local xOffset = (finalAmount > 1) and ((i - (finalAmount + 1) / 2) * 15) or 0
+                            b.x = b.x + xOffset
                             table.insert(self.bullets, b)
                         end
                         self.shootTimers[id] = 0
                     end
+                else
+                    -- Regular patterns
+                    for i = 1, finalAmount do
+                        local bData = {
+                            id = id,
+                            damage = wd.damage * (might or 1.0),
+                            bulletSpeed = wd.bulletSpeed,
+                            pattern = wd.pattern,
+                            area = (wd.area or 1.0) * (area or 1.0),
+                            pierce = (wd.pierce or 0) + (pierceBonus or 0),
+                            amount = finalAmount,
+                            special = wd.special,
+                            duration = wd.duration
+                        }
+                        local b = Bullet.new(playerX, playerY, bData)
+                        if wd.pattern == "spread" then
+                            local spreadAngle = math.rad(wd.spreadAngle or 30)
+                            if finalAmount > 1 then
+                                b.angle = (-math.pi/2 - spreadAngle/2) + (i - 1) * (spreadAngle / (finalAmount - 1))
+                            else
+                                b.angle = -math.pi/2
+                            end
+                        else
+                            local xOffset = (finalAmount > 1) and ((i - (finalAmount + 1) / 2) * 15) or 0
+                            b.x = b.x + xOffset
+                        end
+                        table.insert(self.bullets, b)
+                    end
+                    self.shootTimers[id] = 0
                 end
             end
         end
     end
 
-    -- Get enemies for homing/orbital patterns
+    -- Handle Bursts
+    if self.bursts then
+        for id, burst in pairs(self.bursts) do
+            burst.timer = burst.timer + dt
+            if burst.timer >= burst.interval then
+                local wd = self.lookup[id]
+                if wd then
+                    local bData = {
+                        id = id,
+                        damage = wd.damage * (might or 1.0),
+                        bulletSpeed = wd.bulletSpeed,
+                        pattern = wd.pattern,
+                        area = (wd.area or 1.0) * (area or 1.0),
+                        pierce = (wd.pierce or 0) + (pierceBonus or 0),
+                        amount = burst.count,
+                        special = wd.special
+                    }
+                    local b = Bullet.new(playerX, playerY, bData)
+                    table.insert(self.bullets, b)
+                end
+                burst.count = burst.count - 1
+                burst.timer = 0
+                if burst.count <= 0 then
+                    self.bursts[id] = nil
+                    self.shootTimers[id] = 0
+                end
+            end
+        end
+    end
+
+    -- Update and Context
     local sm = require("states/statemanager")
     local enemies = {}
     if sm.current and sm.current.enemySpawner then
-        local spawnerEnemies = sm.current.enemySpawner:getEnemies()
-        for _, e in ipairs(spawnerEnemies) do
+        for _, e in ipairs(sm.current.enemySpawner:getEnemies()) do
             if not e.isDead then table.insert(enemies, e) end
         end
     end
-    -- Include boss as a potential target
-    local boss = sm.current and sm.current.boss
-    if boss and not boss.isDead then
-        table.insert(enemies, boss)
+    if sm.current and sm.current.boss and not sm.current.boss.isDead then
+        table.insert(enemies, sm.current.boss)
     end
 
     for i = #self.bullets, 1, -1 do
         local b = self.bullets[i]
-        -- Pass context to bullet for pattern logic
         b.enemies = enemies
-        b.playerX = playerX
-        b.playerY = playerY
+        b.playerX, b.playerY = playerX, playerY
         b.gameState = sm.current
-        
         b:update(dt)
         if b.isDead then table.remove(self.bullets, i) end
     end
