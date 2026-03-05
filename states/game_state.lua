@@ -291,6 +291,8 @@ function state:update(dt)
                 local bRadius = 4
                 if b.weaponData.pattern == "cloud" then
                     bRadius = 5 * (b.weaponData.area or 1.0)
+                elseif b.weaponData.pattern == "whip" then
+                    bRadius = 3 * (b.weaponData.area or 1.0)
                 end
 
                 -- Continuous Collision Check (Segment vs Circle)
@@ -307,8 +309,8 @@ function state:update(dt)
                     
                     b.hitEnemies[e] = true
                     
-                    -- Only break if not a cloud (clouds can hit multiple enemies)
-                    if b.weaponData.pattern ~= "cloud" then
+                    -- Only break if not a cloud or whip (these can hit multiple enemies)
+                    if b.weaponData.pattern ~= "cloud" and b.weaponData.pattern ~= "whip" then
                         -- Handle Special: Chains
                         if b.weaponData.special == "chains" then
                             local chainCount = b.weaponData.amount or 1
@@ -398,6 +400,8 @@ function state:update(dt)
             local bRadius = 4
             if b.weaponData.pattern == "cloud" then
                 bRadius = 5 * (b.weaponData.area or 1.0)
+            elseif b.weaponData.pattern == "whip" then
+                bRadius = 3 * (b.weaponData.area or 1.0)
             end
 
             if checkSegmentCircleCollision(b.oldX, b.oldY, b.x, b.y, self.boss.x, self.boss.y, self.boss.radius + bRadius) then
@@ -414,8 +418,8 @@ function state:update(dt)
                     if b.weaponData.pierce and b.weaponData.pierce > 0 then
                         b.weaponData.pierce = b.weaponData.pierce - 1
                     else
-                        -- Don't kill clouds on boss hit
-                        if b.weaponData.pattern ~= "cloud" then
+                        -- Don't kill clouds or whips on boss hit
+                        if b.weaponData.pattern ~= "cloud" and b.weaponData.pattern ~= "whip" then
                             b.isDead = true
                         end
                     end

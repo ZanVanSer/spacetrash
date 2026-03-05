@@ -16,19 +16,18 @@ function Bullet.new(x, y, weaponData)
     self.hitEnemies = {} 
     self.hitResetTimer = 0
     
-    -- Generate a grid of points to fill the radius uniformly (like a tileset/dense grid)
+    -- Cloud/Whip pre-generation
     if weaponData.pattern == "cloud" then
         self.naniteOffsets = {}
-        local step = 0.15 -- Density of the grid
+        local step = 0.15 
         for ix = -1, 1, step do
             for iy = -1, 1, step do
-                -- Check if point is within unit circle
                 if ix*ix + iy*iy <= 1 then
                     table.insert(self.naniteOffsets, {
                         x = ix, 
                         y = iy, 
                         phase = math.random() * math.pi * 2,
-                        visible = math.random() > 0.3 -- Randomly hide some for texture
+                        visible = math.random() > 0.3 
                     })
                 end
             end
@@ -65,15 +64,17 @@ function Bullet:explode()
         end
     end
 end
+
 function Bullet:update(dt)
     self.oldX, self.oldY = self.x, self.y
     local pattern = require("patterns/player_" .. self.weaponData.pattern)
     pattern.update(self, dt)
 
     -- Tick reset for DoT patterns
-    if self.weaponData.pattern == "cloud" then
+    if self.weaponData.pattern == "cloud" or self.weaponData.pattern == "whip" then
         self.hitResetTimer = self.hitResetTimer + dt
-        if self.hitResetTimer >= 0.5 then -- Damage twice per second
+        local resetTime = (self.weaponData.pattern == "whip") and 0.25 or 0.5
+        if self.hitResetTimer >= resetTime then 
             self.hitEnemies = {}
             self.hitResetTimer = 0
         end
@@ -91,7 +92,7 @@ function Bullet:update(dt)
     end
 
     -- Bounds check
-    if self.weaponData.pattern ~= "orbital" then
+    if self.weaponData.pattern ~= "orbital" and self.weaponData.pattern ~= "whip" then
         local margin = 100
         if self.y < -margin or self.y > Screen.getVirtualHeight() + margin or
            self.x < -margin or self.x > Screen.getVirtualWidth() + margin then
@@ -114,6 +115,14 @@ function Bullet:draw()
         love.graphics.circle("fill", self.x, self.y, areaRange * pulse)
         Colors.setColor("xp", 0.15)
         love.graphics.circle("line", self.x, self.y, areaRange * pulse)
+    elseif self.weaponData.pattern == "whip" then
+        -- Draw the whip tail connecting to player
+        if self.playerX and self.playerY then
+            love.graphics.setLineWidth(3)
+            Colors.setColor("accent", 0.4)
+            love.graphics.line(self.playerX, self.playerY, self.x, self.y)
+            love.graphics.setLineWidth(1)
+        end
     end
 
     local drawShape = function()
@@ -131,7 +140,6 @@ function Bullet:draw()
             
             if self.naniteOffsets then
                 for _, off in ipairs(self.naniteOffsets) do
-                    -- Flicker nanites in the grid
                     local flicker = math.sin(time * 10 + off.phase)
                     if flicker > -0.4 then
                         Colors.setColor("xp", 0.4 + flicker * 0.4)
@@ -141,6 +149,10 @@ function Bullet:draw()
                     end
                 end
             end
+        elseif self.weaponData.pattern == "whip" then
+            -- Whip head: Glowing energy ball affected by area
+            local ballSize = 3 * (self.weaponData.area or 1.0)
+            love.graphics.circle("fill", 0, 0, ballSize)
         else
             love.graphics.polygon("fill", 0, -5, -2, 0, 0, 5, 2, 0)
         end
@@ -171,7 +183,7 @@ function Bullet:draw()
             Colors.setColor("accent", 0.9)
         end
     elseif self.weaponData.pattern == "cloud" then
-        -- Core is handled inside drawShape for grid
+        -- Handled inside
     else
         Colors.setColor("accent", 0.9)
         drawShape()

@@ -32,8 +32,34 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
                 local weaponAmount = wd.amount or 1
                 local finalAmount = weaponAmount + (amountBonus or 0)
                 
-                if wd.pattern == "orbital" then
-                    -- ...
+                if wd.pattern == "orbital" or wd.pattern == "whip" then
+                    -- Count existing orbital/whip bullets for this weapon
+                    local currentCount = 0
+                    for _, b in ipairs(self.bullets) do
+                        if b.weaponData.id == id then
+                            currentCount = currentCount + 1
+                        end
+                    end
+                    
+                    if currentCount < finalAmount then
+                        local toSpawn = finalAmount - currentCount
+                        for i = 1, toSpawn do
+                            local bulletWeaponData = {
+                                id = id,
+                                damage = wd.damage * (might or 1.0),
+                                bulletSpeed = wd.bulletSpeed,
+                                pattern = wd.pattern,
+                                area = (wd.area or 1.0) * (area or 1.0),
+                                pierce = (wd.pierce or 0) + (pierceBonus or 0),
+                                amount = finalAmount,
+                                special = wd.special
+                            }
+                            local b = Bullet.new(playerX, playerY, bulletWeaponData)
+                            -- Spread out based on final count
+                            b.orbitAngle = ((currentCount + i - 1) / finalAmount) * math.pi * 2
+                            table.insert(self.bullets, b)
+                        end
+                    end
                 else
                     -- Mines: Only fire if NO bullets of this weapon already exist
                     if wd.pattern == "mines" then
