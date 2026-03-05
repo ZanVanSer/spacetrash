@@ -71,14 +71,14 @@
     "id": "gravity_mines",
     "name": "Gravity Mines",
     "damage": 18,
-    "fireRate": 5.0,
+    "fireRate": 1.0,
     "bulletSpeed": 200,
-    "pattern": "straight",
+    "pattern": "mines",
     "pierce": 999,
-    "area": 4.0,
+    "area": 1.2,
     "amount": 2,
     "critMult": 1.6,
-    "duration": 8.0,
+    "duration": 5.0,
     "rarity": 70
   },
   {

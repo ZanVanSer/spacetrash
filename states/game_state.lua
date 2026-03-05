@@ -262,6 +262,17 @@ function state:update(dt)
         for _, e in ipairs(enemies) do
             if not b.isDead and not e.isDead and not b.hitEnemies[e] then
                 if checkCircleCollision(b.x, b.y, 4, e.x, e.y, e.radius) then
+                    if b.weaponData.pattern == "mines" then
+                        b:explode()
+                        
+                        -- Since explosion handles AOE and damage numbers, 
+                        -- we just need to ensure the bullet is removed.
+                        -- We also need to check for enemy deaths triggered by the explosion,
+                        -- but Bullet:explode doesn't handle XP. 
+                        -- We'll just let the regular death check handle it if the enemy is dead.
+                        break
+                    end
+                    
                     local damage = b.weaponData.damage
                     e:takeDamage(damage)
                     self.damageNumbers.spawn(e.x, e.y, damage, false)
@@ -270,6 +281,7 @@ function state:update(dt)
                     b.hitEnemies[e] = true
                     
                     -- Handle Special: Chains
+                    -- ... (the rest of the logic)
                     if b.weaponData.special == "chains" then
                         local chainCount = b.weaponData.amount or 1
                         local chainRange = 150 * (b.weaponData.area or 1.0)
@@ -355,21 +367,25 @@ function state:update(dt)
         -- Bullet-Boss Collisions
         if self.boss and not self.boss.isDead and not b.isDead and not b.hitEnemies[self.boss] then
             if checkCircleCollision(b.x, b.y, 4, self.boss.x, self.boss.y, self.boss.radius) then
-                local damage = b.weaponData.damage
-                self.boss:takeDamage(damage)
-                self.damageNumbers.spawn(b.x, b.y, damage, false)
-                self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
-                
-                b.hitEnemies[self.boss] = true
-                
-                if b.weaponData.pierce and b.weaponData.pierce > 0 then
-                    b.weaponData.pierce = b.weaponData.pierce - 1
+                if b.weaponData.pattern == "mines" then
+                    b:explode()
                 else
-                    b.isDead = true
+                    local damage = b.weaponData.damage
+                    self.boss:takeDamage(damage)
+                    self.damageNumbers.spawn(b.x, b.y, damage, false)
+                    self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
+                    
+                    b.hitEnemies[self.boss] = true
+                    
+                    if b.weaponData.pierce and b.weaponData.pierce > 0 then
+                        b.weaponData.pierce = b.weaponData.pierce - 1
+                    else
+                        b.isDead = true
+                    end
+                    
+                    self.screenshake.trigger(5, 0.15)
+                    self.particles.bossHit(b.x, b.y)
                 end
-                
-                self.screenshake.trigger(5, 0.15)
-                self.particles.bossHit(b.x, b.y)
             end
         end
     end
@@ -436,6 +452,19 @@ function state:update(dt)
     if self.player.level > oldLevel then
         self.isPaused = true
         self.upgradeMenu = UpgradeMenu.new()
+    end
+
+    -- Global Death Processing (Catch-all for AOE/Chains)
+    for _, e in ipairs(enemies) do
+        if e.isDead and not e.xpGiven then
+            self.player:addXP(e.xpValue)
+            e.xpGiven = true
+            self.enemiesKilled = self.enemiesKilled + 1
+            self.runStatistics.kills = self.runStatistics.kills + 1
+            self.screenshake.trigger(2, 0.1)
+            self.particles.enemyDeath(e.x, e.y)
+            self.particles.xpPickup(self.player.x, self.player.y)
+        end
     end
 end
 
