@@ -153,7 +153,7 @@ function state:saveProgress(isTerminal)
         stats.totalRuns = (stats.totalRuns or 0) + 1
         stats.bossesDefeated = (stats.bossesDefeated or 0) + self.runStatistics.bossesDefeated
         stats.highestLevel = math.max(stats.highestLevel or 0, self.runStatistics.highestLevel)
-        
+
         -- Use the global currentSaveSlot if not explicitly stored
         local slot = self.currentSaveSlot or _G.currentSaveSlot
         if slot then
@@ -282,13 +282,19 @@ function state:update(dt)
 
     -- Bullet-Enemy Collisions
     for _, b in ipairs(bullets) do
-        -- Initialize hit tracking if needed
+        -- Ensure hit tracking exists (now in Bullet.new but safety first)
         b.hitEnemies = b.hitEnemies or {}
         
         for _, e in ipairs(enemies) do
             if not b.isDead and not e.isDead and not b.hitEnemies[e] then
+                -- Define collision radius based on pattern
+                local bRadius = 4
+                if b.weaponData.pattern == "cloud" then
+                    bRadius = 5 * (b.weaponData.area or 1.0)
+                end
+
                 -- Continuous Collision Check (Segment vs Circle)
-                if checkSegmentCircleCollision(b.oldX, b.oldY, b.x, b.y, e.x, e.y, e.radius + 4) then
+                if checkSegmentCircleCollision(b.oldX, b.oldY, b.x, b.y, e.x, e.y, e.radius + bRadius) then
                     if b.weaponData.pattern == "mines" then
                         b:explode()
                         break
@@ -301,73 +307,74 @@ function state:update(dt)
                     
                     b.hitEnemies[e] = true
                     
-                    -- Handle Special: Chains
-                    -- ... (logic remains same)
-                    -- ... (the rest of the logic)
-                    if b.weaponData.special == "chains" then
-                        local chainCount = b.weaponData.amount or 1
-                        local chainRange = 150 * (b.weaponData.area or 1.0)
-                        local currentSource = e
-                        
-                        for i = 1, chainCount do
-                            local nearest = nil
-                            local minDist = chainRange
+                    -- Only break if not a cloud (clouds can hit multiple enemies)
+                    if b.weaponData.pattern ~= "cloud" then
+                        -- Handle Special: Chains
+                        if b.weaponData.special == "chains" then
+                            local chainCount = b.weaponData.amount or 1
+                            local chainRange = 150 * (b.weaponData.area or 1.0)
+                            local currentSource = e
                             
-                            -- Check regular enemies
-                            for _, nextE in ipairs(enemies) do
-                                if not nextE.isDead and nextE ~= currentSource and not b.hitEnemies[nextE] then
-                                    local dx, dy = nextE.x - currentSource.x, nextE.y - currentSource.y
+                            for i = 1, chainCount do
+                                local nearest = nil
+                                local minDist = chainRange
+                                
+                                -- Check regular enemies
+                                for _, nextE in ipairs(enemies) do
+                                    if not nextE.isDead and nextE ~= currentSource and not b.hitEnemies[nextE] then
+                                        local dx, dy = nextE.x - currentSource.x, nextE.y - currentSource.y
+                                        local distSq = dx*dx + dy*dy
+                                        if distSq < minDist*minDist then
+                                            minDist = math.sqrt(distSq)
+                                            nearest = nextE
+                                        end
+                                    end
+                                end
+                                
+                                -- Check boss
+                                if self.boss and not self.boss.isDead and self.boss ~= currentSource and not b.hitEnemies[self.boss] then
+                                    local dx, dy = self.boss.x - currentSource.x, self.boss.y - currentSource.y
                                     local distSq = dx*dx + dy*dy
                                     if distSq < minDist*minDist then
                                         minDist = math.sqrt(distSq)
-                                        nearest = nextE
+                                        nearest = self.boss
                                     end
                                 end
-                            end
-                            
-                            -- Check boss
-                            if self.boss and not self.boss.isDead and self.boss ~= currentSource and not b.hitEnemies[self.boss] then
-                                local dx, dy = self.boss.x - currentSource.x, self.boss.y - currentSource.y
-                                local distSq = dx*dx + dy*dy
-                                if distSq < minDist*minDist then
-                                    minDist = math.sqrt(distSq)
-                                    nearest = self.boss
+                                
+                                if nearest then
+                                    local chainDamage = math.floor(b.weaponData.damage * 0.5)
+                                    nearest:takeDamage(chainDamage)
+                                    self.damageNumbers.spawn(nearest.x, nearest.y, chainDamage, false)
+                                    self.runStatistics.damageDealt = self.runStatistics.damageDealt + chainDamage
+                                    b.hitEnemies[nearest] = true
+                                    
+                                    -- Visual Effect
+                                    self.particles.lightningChain(currentSource.x, currentSource.y, nearest.x, nearest.y, "accent")
+                                    
+                                    currentSource = nearest
+                                    
+                                    -- Handle enemy death for each link in the chain
+                                    if nearest ~= self.boss and nearest.isDead and not nearest.xpGiven then
+                                        self.player:addXP(nearest.xpValue)
+                                        nearest.xpGiven = true
+                                        self.enemiesKilled = self.enemiesKilled + 1
+                                        self.runStatistics.kills = self.runStatistics.kills + 1
+                                        self.screenshake.trigger(2, 0.1)
+                                        self.particles.enemyDeath(nearest.x, nearest.y)
+                                        self.particles.xpPickup(self.player.x, self.player.y)
+                                    end
+                                else
+                                    break
                                 end
-                            end
-                            
-                            if nearest then
-                                local chainDamage = math.floor(b.weaponData.damage * 0.5)
-                                nearest:takeDamage(chainDamage)
-                                self.damageNumbers.spawn(nearest.x, nearest.y, chainDamage, false)
-                                self.runStatistics.damageDealt = self.runStatistics.damageDealt + chainDamage
-                                b.hitEnemies[nearest] = true
-                                
-                                -- Visual Effect
-                                self.particles.lightningChain(currentSource.x, currentSource.y, nearest.x, nearest.y, "accent")
-                                
-                                currentSource = nearest
-                                
-                                -- Handle enemy death for each link in the chain
-                                if nearest ~= self.boss and nearest.isDead and not nearest.xpGiven then
-                                    self.player:addXP(nearest.xpValue)
-                                    nearest.xpGiven = true
-                                    self.enemiesKilled = self.enemiesKilled + 1
-                                    self.runStatistics.kills = self.runStatistics.kills + 1
-                                    self.screenshake.trigger(2, 0.1)
-                                    self.particles.enemyDeath(nearest.x, nearest.y)
-                                    self.particles.xpPickup(self.player.x, self.player.y)
-                                end
-                            else
-                                break
                             end
                         end
-                    end
-                    
-                    -- Handle Pierce
-                    if b.weaponData.pierce and b.weaponData.pierce > 0 then
-                        b.weaponData.pierce = b.weaponData.pierce - 1
-                    else
-                        b.isDead = true
+                        
+                        -- Handle Pierce
+                        if b.weaponData.pierce and b.weaponData.pierce > 0 then
+                            b.weaponData.pierce = b.weaponData.pierce - 1
+                        else
+                            b.isDead = true
+                        end
                     end
                     
                     if e.isDead and not e.xpGiven then
@@ -381,14 +388,19 @@ function state:update(dt)
                     end
                     
                     -- Break the enemy loop since this bullet might have moved or died
-                    break 
+                    if b.isDead then break end
                 end
             end
         end
 
         -- Bullet-Boss Collisions
         if self.boss and not self.boss.isDead and not b.isDead and not b.hitEnemies[self.boss] then
-            if checkSegmentCircleCollision(b.oldX, b.oldY, b.x, b.y, self.boss.x, self.boss.y, self.boss.radius + 4) then
+            local bRadius = 4
+            if b.weaponData.pattern == "cloud" then
+                bRadius = 5 * (b.weaponData.area or 1.0)
+            end
+
+            if checkSegmentCircleCollision(b.oldX, b.oldY, b.x, b.y, self.boss.x, self.boss.y, self.boss.radius + bRadius) then
                 if b.weaponData.pattern == "mines" then
                     b:explode()
                 else
@@ -402,7 +414,10 @@ function state:update(dt)
                     if b.weaponData.pierce and b.weaponData.pierce > 0 then
                         b.weaponData.pierce = b.weaponData.pierce - 1
                     else
-                        b.isDead = true
+                        -- Don't kill clouds on boss hit
+                        if b.weaponData.pattern ~= "cloud" then
+                            b.isDead = true
+                        end
                     end
                     
                     self.screenshake.trigger(5, 0.15)

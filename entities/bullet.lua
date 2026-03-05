@@ -13,6 +13,28 @@ function Bullet.new(x, y, weaponData)
     self.isDead = false
     self.lifeTimer = weaponData.duration or nil
     self.isExploded = false
+    self.hitEnemies = {} 
+    self.hitResetTimer = 0
+    
+    -- Generate a grid of points to fill the radius uniformly (like a tileset/dense grid)
+    if weaponData.pattern == "cloud" then
+        self.naniteOffsets = {}
+        local step = 0.15 -- Density of the grid
+        for ix = -1, 1, step do
+            for iy = -1, 1, step do
+                -- Check if point is within unit circle
+                if ix*ix + iy*iy <= 1 then
+                    table.insert(self.naniteOffsets, {
+                        x = ix, 
+                        y = iy, 
+                        phase = math.random() * math.pi * 2,
+                        visible = math.random() > 0.3 -- Randomly hide some for texture
+                    })
+                end
+            end
+        end
+    end
+    
     return self
 end
 
@@ -48,6 +70,15 @@ function Bullet:update(dt)
     local pattern = require("patterns/player_" .. self.weaponData.pattern)
     pattern.update(self, dt)
 
+    -- Tick reset for DoT patterns
+    if self.weaponData.pattern == "cloud" then
+        self.hitResetTimer = self.hitResetTimer + dt
+        if self.hitResetTimer >= 0.5 then -- Damage twice per second
+            self.hitEnemies = {}
+            self.hitResetTimer = 0
+        end
+    end
+
     if self.lifeTimer then
         self.lifeTimer = self.lifeTimer - dt
         if self.lifeTimer <= 0 then 
@@ -59,7 +90,7 @@ function Bullet:update(dt)
         end
     end
 
-    -- Bounds check: Don't kill orbital drones for being off-screen
+    -- Bounds check
     if self.weaponData.pattern ~= "orbital" then
         local margin = 100
         if self.y < -margin or self.y > Screen.getVirtualHeight() + margin or
@@ -71,27 +102,46 @@ end
 
 function Bullet:draw()
     if self.weaponData.pattern == "mines" then
-        -- Draw faint radius circle for mines
         local areaRange = 60 * (self.weaponData.area or 1.0)
         Colors.setColor("accent", 0.05)
         love.graphics.circle("line", self.x, self.y, areaRange)
-        
-        -- Subtle fill
         Colors.setColor("accent", 0.02)
         love.graphics.circle("fill", self.x, self.y, areaRange)
+    elseif self.weaponData.pattern == "cloud" then
+        local areaRange = 5 * (self.weaponData.area or 1.0)
+        local pulse = 1.0 + math.sin(love.timer.getTime() * 4) * 0.05
+        Colors.setColor("xp", 0.1)
+        love.graphics.circle("fill", self.x, self.y, areaRange * pulse)
+        Colors.setColor("xp", 0.15)
+        love.graphics.circle("line", self.x, self.y, areaRange * pulse)
     end
 
     local drawShape = function()
         if self.weaponData.pattern == "mines" then
-            -- Octagon/Circle shape for mines
             love.graphics.circle("fill", 0, 0, 6)
             love.graphics.rectangle("fill", -8, -2, 16, 4)
             love.graphics.rectangle("fill", -2, -8, 4, 16)
         elseif self.weaponData.pattern == "railgun" then
-            -- Railgun: High-speed streak
             love.graphics.rectangle("fill", -2, -20, 4, 40)
+        elseif self.weaponData.pattern == "cloud" then
+            local time = love.timer.getTime()
+            local areaRange = 5 * (self.weaponData.area or 1.0)
+            local pulse = 1.0 + math.sin(time * 6) * 0.03
+            local currentRadius = areaRange * pulse
+            
+            if self.naniteOffsets then
+                for _, off in ipairs(self.naniteOffsets) do
+                    -- Flicker nanites in the grid
+                    local flicker = math.sin(time * 10 + off.phase)
+                    if flicker > -0.4 then
+                        Colors.setColor("xp", 0.4 + flicker * 0.4)
+                        local x = off.x * currentRadius
+                        local y = off.y * currentRadius
+                        love.graphics.rectangle("fill", x-1, y-1, 2, 2)
+                    end
+                end
+            end
         else
-            -- Diamond/Rectangle shape for standard bullets
             love.graphics.polygon("fill", 0, -5, -2, 0, 0, 5, 2, 0)
         end
     end
@@ -99,33 +149,33 @@ function Bullet:draw()
     love.graphics.push()
     love.graphics.translate(self.x, self.y)
 
-    -- 3-pass glow effect
-    -- Outer glow
+    -- Glow passes
     love.graphics.push()
     love.graphics.scale(1.3, 1.3)
     Colors.setColor("accent", 0.1)
+    if self.weaponData.pattern == "cloud" then Colors.setColor("xp", 0.05) end
     drawShape()
     love.graphics.pop()
 
-    -- Mid glow
     love.graphics.push()
     love.graphics.scale(1.15, 1.15)
     Colors.setColor("accent", 0.2)
+    if self.weaponData.pattern == "cloud" then Colors.setColor("xp", 0.1) end
     drawShape()
     love.graphics.pop()
 
-    -- Main bullet/mine
     if self.weaponData.pattern == "mines" and self.lifeTimer and self.lifeTimer < 1.0 then
-        -- Blink red when about to explode
         if math.floor(love.timer.getTime() * 10) % 2 == 0 then
             Colors.setColor("danger", 0.9)
         else
             Colors.setColor("accent", 0.9)
         end
+    elseif self.weaponData.pattern == "cloud" then
+        -- Core is handled inside drawShape for grid
     else
         Colors.setColor("accent", 0.9)
+        drawShape()
     end
-    drawShape()
 
     love.graphics.pop()
 end

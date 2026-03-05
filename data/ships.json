@@ -10,10 +10,10 @@
     "might": 1.0,
     "speed": 200,
     "duration": 1.0,
-    "cooldown": 0.5,
+    "cooldown": 1.0,
     "area": 1.0,
     "amount": 0,
-    "startWeapon": "railgun",
+    "startWeapon": "nanite_swarm",
     "unlockCondition": "default"
   },
   {
