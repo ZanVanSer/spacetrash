@@ -12,8 +12,8 @@
     "duration": 1.0,
     "cooldown": 1.0,
     "area": 1.0,
-    "amount": 0,
-    "startWeapon": "arc_conductor",
+    "amount": 1,
+    "startWeapon": "plasma_lance",
     "unlockCondition": "default"
   },
   {

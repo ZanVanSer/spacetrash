@@ -2,7 +2,7 @@
   {
     "id": "asteroid_boss",
     "name": "Asteroid Guardian",
-    "maxHealth": 500,
+    "maxHealth": 2000,
     "radius": 40,
     "baseSpeed": 80,
     
