@@ -140,11 +140,14 @@ function Bullet:draw()
     elseif self.weaponData.pattern == "wave" then
         -- Large expanding energy wave
         local alpha = 0.4 * (self.lifeTimer / 0.6)
-        Colors.setColor("accent", alpha)
+        local color = "accent"
+        if self.weaponData.id:find("solar_flare") then color = "danger" end
+        
+        Colors.setColor(color, alpha)
         love.graphics.setLineWidth(4)
         love.graphics.circle("line", self.x, self.y, self.waveRadius)
         
-        Colors.setColor("accent", alpha * 0.3)
+        Colors.setColor(color, alpha * 0.3)
         love.graphics.circle("fill", self.x, self.y, self.waveRadius)
         love.graphics.setLineWidth(1)
     end

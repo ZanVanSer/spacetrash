@@ -13,8 +13,8 @@
     "cooldown": 1.0,
     "area": 1.0,
     "amount": 1,
-    "startWeapon": "plasma_lance",
-    "startingPassive": "energy_matrix",
+    "startWeapon": "pulse_wave",
+    "startingPassive": "amplifier_array",
     "unlockCondition": "default"
   },
   {

@@ -481,6 +481,24 @@ function state:update(dt)
                             sub.gameState = self
                             table.insert(self.player.ws.bullets, sub)
                         end
+                    elseif b.weaponData.specialEffect == "ignite_and_wave" then
+                        e:applyBurn(b.weaponData.burnDamage or 10, b.weaponData.burnDuration or 3.0)
+                        
+                        -- Spawn heat wave
+                        local wData = {
+                            id = b.weaponData.id .. "_wave",
+                            damage = damage * 0.3,
+                            bulletSpeed = 0,
+                            pattern = "wave",
+                            area = 0.8,
+                            pierce = 999,
+                            duration = 0.6
+                        }
+                        local wave = Bullet.new(e.x, e.y, wData)
+                        wave.followPlayer = false -- Heat wave stays where it was created
+                        wave.enemies = enemies
+                        wave.gameState = self
+                        table.insert(self.player.ws.bullets, wave)
                     end
 
                     -- Only break if not a cloud, whip, or wave (these can hit multiple enemies)
@@ -498,6 +516,16 @@ function state:update(dt)
                         e.xpGiven = true
                         self.enemiesKilled = self.enemiesKilled + 1
                         self.runStatistics.kills = self.runStatistics.kills + 1
+                        
+                        -- Grey Goo Growth logic
+                        if b.weaponData.specialEffect == "consume_and_grow" then
+                            b.weaponData.area = (b.weaponData.area or 1.0) + 0.2
+                            if b.lifeTimer then
+                                b.lifeTimer = b.lifeTimer + 1.0
+                            end
+                            self.particles.spawn(e.x, e.y, 5, "health", 100, 2)
+                        end
+
                         self:checkGameplayUnlocks()
                         self.screenshake.trigger(2, 0.1)
                         self.particles.enemyDeath(e.x, e.y)

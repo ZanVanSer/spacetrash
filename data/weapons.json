@@ -22,7 +22,7 @@
   {
     "id": "missile_swarm",
     "name": "Missile Swarm",
-    "damage": 30,
+    "damage": 5,
     "fireRate": 4.0,
     "bulletSpeed": 350,
     "pattern": "homing",
@@ -42,7 +42,7 @@
   {
     "id": "arc_conductor",
     "name": "Arc Conductor",
-    "damage": 6,
+    "damage": 4,
     "fireRate": 1.5,
     "bulletSpeed": 999,
     "pattern": "straight",
@@ -86,7 +86,7 @@
   {
     "id": "orbital_drones",
     "name": "Orbital Drones",
-    "damage": 12,
+    "damage": 8,
     "fireRate": 2.0,
     "bulletSpeed": 400,
     "pattern": "orbital",
@@ -107,7 +107,7 @@
   {
     "id": "gravity_mines",
     "name": "Gravity Mines",
-    "damage": 40,
+    "damage": 20,
     "fireRate": 1.0,
     "bulletSpeed": 200,
     "pattern": "mines",
@@ -128,7 +128,7 @@
   {
     "id": "railgun",
     "name": "Railgun",
-    "damage": 80,
+    "damage": 40,
     "fireRate": 6.0,
     "bulletSpeed": 4000,
     "pattern": "railgun",
@@ -169,7 +169,7 @@
   {
     "id": "photon_whip",
     "name": "Photon Whip",
-    "damage": 12,
+    "damage": 3,
     "fireRate": 0.5,
     "bulletSpeed": 1.0,
     "pattern": "whip",
@@ -225,7 +225,7 @@
   {
     "id": "apocalypse_barrage",
     "name": "Apocalypse Barrage",
-    "damage": 45,
+    "damage": 10,
     "fireRate": 4.0,
     "bulletSpeed": 350,
     "pattern": "homing",
@@ -243,7 +243,7 @@
   {
     "id": "tesla_storm",
     "name": "Tesla Storm",
-    "damage": 12,
+    "damage": 6,
     "fireRate": 1.5,
     "bulletSpeed": 999,
     "pattern": "straight",
@@ -270,7 +270,7 @@
     "spreadAngle": 45,
     "special": "exploding_pellets",
     "specialEffect": "explosion",
-    "explosionDamage": 6,
+    "explosionDamage": 4,
     "explosionRadius": 30,
     "isEvolution": true
   },
@@ -292,24 +292,24 @@
   {
     "id": "singularity_engine",
     "name": "Singularity Engine",
-    "damage": 30,
+    "damage": 25,
     "fireRate": 1.0,
     "bulletSpeed": 200,
     "pattern": "mines",
     "pierce": 999,
-    "area": 6.0,
+    "area": 1.0,
     "amount": 2,
     "critMult": 1.6,
     "duration": 10.0,
     "special": "black_holes",
     "specialEffect": "pull",
-    "pullRadius": 100,
+    "pullRadius": 20,
     "isEvolution": true
   },
   {
     "id": "annihilator_cannon",
     "name": "Annihilator Cannon",
-    "damage": 100,
+    "damage": 50,
     "fireRate": 5.0,
     "bulletSpeed": 4000,
     "pattern": "railgun",
@@ -333,15 +333,13 @@
     "critMult": 1.1,
     "duration": 6.0,
     "special": "chains_to_3",
-    "specialEffect": "spread",
-    "chainTargets": 3,
-    "spreadDamage": 6,
+    "specialEffect": "consume_and_grow",
     "isEvolution": true
   },
   {
     "id": "solar_flare",
     "name": "Solar Flare",
-    "damage": 18,
+    "damage": 4,
     "fireRate": 0.5,
     "bulletSpeed": 1.0,
     "pattern": "whip",
@@ -351,7 +349,7 @@
     "critMult": 1.4,
     "duration": 9999,
     "special": "burning_trails",
-    "specialEffect": "burn",
+    "specialEffect": "ignite_and_wave",
     "burnDamage": 10,
     "burnDuration": 3.0,
     "isEvolution": true
