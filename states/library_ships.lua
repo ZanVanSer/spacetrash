@@ -5,6 +5,7 @@ local Colors = require "ui/colors"
 local Fonts = require "ui/fonts"
 local Screen = require "systems/screen"
 local Scanlines = require "ui/scanlines"
+local Unlocks = require "systems/unlocks"
 
 local state = {}
 
@@ -223,9 +224,32 @@ function state:draw()
         drawStat("Speed", ship.speed, {1, 1, 1})
         
         if not unlocked then
-            currY = currY + 20
-            Colors.setColor("xp", self.transitionAlpha)
-            love.graphics.print("Unlock: " .. (ship.unlockCondition or "Locked"), contentX, currY)
+            currY = currY + 25
+            local progress = Unlocks.getConditionProgress(ship.id, self.saveData)
+            if progress then
+                love.graphics.setFont(Fonts.getFont("small"))
+                if progress.ready then
+                    Colors.setColor("health", self.transitionAlpha)
+                    love.graphics.print("READY TO UNLOCK!", contentX, currY)
+                else
+                    Colors.setColor("xp", self.transitionAlpha)
+                    love.graphics.print("Unlock: " .. progress.description, contentX, currY)
+                end
+                
+                currY = currY + 30
+                local barW, barH = panelW - 60, 10
+                love.graphics.setColor(0, 0, 0, 0.4 * self.transitionAlpha)
+                love.graphics.rectangle("fill", contentX, currY, barW, barH, 2)
+                Colors.setColor(progress.ready and "health" or "accent", self.transitionAlpha)
+                love.graphics.rectangle("fill", contentX, currY, barW * progress.progress, barH, 2)
+                
+                love.graphics.setFont(Fonts.getFont("tiny"))
+                Colors.setColor("white", 0.6 * self.transitionAlpha)
+                love.graphics.printf(string.format("%d%% Complete", math.floor(progress.progress * 100)), contentX, currY + 12, barW, "right")
+            else
+                Colors.setColor("danger", self.transitionAlpha)
+                love.graphics.print("Unlock: " .. (ship.unlockCondition or "Locked"), contentX, currY)
+            end
         end
         love.graphics.pop()
     end

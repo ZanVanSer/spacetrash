@@ -10,12 +10,19 @@
     "area": 1.0,
     "amount": 1,
     "critMult": 2.0,
-    "rarity": 100
+    "rarity": 100,
+    "evolution": {
+      "id": "quantum_splitter",
+      "name": "Quantum Splitter",
+      "requiredPassive": "energy_matrix",
+      "damageMultiplier": 1.5,
+      "changes": "Projectiles split on hit, creating sub-lances."
+    }
   },
   {
     "id": "missile_swarm",
     "name": "Missile Swarm",
-    "damage": 30,
+    "damage": 5,
     "fireRate": 4.0,
     "bulletSpeed": 350,
     "pattern": "homing",
@@ -23,12 +30,19 @@
     "area": 2.0,
     "amount": 4,
     "critMult": 2.0,
-    "rarity": 70
+    "rarity": 70,
+    "evolution": {
+      "id": "apocalypse_barrage",
+      "name": "Apocalypse Barrage",
+      "requiredPassive": "targeting_ai",
+      "damageMultiplier": 1.5,
+      "changes": "Massive increase in missile count and splash radius."
+    }
   },
   {
     "id": "arc_conductor",
     "name": "Arc Conductor",
-    "damage": 6,
+    "damage": 4,
     "fireRate": 1.5,
     "bulletSpeed": 999,
     "pattern": "straight",
@@ -37,7 +51,16 @@
     "amount": 2,
     "critMult": 1.3,
     "special": "chains",
-    "rarity": 70
+    "specialEffect": "chain",
+    "chainRange": 100,
+    "rarity": 70,
+    "evolution": {
+      "id": "tesla_storm",
+      "name": "Tesla Storm",
+      "requiredPassive": "capacitor_core",
+      "damageMultiplier": 1.5,
+      "changes": "Electrical arcs jump to more targets and leave static zones."
+    }
   },
   {
     "id": "scatter_blaster",
@@ -51,12 +74,19 @@
     "amount": 8,
     "critMult": 1.4,
     "spreadAngle": 45,
-    "rarity": 100
+    "rarity": 100,
+    "evolution": {
+      "id": "shrapnel_cannon",
+      "name": "Shrapnel Cannon",
+      "requiredPassive": "fragmenter",
+      "damageMultiplier": 1.5,
+      "changes": "Bullets explode into smaller shrapnel upon impact or expiration."
+    }
   },
   {
     "id": "orbital_drones",
     "name": "Orbital Drones",
-    "damage": 12,
+    "damage": 8,
     "fireRate": 2.0,
     "bulletSpeed": 400,
     "pattern": "orbital",
@@ -65,12 +95,19 @@
     "amount": 3,
     "critMult": 1.2,
     "duration": 9999,
-    "rarity": 40
+    "rarity": 40,
+    "evolution": {
+      "id": "sentinel_network",
+      "name": "Sentinel Network",
+      "requiredPassive": "drone_bay",
+      "damageMultiplier": 1.5,
+      "changes": "Drones fire their own mini-lasers at nearby enemies."
+    }
   },
   {
     "id": "gravity_mines",
     "name": "Gravity Mines",
-    "damage": 40,
+    "damage": 20,
     "fireRate": 1.0,
     "bulletSpeed": 200,
     "pattern": "mines",
@@ -79,12 +116,19 @@
     "amount": 2,
     "critMult": 1.6,
     "duration": 5.0,
-    "rarity": 70
+    "rarity": 70,
+    "evolution": {
+      "id": "singularity_engine",
+      "name": "Singularity Engine",
+      "requiredPassive": "dark_matter_core",
+      "damageMultiplier": 1.5,
+      "changes": "Mines create powerful black holes that pull and crush enemies."
+    }
   },
   {
     "id": "railgun",
     "name": "Railgun",
-    "damage": 80,
+    "damage": 40,
     "fireRate": 6.0,
     "bulletSpeed": 4000,
     "pattern": "railgun",
@@ -92,7 +136,14 @@
     "area": 0.8,
     "amount": 1,
     "critMult": 2.5,
-    "rarity": 40
+    "rarity": 40,
+    "evolution": {
+      "id": "annihilator_cannon",
+      "name": "Annihilator Cannon",
+      "requiredPassive": "overcharge_unit",
+      "damageMultiplier": 1.5,
+      "changes": "Beam is much wider and leaves a trail of damaging energy."
+    }
   },
   {
     "id": "nanite_swarm",
@@ -106,12 +157,19 @@
     "amount": 1,
     "critMult": 1.1,
     "duration": 6.0,
-    "rarity": 70
+    "rarity": 70,
+    "evolution": {
+      "id": "grey_goo_protocol",
+      "name": "Grey Goo Protocol",
+      "requiredPassive": "replicator",
+      "damageMultiplier": 1.5,
+      "changes": "Swarm grows as it consumes enemies, lasting much longer."
+    }
   },
   {
     "id": "photon_whip",
     "name": "Photon Whip",
-    "damage": 12,
+    "damage": 3,
     "fireRate": 0.5,
     "bulletSpeed": 1.0,
     "pattern": "whip",
@@ -120,7 +178,14 @@
     "amount": 2,
     "critMult": 1.4,
     "duration": 9999,
-    "rarity": 70
+    "rarity": 70,
+    "evolution": {
+      "id": "solar_flare",
+      "name": "Solar Flare",
+      "requiredPassive": "fusion_core",
+      "damageMultiplier": 1.5,
+      "changes": "Whip strikes ignite enemies and create radial heat waves."
+    }
   },
   {
     "id": "pulse_wave",
@@ -133,6 +198,175 @@
     "area": 1.2,
     "amount": 1,
     "critMult": 1.2,
-    "rarity": 40
+    "rarity": 40,
+    "evolution": {
+      "id": "electromagnetic_cataclysm",
+      "name": "Electromagnetic Cataclysm",
+      "requiredPassive": "amplifier_array",
+      "damageMultiplier": 1.5,
+      "changes": "Waves stun enemies and trigger secondary chain lightning."
+    }
+  },
+  {
+    "id": "quantum_splitter",
+    "name": "Quantum Splitter",
+    "damage": 10,
+    "fireRate": 0.8,
+    "bulletSpeed": 400,
+    "pattern": "straight",
+    "pierce": 999,
+    "area": 2.0,
+    "amount": 3,
+    "critMult": 2.0,
+    "rarity": 0,
+    "specialEffect": "split_on_hit",
+    "isEvolution": true
+  },
+  {
+    "id": "apocalypse_barrage",
+    "name": "Apocalypse Barrage",
+    "damage": 10,
+    "fireRate": 4.0,
+    "bulletSpeed": 350,
+    "pattern": "homing",
+    "pierce": 1,
+    "area": 3.0,
+    "amount": 6,
+    "critMult": 2.0,
+    "rarity": 0,
+    "special": "spawn_mini_missiles",
+    "specialEffect": "mini_missiles",
+    "miniMissileCount": 3,
+    "miniMissileDamage": 8,
+    "isEvolution": true
+  },
+  {
+    "id": "tesla_storm",
+    "name": "Tesla Storm",
+    "damage": 6,
+    "fireRate": 1.5,
+    "bulletSpeed": 999,
+    "pattern": "straight",
+    "pierce": 12,
+    "area": 4.0,
+    "amount": 2,
+    "critMult": 1.3,
+    "special": "electric_fields",
+    "specialEffect": "chain",
+    "chainRange": 100,
+    "isEvolution": true
+  },
+  {
+    "id": "shrapnel_cannon",
+    "name": "Shrapnel Cannon",
+    "damage": 8,
+    "fireRate": 1.2,
+    "bulletSpeed": 450,
+    "pattern": "spread",
+    "pierce": 2,
+    "area": 2.5,
+    "amount": 12,
+    "critMult": 1.4,
+    "spreadAngle": 45,
+    "special": "exploding_pellets",
+    "specialEffect": "explosion",
+    "explosionDamage": 4,
+    "explosionRadius": 30,
+    "isEvolution": true
+  },
+  {
+    "id": "sentinel_network",
+    "name": "Sentinel Network",
+    "damage": 18,
+    "fireRate": 1.0,
+    "bulletSpeed": 400,
+    "pattern": "orbital",
+    "pierce": 1,
+    "area": 1.5,
+    "amount": 6,
+    "critMult": 1.2,
+    "duration": 9999,
+    "rarity": 0,
+    "isEvolution": true
+  },
+  {
+    "id": "singularity_engine",
+    "name": "Singularity Engine",
+    "damage": 25,
+    "fireRate": 1.0,
+    "bulletSpeed": 200,
+    "pattern": "mines",
+    "pierce": 999,
+    "area": 1.0,
+    "amount": 2,
+    "critMult": 1.6,
+    "duration": 10.0,
+    "special": "black_holes",
+    "specialEffect": "pull",
+    "pullRadius": 20,
+    "isEvolution": true
+  },
+  {
+    "id": "annihilator_cannon",
+    "name": "Annihilator Cannon",
+    "damage": 50,
+    "fireRate": 5.0,
+    "bulletSpeed": 4000,
+    "pattern": "railgun",
+    "pierce": 999,
+    "area": 1.2,
+    "amount": 3,
+    "critMult": 2.5,
+    "rarity": 0,
+    "isEvolution": true
+  },
+  {
+    "id": "grey_goo_protocol",
+    "name": "Grey Goo Protocol",
+    "damage": 6,
+    "fireRate": 3.5,
+    "bulletSpeed": 80,
+    "pattern": "cloud",
+    "pierce": 999,
+    "area": 5.0,
+    "amount": 1,
+    "critMult": 1.1,
+    "duration": 6.0,
+    "special": "chains_to_3",
+    "specialEffect": "consume_and_grow",
+    "isEvolution": true
+  },
+  {
+    "id": "solar_flare",
+    "name": "Solar Flare",
+    "damage": 4,
+    "fireRate": 0.5,
+    "bulletSpeed": 1.0,
+    "pattern": "whip",
+    "pierce": 999,
+    "area": 3.5,
+    "amount": 2,
+    "critMult": 1.4,
+    "duration": 9999,
+    "special": "burning_trails",
+    "specialEffect": "ignite_and_wave",
+    "burnDamage": 10,
+    "burnDuration": 3.0,
+    "isEvolution": true
+  },
+  {
+    "id": "electromagnetic_cataclysm",
+    "name": "Electromagnetic Cataclysm",
+    "damage": 28,
+    "fireRate": 3.0,
+    "bulletSpeed": 100,
+    "pattern": "wave",
+    "pierce": 999,
+    "area": 1.2,
+    "amount": 3,
+    "critMult": 1.2,
+    "special": "stun_1s",
+    "rarity": 0,
+    "isEvolution": true
   }
 ]

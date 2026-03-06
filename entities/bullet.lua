@@ -62,6 +62,17 @@ function Bullet:explode()
                     if self.gameState then
                         self.gameState.damageNumbers.spawn(e.x, e.y, damage, false)
                         self.gameState.runStatistics.damageDealt = self.gameState.runStatistics.damageDealt + damage
+                        
+                        if e.isDead and not e.xpGiven and self.gameState.player then
+                            self.gameState.player:addXP(e.xpValue)
+                            e.xpGiven = true
+                            self.gameState.enemiesKilled = self.gameState.enemiesKilled + 1
+                            self.gameState.runStatistics.kills = self.gameState.runStatistics.kills + 1
+                            self.gameState:checkGameplayUnlocks()
+                            self.gameState.screenshake.trigger(2, 0.1)
+                            self.gameState.particles.enemyDeath(e.x, e.y)
+                            self.gameState.particles.xpPickup(self.x, self.y)
+                        end
                     end
                 end
             end
@@ -129,16 +140,23 @@ function Bullet:draw()
     elseif self.weaponData.pattern == "wave" then
         -- Large expanding energy wave
         local alpha = 0.4 * (self.lifeTimer / 0.6)
-        Colors.setColor("accent", alpha)
+        local color = "accent"
+        if self.weaponData.id:find("solar_flare") then color = "danger" end
+        
+        Colors.setColor(color, alpha)
         love.graphics.setLineWidth(4)
         love.graphics.circle("line", self.x, self.y, self.waveRadius)
         
-        Colors.setColor("accent", alpha * 0.3)
+        Colors.setColor(color, alpha * 0.3)
         love.graphics.circle("fill", self.x, self.y, self.waveRadius)
         love.graphics.setLineWidth(1)
     end
 
     local drawShape = function()
+        if self.weaponData.id == "quantum_splitter_sub" then
+            love.graphics.polygon("fill", 0, -3, -1, 0, 0, 3, 1, 0)
+            return
+        end
         if self.weaponData.pattern == "mines" then
             love.graphics.circle("fill", 0, 0, 6)
             love.graphics.rectangle("fill", -8, -2, 16, 4)
@@ -177,6 +195,10 @@ function Bullet:draw()
 
     love.graphics.push()
     love.graphics.translate(self.x, self.y)
+    
+    -- Rotate based on angle
+    local drawAngle = (self.angle or -math.pi/2) + math.pi/2
+    love.graphics.rotate(drawAngle)
 
     -- Glow passes
     love.graphics.push()

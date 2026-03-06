@@ -14,6 +14,29 @@ function WS.new()
     return self
 end
 
+function WS:checkEvolution(weaponId, equippedPassives, weaponLevel)
+    if not self.lookup then self.lookup = dl.createLookup(dl.getWeapons(), "id") end
+    local wd = self.lookup[weaponId]
+    if not wd or not wd.evolution then return nil end
+    
+    if (weaponLevel or 1) < 5 then return nil end
+    
+    local required = wd.evolution.requiredPassive
+    local hasPassive = false
+    for _, pId in ipairs(equippedPassives or {}) do
+        if pId == required then
+            hasPassive = true
+            break
+        end
+    end
+    
+    if hasPassive then
+        return wd.evolution.id
+    end
+    
+    return nil
+end
+
 function WS:equipWeapon(weaponId)
     table.insert(self.equippedWeapons, weaponId)
     self.shootTimers[weaponId] = 0
@@ -52,7 +75,18 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
                                 area = (wd.area or 1.0) * (area or 1.0),
                                 pierce = (wd.pierce or 0) + (pierceBonus or 0),
                                 amount = finalAmount,
-                                special = wd.special
+                                special = wd.special,
+                                specialEffect = wd.specialEffect,
+                                chainRange = wd.chainRange,
+                                explosionRadius = wd.explosionRadius,
+                                explosionDamage = wd.explosionDamage,
+                                miniMissileCount = wd.miniMissileCount,
+                                miniMissileDamage = wd.miniMissileDamage,
+                                chainTargets = wd.chainTargets,
+                                spreadDamage = wd.spreadDamage,
+                                pullRadius = wd.pullRadius,
+                                burnDamage = wd.burnDamage,
+                                burnDuration = wd.burnDuration
                             }
                             local b = Bullet.new(playerX, playerY, bulletWeaponData)
                             b.orbitAngle = ((currentCount + i - 1) / finalAmount) * math.pi * 2
@@ -107,6 +141,17 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
                             pierce = (wd.pierce or 0) + (pierceBonus or 0),
                             amount = finalAmount,
                             special = wd.special,
+                            specialEffect = wd.specialEffect,
+                            chainRange = wd.chainRange,
+                            explosionRadius = wd.explosionRadius,
+                            explosionDamage = wd.explosionDamage,
+                            miniMissileCount = wd.miniMissileCount,
+                            miniMissileDamage = wd.miniMissileDamage,
+                            chainTargets = wd.chainTargets,
+                            spreadDamage = wd.spreadDamage,
+                            pullRadius = wd.pullRadius,
+                            burnDamage = wd.burnDamage,
+                            burnDuration = wd.burnDuration,
                             duration = wd.duration
                         }
                         local b = Bullet.new(playerX, playerY, bData)
@@ -144,7 +189,18 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
                         area = (wd.area or 1.0) * (area or 1.0),
                         pierce = (wd.pierce or 0) + (pierceBonus or 0),
                         amount = burst.count,
-                        special = wd.special
+                        special = wd.special,
+                        specialEffect = wd.specialEffect,
+                        chainRange = wd.chainRange,
+                        explosionRadius = wd.explosionRadius,
+                        explosionDamage = wd.explosionDamage,
+                        miniMissileCount = wd.miniMissileCount,
+                        miniMissileDamage = wd.miniMissileDamage,
+                        chainTargets = wd.chainTargets,
+                        spreadDamage = wd.spreadDamage,
+                        pullRadius = wd.pullRadius,
+                        burnDamage = wd.burnDamage,
+                        burnDuration = wd.burnDuration
                     }
                     local b = Bullet.new(playerX, playerY, bData)
                     table.insert(self.bullets, b)
@@ -177,6 +233,27 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
         b.playerX, b.playerY = playerX, playerY
         b.gameState = sm.current
         b:update(dt)
+
+        -- Handle Gravity Pull
+        if not b.isDead and (b.weaponData.special == "black_holes" or b.weaponData.specialEffect == "pull") then
+            local pullRange = 150 * (b.weaponData.area or 1.0)
+            local pullForce = 200
+            for _, e in ipairs(enemies) do
+                if not e.isDead then
+                    local dx, dy = b.x - e.x, b.y - e.y
+                    local distSq = dx*dx + dy*dy
+                    if distSq < pullRange*pullRange then
+                        local dist = math.sqrt(distSq)
+                        if dist > 5 then
+                            local force = (1 - dist / pullRange) * pullForce
+                            e.pullX = (e.pullX or 0) + (dx / dist) * force
+                            e.pullY = (e.pullY or 0) + (dy / dist) * force
+                        end
+                    end
+                end
+            end
+        end
+
         if b.isDead then table.remove(self.bullets, i) end
     end
 end

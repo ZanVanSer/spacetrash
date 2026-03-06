@@ -18,6 +18,15 @@ function Enemy.new(x, y, enemyData)
     self.isDead = false
     self.radius = enemyData.radius or 15
     
+    -- Burning State
+    self.burnStacks = {}
+    self.isBurning = false
+
+    -- Pull State
+    self.pullX = 0
+    self.pullY = 0
+    self.totalPull = 0
+
     -- Shooting Capability
     self.shootTimer = 0
     self.shootInterval = enemyData.shootInterval or 3
@@ -27,9 +36,46 @@ function Enemy.new(x, y, enemyData)
     return self
 end
 
+function Enemy:applyBurn(damage, duration)
+    table.insert(self.burnStacks, {
+        damage = damage,
+        duration = duration,
+        timer = 0
+    })
+end
+
 function Enemy:update(dt, playerX, playerY)
     local behavior = require("behaviors/" .. self.behavior)
     behavior.update(self, dt)
+
+    -- Apply Pull Force
+    if self.pullX ~= 0 or self.pullY ~= 0 then
+        self.x = self.x + self.pullX * dt
+        self.y = self.y + self.pullY * dt
+        
+        -- Store magnitude for visual distortion then reset
+        self.totalPull = math.sqrt(self.pullX^2 + self.pullY^2)
+        self.pullX = 0
+        self.pullY = 0
+    else
+        self.totalPull = 0
+    end
+
+    -- Burn processing
+    self.isBurning = #self.burnStacks > 0
+    if self.isBurning then
+        for i = #self.burnStacks, 1, -1 do
+            local stack = self.burnStacks[i]
+            stack.duration = stack.duration - dt
+            
+            -- continuous burn damage
+            self:takeDamage(stack.damage * dt)
+            
+            if stack.duration <= 0 then
+                table.remove(self.burnStacks, i)
+            end
+        end
+    end
 
     -- Store last player position for drawing telegraph
     self.lastPlayerX = playerX
@@ -100,8 +146,30 @@ function Enemy:draw()
         end
     end
 
-    EnemyVisuals.drawEnemy(self.enemyData.id, self.x, self.y, 1.0, 0)
+    love.graphics.push()
+    love.graphics.translate(self.x, self.y)
     
+    -- Visual Bending towards gravity source
+    if self.totalPull > 0 then
+        local stretch = math.min(0.3, self.totalPull / 1000)
+        love.graphics.scale(1 + stretch, 1 - stretch)
+        -- Rotation handled by visuals usually, but we can add a slight skew here
+    end
+    
+    EnemyVisuals.drawEnemy(self.enemyData.id, 0, 0, 1.0, 0)
+    love.graphics.pop()
+    
+    -- Burn Visuals
+    if self.isBurning then
+        local flash = math.abs(math.sin(love.timer.getTime() * 10)) * 0.3
+        love.graphics.setColor(1, 0.5, 0, flash)
+        love.graphics.circle("fill", self.x, self.y, self.radius * 1.2)
+        
+        if math.random() > 0.8 then
+            Particles.spawn(self.x, self.y, 2, "danger", 50, 1)
+        end
+    end
+
     -- HP Bar if damaged
     if self.hp < self.maxHp then
         local barWidth = self.radius * 2

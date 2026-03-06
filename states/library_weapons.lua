@@ -4,26 +4,10 @@ local Colors = require "ui.colors"
 local Fonts = require "ui.fonts"
 local Screen = require "systems.screen"
 local Scanlines = require "ui.scanlines"
-local WeaponIcons = require "ui.weapon_icons"
+local WeaponIcons = require "ui/weapon_icons"
+local Unlocks = require "systems/unlocks"
 
 local state = {}
-
--- Define weapon evolutions mapping
-local evolutions = {
-    basic_laser = {
-        name = "Hyper Beam",
-        requiredPassiveId = "damage_boost",
-        requiredPassiveName = "Damage +10%",
-        changes = "Increases damage by 100%, gains piercing and increased beam width.",
-        evolvedStats = {
-            damage = 20,
-            fireRate = 0.25,
-            bulletSpeed = 600,
-            pattern = "Pulse",
-            area = 1.5
-        }
-    }
-}
 
 function state:isWeaponUnlocked(weapon)
     if not weapon then return false end
@@ -198,8 +182,8 @@ function state:draw()
     if #self.weapons > 0 then
         local weapon = self.weapons[self.selectedIndex]
         local unlocked = self:isWeaponUnlocked(weapon)
-        local evo = evolutions[weapon.id]
-        local accentColor = (weapon.rarity and weapon.rarity < 50) and "xp" or "accent" 
+        local evo = weapon.evolution
+        local accentColor = (weapon.rarity and weapon.rarity < 50) or weapon.isEvolution and "xp" or "accent" 
         
         love.graphics.push()
         love.graphics.translate(self.slideOffset, 0)
@@ -222,10 +206,9 @@ function state:draw()
                 love.graphics.rectangle("fill", b.x - 2, b.y - 5, 4, 10)
             end
         else
-            -- Locked: Draw icon grayed out (simulated with low alpha overlay)
+            -- Locked: Draw icon grayed out
             love.graphics.push("all")
             WeaponIcons.drawWeaponIcon(weapon.id, previewX, previewY, iconScale)
-            -- Dimming overlay to simulate lower alpha/grayed out
             love.graphics.setColor(0, 0, 0, 0.7 * self.transitionAlpha)
             love.graphics.circle("fill", previewX, previewY, 60)
             love.graphics.pop()
@@ -268,37 +251,68 @@ function state:draw()
         drawStat("Bullet Speed", weapon.bulletSpeed, {1, 1, 1})
         drawStat("Pattern", (weapon.pattern or "Straight"):gsub("^%l", string.upper), {0.6, 0.6, 1})
         
-        if evo then
+        if not unlocked then
+            currY = currY + 15
+            if weapon.isEvolution then
+                Colors.setColor("xp", self.transitionAlpha)
+                love.graphics.setFont(Fonts.getFont("small"))
+                love.graphics.print("EVOLUTION UNLOCK", contentX, currY)
+                currY = currY + 20
+                love.graphics.setFont(Fonts.getFont("tiny"))
+                Colors.setColor("dim", self.transitionAlpha)
+                love.graphics.printf("Requires level 5 base weapon and specific passive catalyst during combat.", contentX, currY, panelW - 60, "left")
+            else
+                local progress = Unlocks.getConditionProgress(weapon.id, self.saveData)
+                if progress then
+                    love.graphics.setFont(Fonts.getFont("small"))
+                    if progress.ready then
+                        Colors.setColor("health", self.transitionAlpha)
+                        love.graphics.print("READY TO UNLOCK!", contentX, currY)
+                    else
+                        Colors.setColor("xp", self.transitionAlpha)
+                        love.graphics.print("Unlock: " .. progress.description, contentX, currY)
+                    end
+                    
+                    currY = currY + 25
+                    local barW, barH = panelW - 60, 8
+                    love.graphics.setColor(0, 0, 0, 0.4 * self.transitionAlpha)
+                    love.graphics.rectangle("fill", contentX, currY, barW, barH, 2)
+                    Colors.setColor(progress.ready and "health" or "accent", self.transitionAlpha)
+                    love.graphics.rectangle("fill", contentX, currY, barW * progress.progress, barH, 2)
+                end
+            end
+        elseif evo then
             currY = currY + 15
             love.graphics.setColor(1, 1, 1, 0.1 * self.transitionAlpha)
             love.graphics.line(contentX, currY, panelX + panelW - 30, currY)
             currY = currY + 15
             love.graphics.setFont(Fonts.getFont("normal"))
             Colors.setColor("xp", self.transitionAlpha)
-            love.graphics.print("EVOLUTION: " .. evo.name, contentX, currY)
+            love.graphics.print("EVOLUTION: " .. (evo.name or "???"), contentX, currY)
             currY = currY + 25
             
-            local passiveUnlocked = self:isPassiveUnlocked(evo.requiredPassiveId)
+            local passiveUnlocked = self:isPassiveUnlocked(evo.requiredPassive)
             love.graphics.setFont(Fonts.getFont("small"))
             Colors.setColor("dim", self.transitionAlpha)
             love.graphics.print("Requires: ", contentX, currY)
+            
+            -- Get passive name from ID
+            local allPassives = DataLoader.getPassives()
+            local pName = evo.requiredPassive
+            for _, p in ipairs(allPassives) do if p.id == evo.requiredPassive then pName = p.name; break end end
+
             if passiveUnlocked then
                 Colors.setColor("health", self.transitionAlpha)
-                love.graphics.print(evo.requiredPassiveName, contentX + 80, currY)
+                love.graphics.print(pName, contentX + 80, currY)
             else
                 Colors.setColor("danger", self.transitionAlpha)
-                love.graphics.print(evo.requiredPassiveName .. " (Locked)", contentX + 80, currY)
+                love.graphics.print(pName .. " (Locked)", contentX + 80, currY)
             end
             currY = currY + 30
             
             love.graphics.setFont(Fonts.getFont("tiny"))
-            if unlocked and passiveUnlocked then
-                Colors.setColor("health", self.transitionAlpha)
-                love.graphics.printf("Evolution Available! " .. evo.changes, contentX, currY, panelW - 60, "left")
-            else
-                Colors.setColor(0.4, 0.4, 0.4, self.transitionAlpha)
-                love.graphics.printf("Evolution potential detected. Master base armament and catalyst to transcend.", contentX, currY, panelW - 60, "left")
-            end
+            Colors.setColor("health", self.transitionAlpha)
+            love.graphics.printf(evo.changes or "Evolution enhances base capabilities.", contentX, currY, panelW - 60, "left")
         end
         love.graphics.pop()
     end

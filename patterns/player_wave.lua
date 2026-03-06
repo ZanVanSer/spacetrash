@@ -2,17 +2,19 @@ local sm = require("states/statemanager")
 
 return {
     update = function(bullet, dt)
-        local gameState = sm.current
-        if not gameState or not gameState.player then return end
+        if bullet.followPlayer ~= false then
+            local gameState = sm.current
+            if gameState and gameState.player then
+                bullet.x = gameState.player.x
+                bullet.y = gameState.player.y
+            end
+        end
         
-        local player = gameState.player
+        -- Expansion speed
+        local expansionSpeed = (bullet.weaponData.bulletSpeed or 300)
+        if expansionSpeed == 0 then expansionSpeed = 400 end -- Default for stationary waves
         
-        -- Pulse Wave expands from the player
-        bullet.x = player.x
-        bullet.y = player.y
-        
-        -- Expansion speed scales with area stat
-        local expansionSpeed = (bullet.weaponData.bulletSpeed or 300) * (bullet.weaponData.area or 1.0)
+        expansionSpeed = expansionSpeed * (bullet.weaponData.area or 1.0)
         bullet.waveRadius = (bullet.waveRadius or 0) + expansionSpeed * dt
         
         -- Collision radius is its current visual radius

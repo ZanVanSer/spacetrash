@@ -158,7 +158,7 @@ function HUD:draw(player, gameState)
       -- Stars/Level (Dynamic)
       local level = player.weaponLevels[weaponId] or 1
       local stars = ""
-      for j = 1, 8 do
+      for j = 1, 5 do
           stars = stars .. (j <= level and "*" or "-")
       end
       love.graphics.print(stars, wBoxX + 40, slotY + 14)

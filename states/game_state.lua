@@ -2,10 +2,12 @@ local Player = require "entities/player"
 local Spawner = require "systems/enemy_spawner"
 local dl = require "systems/dataloader"
 local UpgradeMenu = require "ui/upgrade_menu"
+local Bullet = require "entities/bullet"
 local Boss = require "entities/boss"
 local Menu = require "ui/menu"
 local sm = require "states/statemanager"
 local savemanager = require "systems/savemanager"
+local Unlocks = require "systems/unlocks"
 local Background = require "entities/background"
 local Screen = require('systems.screen')
 local Screenshake = require('systems.screenshake')
@@ -17,6 +19,9 @@ local Fonts = require('ui/fonts')
 local HUD = require('ui/hud')
 local Telegraph = require('ui.attack_telegraph')
 local Colors = require('ui.colors')
+local EvolutionNotification = require('ui/evolution_notification')
+local UnlockNotification = require('ui/unlock_notification')
+
 local state = {}
 
 function state:enter(saveData, stageData, shipData)
@@ -162,6 +167,41 @@ function state:saveProgress(isTerminal)
     end
 end
 
+function state:checkGameplayUnlocks()
+    if not self.currentSaveData then return end
+    
+    local newUnlocks = Unlocks.checkUnlocks(self.currentSaveData, self.runStatistics)
+    
+    if #newUnlocks > 0 then
+        -- Add to save data
+        for _, unlock in ipairs(newUnlocks) do
+            if unlock.type == "ship" then
+                self.currentSaveData.unlockedShips = self.currentSaveData.unlockedShips or {}
+                table.insert(self.currentSaveData.unlockedShips, unlock.id)
+            elseif unlock.type == "weapon" then
+                self.currentSaveData.unlockedWeapons = self.currentSaveData.unlockedWeapons or {}
+                table.insert(self.currentSaveData.unlockedWeapons, unlock.id)
+            elseif unlock.type == "passive" then
+                self.currentSaveData.unlockedPassives = self.currentSaveData.unlockedPassives or {}
+                table.insert(self.currentSaveData.unlockedPassives, unlock.id)
+            end
+            
+            -- Queue notification for later
+            self.runStatistics.queuedNotifications = self.runStatistics.queuedNotifications or {}
+            table.insert(self.runStatistics.queuedNotifications, "UNLOCKED: " .. unlock.name)
+        end
+        
+        -- Mark items as unlocked in the currentSaveData structure to prevent re-triggering
+        self.currentSaveData.unlockedItems = self.currentSaveData.unlockedItems or {}
+        for _, unlock in ipairs(newUnlocks) do
+            table.insert(self.currentSaveData.unlockedItems, unlock.id)
+        end
+        
+        -- Save immediately to persist the unlock
+        self:saveProgress(false)
+    end
+end
+
 function state:update(dt)
     -- Always update background, screenshake, and particles, even when paused
     self.background:update(dt)
@@ -169,6 +209,27 @@ function state:update(dt)
     self.particles.update(dt)
     self.damageNumbers.update(dt)
     self.telegraph:update(dt)
+    EvolutionNotification.update(dt)
+    UnlockNotification.update(dt)
+
+    -- Trigger Evolution UI if available
+    if self.player.evolutionAvailable and not EvolutionNotification.active then
+        local baseId = self.player.pendingEvolution.baseId
+        local evolvedId = self.player.pendingEvolution.evolvedId
+        
+        -- Get names for UI
+        local wLookup = dl.createLookup(dl.getWeapons(), "id")
+        local pLookup = dl.createLookup(dl.getPassives(), "id")
+        
+        local baseW = wLookup[baseId]
+        local evoW = wLookup[evolvedId]
+        local reqP = pLookup[evoW.requiredPassive or baseW.evolution.requiredPassive]
+        
+        EvolutionNotification.show(baseW.name, evoW.name, reqP.name, function()
+            self.player:evolveWeapon(baseId)
+        end)
+    end
+
     if self.screenFlash.active then
         self.screenFlash.elapsed = self.screenFlash.elapsed + dt
         if self.screenFlash.elapsed >= self.screenFlash.duration then
@@ -180,7 +241,7 @@ function state:update(dt)
         self.bossEntranceTimer = self.bossEntranceTimer - dt
     end
 
-    if self.isPaused or self.isPausedByPlayer or self.isVictory then return end
+    if self.isPaused or self.isPausedByPlayer or self.isVictory or EvolutionNotification.active then return end
 
     self.gameTime = self.gameTime + dt
     
@@ -228,6 +289,7 @@ function state:update(dt)
             self.enemiesKilled = self.enemiesKilled + 1
             self.runStatistics.kills = self.runStatistics.kills + 1
             self.runStatistics.bossesDefeated = self.runStatistics.bossesDefeated + 1
+            self:checkGameplayUnlocks()
             self.screenshake.trigger(10, 0.5)
             self.particles.enemyDeath(self.boss.x, self.boss.y)
             
@@ -264,6 +326,7 @@ function state:update(dt)
             end
             -- Mark Current Stage Completed
             addToSet(self.currentSaveData.completedStages, self.stageData.id)
+            self:checkGameplayUnlocks()
 
             self.victoryStats = {
                 timeSurvived = self.gameTime,
@@ -311,19 +374,16 @@ function state:update(dt)
                     
                     b.hitEnemies[e] = true
                     
-                    -- Only break if not a cloud, whip, or wave (these can hit multiple enemies)
-                    if b.weaponData.pattern ~= "cloud" and b.weaponData.pattern ~= "whip" and b.weaponData.pattern ~= "wave" then
-                        -- Handle Special: Chains
-                        if b.weaponData.special == "chains" then
-                            local chainCount = b.weaponData.amount or 1
+                    -- Handle Special Behaviors
+                    if b.weaponData.special then
+                        local s = b.weaponData.special
+                        if s == "chains" or s == "electric_fields" then
+                            local chainCount = (s == "electric_fields") and 6 or (b.weaponData.amount or 2)
                             local chainRange = 150 * (b.weaponData.area or 1.0)
                             local currentSource = e
-                            
                             for i = 1, chainCount do
                                 local nearest = nil
                                 local minDist = chainRange
-                                
-                                -- Check regular enemies
                                 for _, nextE in ipairs(enemies) do
                                     if not nextE.isDead and nextE ~= currentSource and not b.hitEnemies[nextE] then
                                         local dx, dy = nextE.x - currentSource.x, nextE.y - currentSource.y
@@ -334,45 +394,115 @@ function state:update(dt)
                                         end
                                     end
                                 end
-                                
-                                -- Check boss
-                                if self.boss and not self.boss.isDead and self.boss ~= currentSource and not b.hitEnemies[self.boss] then
-                                    local dx, dy = self.boss.x - currentSource.x, self.boss.y - currentSource.y
-                                    local distSq = dx*dx + dy*dy
-                                    if distSq < minDist*minDist then
-                                        minDist = math.sqrt(distSq)
-                                        nearest = self.boss
-                                    end
-                                end
-                                
                                 if nearest then
-                                    local chainDamage = math.floor(b.weaponData.damage * 0.5)
+                                    local chainDamage = math.floor(damage * 0.6)
                                     nearest:takeDamage(chainDamage)
                                     self.damageNumbers.spawn(nearest.x, nearest.y, chainDamage, false)
                                     self.runStatistics.damageDealt = self.runStatistics.damageDealt + chainDamage
                                     b.hitEnemies[nearest] = true
-                                    
-                                    -- Visual Effect
                                     self.particles.lightningChain(currentSource.x, currentSource.y, nearest.x, nearest.y, "accent")
-                                    
                                     currentSource = nearest
-                                    
-                                    -- Handle enemy death for each link in the chain
-                                    if nearest ~= self.boss and nearest.isDead and not nearest.xpGiven then
+                                    if nearest.isDead and not nearest.xpGiven then
                                         self.player:addXP(nearest.xpValue)
                                         nearest.xpGiven = true
                                         self.enemiesKilled = self.enemiesKilled + 1
                                         self.runStatistics.kills = self.runStatistics.kills + 1
-                                        self.screenshake.trigger(2, 0.1)
-                                        self.particles.enemyDeath(nearest.x, nearest.y)
-                                        self.particles.xpPickup(self.player.x, self.player.y)
+                                        self:checkGameplayUnlocks()
                                     end
-                                else
-                                    break
+                                else break end
+                            end
+                        elseif s == "exploding_pellets" then
+                            local expDamage = math.floor(damage * 1.5)
+                            local expArea = 40 * (b.weaponData.area or 1.0)
+                            self.particles.explosion(e.x, e.y, b.weaponData.area or 1.0)
+                            for _, nextE in ipairs(enemies) do
+                                if not nextE.isDead and nextE ~= e then
+                                    local dx, dy = nextE.x - e.x, nextE.y - e.y
+                                    if dx*dx + dy*dy < expArea*expArea then
+                                        nextE:takeDamage(expDamage)
+                                        self.damageNumbers.spawn(nextE.x, nextE.y, expDamage, false)
+                                        self.runStatistics.damageDealt = self.runStatistics.damageDealt + expDamage
+                                    end
                                 end
                             end
+                        elseif s == "spawn_mini_missiles" then
+                            for i = 1, 3 do
+                                local mData = {
+                                    id = b.weaponData.id .. "_mini",
+                                    damage = damage * 0.4,
+                                    bulletSpeed = b.weaponData.bulletSpeed * 0.8,
+                                    pattern = "homing",
+                                    area = 0.6,
+                                    pierce = 0
+                                }
+                                local mini = Bullet.new(e.x, e.y, mData)
+                                mini.angle = math.random() * math.pi * 2
+                                mini.enemies = enemies
+                                mini.gameState = self
+                                table.insert(self.player.ws.bullets, mini)
+                            end
+                        elseif s == "chains_to_3" then
+                            local jumpRange = 100 * (b.weaponData.area or 1.0)
+                            local targets = 0
+                            for _, nextE in ipairs(enemies) do
+                                if not nextE.isDead and nextE ~= e and not b.hitEnemies[nextE] then
+                                    local dx, dy = nextE.x - e.x, nextE.y - e.y
+                                    if dx*dx + dy*dy < jumpRange*jumpRange then
+                                        nextE:takeDamage(damage * 0.8)
+                                        b.hitEnemies[nextE] = true
+                                        targets = targets + 1
+                                        if targets >= 3 then break end
+                                    end
+                                end
+                            end
+                        elseif s == "burning_trails" then
+                            e:applyBurn(10, 3.0)
+                        elseif s == "black_holes" then
+                            -- Pull effect is handled in pattern/player_mines.lua usually,
+                            -- but we can add immediate crush damage here
+                            e:takeDamage(damage * 0.5)
                         end
+                    end
+
+                    -- Handle specialEffect field
+                    if b.weaponData.specialEffect == "split_on_hit" then
+                        for i = 1, 2 do
+                            local sData = {
+                                id = b.weaponData.id .. "_sub",
+                                damage = damage * 0.5,
+                                bulletSpeed = b.weaponData.bulletSpeed * 1.2,
+                                pattern = "straight",
+                                area = b.weaponData.area * 0.5,
+                                pierce = 0
+                            }
+                            local sub = Bullet.new(e.x, e.y, sData)
+                            sub.angle = math.random() * math.pi * 2
+                            sub.enemies = enemies
+                            sub.gameState = self
+                            table.insert(self.player.ws.bullets, sub)
+                        end
+                    elseif b.weaponData.specialEffect == "ignite_and_wave" then
+                        e:applyBurn(b.weaponData.burnDamage or 10, b.weaponData.burnDuration or 3.0)
                         
+                        -- Spawn heat wave
+                        local wData = {
+                            id = b.weaponData.id .. "_wave",
+                            damage = damage * 0.3,
+                            bulletSpeed = 0,
+                            pattern = "wave",
+                            area = 0.8,
+                            pierce = 999,
+                            duration = 0.6
+                        }
+                        local wave = Bullet.new(e.x, e.y, wData)
+                        wave.followPlayer = false -- Heat wave stays where it was created
+                        wave.enemies = enemies
+                        wave.gameState = self
+                        table.insert(self.player.ws.bullets, wave)
+                    end
+
+                    -- Only break if not a cloud, whip, or wave (these can hit multiple enemies)
+                    if b.weaponData.pattern ~= "cloud" and b.weaponData.pattern ~= "whip" and b.weaponData.pattern ~= "wave" then
                         -- Handle Pierce
                         if b.weaponData.pierce and b.weaponData.pierce > 0 then
                             b.weaponData.pierce = b.weaponData.pierce - 1
@@ -386,6 +516,17 @@ function state:update(dt)
                         e.xpGiven = true
                         self.enemiesKilled = self.enemiesKilled + 1
                         self.runStatistics.kills = self.runStatistics.kills + 1
+                        
+                        -- Grey Goo Growth logic
+                        if b.weaponData.specialEffect == "consume_and_grow" then
+                            b.weaponData.area = (b.weaponData.area or 1.0) + 0.2
+                            if b.lifeTimer then
+                                b.lifeTimer = b.lifeTimer + 1.0
+                            end
+                            self.particles.spawn(e.x, e.y, 5, "health", 100, 2)
+                        end
+
+                        self:checkGameplayUnlocks()
                         self.screenshake.trigger(2, 0.1)
                         self.particles.enemyDeath(e.x, e.y)
                         self.particles.xpPickup(self.player.x, self.player.y)
@@ -497,6 +638,7 @@ function state:update(dt)
     if self.player.level > oldLevel then
         self.isPaused = true
         self.upgradeMenu = UpgradeMenu.new(self.player)
+        self:checkGameplayUnlocks()
     end
 
     -- Global Death Processing (Catch-all for AOE/Chains)
@@ -509,11 +651,14 @@ function state:update(dt)
             self.screenshake.trigger(2, 0.1)
             self.particles.enemyDeath(e.x, e.y)
             self.particles.xpPickup(self.player.x, self.player.y)
+            self:checkGameplayUnlocks()
         end
     end
 end
 
 function state:keypressed(key)
+    if EvolutionNotification.keypressed(key) then return end
+
     if self.isVictory and self.victoryMenu then
         local selection = self.victoryMenu:keypressed(key)
         if selection == 1 then -- Retry
@@ -723,6 +868,9 @@ function state:draw()
     end
 
     love.graphics.setColor(1, 1, 1, 1)
+
+    EvolutionNotification.draw()
+    UnlockNotification.draw()
 
     Screen.removeScale()
 end

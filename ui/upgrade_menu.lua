@@ -31,7 +31,7 @@ function UpgradeMenu:generateUpgrades()
     for _, w in ipairs(allWeapons) do
         local currentLevel = self.player.weaponLevels[w.id]
         if currentLevel then
-            if currentLevel < 8 then
+            if currentLevel < 5 then
                 table.insert(options, {
                     id = w.id,
                     type = "weapon",
@@ -41,7 +41,7 @@ function UpgradeMenu:generateUpgrades()
                     rarity = w.rarity or 100
                 })
             end
-        elseif weaponCount < 4 then
+        elseif weaponCount < 4 and not w.isEvolution then
             table.insert(options, {
                 id = w.id,
                 type = "weapon",
