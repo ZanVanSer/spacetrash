@@ -1,23 +1,5 @@
 [
   {
-    "id": "test_ship",
-    "name": "TEST",
-    "class": "Debug",
-    "description": "Developer testing vessel. Starts with energy matrix catalyst.",
-    "maxHealth": 100,
-    "recovery": 0.5,
-    "armor": 5,
-    "might": 1.0,
-    "speed": 200,
-    "duration": 1.0,
-    "cooldown": 1.0,
-    "area": 1.0,
-    "amount": 1,
-    "startWeapon": "pulse_wave",
-    "startingPassive": "amplifier_array",
-    "unlockCondition": "default"
-  },
-  {
     "id": "vanguard",
     "name": "Vanguard",
     "class": "All-Rounder",

@@ -702,17 +702,6 @@ function state:keypressed(key)
             self.upgradeMenu = nil
         end
     end
-
-    -- DEV DEBUG KEYS (Safe to remove after testing)
-    if key == "b" then
-        local weapons = {}
-        for id, _ in pairs(self.player.weaponLevels) do table.insert(weapons, id) end
-        for _, id in ipairs(weapons) do self.player:upgradeWeapon(id) end
-    elseif key == "n" then
-        local passives = {}
-        for id, _ in pairs(self.player.passives) do table.insert(passives, id) end
-        for _, id in ipairs(passives) do self.player:upgradePassive(id) end
-    end
 end
 
 function state:applyUpgrade(upgrade)
