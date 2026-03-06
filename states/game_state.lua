@@ -349,19 +349,16 @@ function state:update(dt)
                     
                     b.hitEnemies[e] = true
                     
-                    -- Only break if not a cloud, whip, or wave (these can hit multiple enemies)
-                    if b.weaponData.pattern ~= "cloud" and b.weaponData.pattern ~= "whip" and b.weaponData.pattern ~= "wave" then
-                        -- Handle Special: Chains
-                        if b.weaponData.special == "chains" then
-                            local chainCount = b.weaponData.amount or 1
+                    -- Handle Special Behaviors
+                    if b.weaponData.special then
+                        local s = b.weaponData.special
+                        if s == "chains" or s == "electric_fields" then
+                            local chainCount = (s == "electric_fields") and 6 or (b.weaponData.amount or 2)
                             local chainRange = 150 * (b.weaponData.area or 1.0)
                             local currentSource = e
-                            
                             for i = 1, chainCount do
                                 local nearest = nil
                                 local minDist = chainRange
-                                
-                                -- Check regular enemies
                                 for _, nextE in ipairs(enemies) do
                                     if not nextE.isDead and nextE ~= currentSource and not b.hitEnemies[nextE] then
                                         local dx, dy = nextE.x - currentSource.x, nextE.y - currentSource.y
@@ -372,45 +369,78 @@ function state:update(dt)
                                         end
                                     end
                                 end
-                                
-                                -- Check boss
-                                if self.boss and not self.boss.isDead and self.boss ~= currentSource and not b.hitEnemies[self.boss] then
-                                    local dx, dy = self.boss.x - currentSource.x, self.boss.y - currentSource.y
-                                    local distSq = dx*dx + dy*dy
-                                    if distSq < minDist*minDist then
-                                        minDist = math.sqrt(distSq)
-                                        nearest = self.boss
-                                    end
-                                end
-                                
                                 if nearest then
-                                    local chainDamage = math.floor(b.weaponData.damage * 0.5)
+                                    local chainDamage = math.floor(damage * 0.6)
                                     nearest:takeDamage(chainDamage)
                                     self.damageNumbers.spawn(nearest.x, nearest.y, chainDamage, false)
                                     self.runStatistics.damageDealt = self.runStatistics.damageDealt + chainDamage
                                     b.hitEnemies[nearest] = true
-                                    
-                                    -- Visual Effect
                                     self.particles.lightningChain(currentSource.x, currentSource.y, nearest.x, nearest.y, "accent")
-                                    
                                     currentSource = nearest
-                                    
-                                    -- Handle enemy death for each link in the chain
-                                    if nearest ~= self.boss and nearest.isDead and not nearest.xpGiven then
+                                    if nearest.isDead and not nearest.xpGiven then
                                         self.player:addXP(nearest.xpValue)
                                         nearest.xpGiven = true
                                         self.enemiesKilled = self.enemiesKilled + 1
                                         self.runStatistics.kills = self.runStatistics.kills + 1
-                                        self.screenshake.trigger(2, 0.1)
-                                        self.particles.enemyDeath(nearest.x, nearest.y)
-                                        self.particles.xpPickup(self.player.x, self.player.y)
+                                        self:checkGameplayUnlocks()
                                     end
-                                else
-                                    break
+                                else break end
+                            end
+                        elseif s == "exploding_pellets" then
+                            local expDamage = math.floor(damage * 1.5)
+                            local expArea = 40 * (b.weaponData.area or 1.0)
+                            self.particles.explosion(e.x, e.y, b.weaponData.area or 1.0)
+                            for _, nextE in ipairs(enemies) do
+                                if not nextE.isDead and nextE ~= e then
+                                    local dx, dy = nextE.x - e.x, nextE.y - e.y
+                                    if dx*dx + dy*dy < expArea*expArea then
+                                        nextE:takeDamage(expDamage)
+                                        self.damageNumbers.spawn(nextE.x, nextE.y, expDamage, false)
+                                        self.runStatistics.damageDealt = self.runStatistics.damageDealt + expDamage
+                                    end
                                 end
                             end
+                        elseif s == "spawn_mini_missiles" then
+                            for i = 1, 3 do
+                                local mData = {
+                                    id = b.weaponData.id .. "_mini",
+                                    damage = damage * 0.4,
+                                    bulletSpeed = b.weaponData.bulletSpeed * 0.8,
+                                    pattern = "homing",
+                                    area = 0.6,
+                                    pierce = 0
+                                }
+                                local mini = Bullet.new(e.x, e.y, mData)
+                                mini.angle = math.random() * math.pi * 2
+                                mini.enemies = enemies
+                                mini.gameState = self
+                                table.insert(self.player.ws.bullets, mini)
+                            end
+                        elseif s == "chains_to_3" then
+                            local jumpRange = 100 * (b.weaponData.area or 1.0)
+                            local targets = 0
+                            for _, nextE in ipairs(enemies) do
+                                if not nextE.isDead and nextE ~= e and not b.hitEnemies[nextE] then
+                                    local dx, dy = nextE.x - e.x, nextE.y - e.y
+                                    if dx*dx + dy*dy < jumpRange*jumpRange then
+                                        nextE:takeDamage(damage * 0.8)
+                                        b.hitEnemies[nextE] = true
+                                        targets = targets + 1
+                                        if targets >= 3 then break end
+                                    end
+                                end
+                            end
+                        elseif s == "burning_trails" then
+                            e:applyBurn(10, 3.0)
+                        elseif s == "black_holes" then
+                            -- Pull effect is handled in pattern/player_mines.lua usually,
+                            -- but we can add immediate crush damage here
+                            e:takeDamage(damage * 0.5)
                         end
-                        
+                    end
+
+                    -- Only break if not a cloud, whip, or wave (these can hit multiple enemies)
+                    if b.weaponData.pattern ~= "cloud" and b.weaponData.pattern ~= "whip" and b.weaponData.pattern ~= "wave" then
                         -- Handle Pierce
                         if b.weaponData.pierce and b.weaponData.pierce > 0 then
                             b.weaponData.pierce = b.weaponData.pierce - 1

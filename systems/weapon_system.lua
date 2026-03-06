@@ -200,6 +200,27 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
         b.playerX, b.playerY = playerX, playerY
         b.gameState = sm.current
         b:update(dt)
+
+        -- Handle Gravity Pull
+        if not b.isDead and (b.weaponData.special == "black_holes" or b.weaponData.specialEffect == "pull") then
+            local pullRange = 150 * (b.weaponData.area or 1.0)
+            local pullForce = 200
+            for _, e in ipairs(enemies) do
+                if not e.isDead then
+                    local dx, dy = b.x - e.x, b.y - e.y
+                    local distSq = dx*dx + dy*dy
+                    if distSq < pullRange*pullRange then
+                        local dist = math.sqrt(distSq)
+                        if dist > 5 then
+                            local force = (1 - dist / pullRange) * pullForce
+                            e.pullX = (e.pullX or 0) + (dx / dist) * force
+                            e.pullY = (e.pullY or 0) + (dy / dist) * force
+                        end
+                    end
+                end
+            end
+        end
+
         if b.isDead then table.remove(self.bullets, i) end
     end
 end
