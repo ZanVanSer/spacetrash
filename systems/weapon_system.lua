@@ -14,6 +14,29 @@ function WS.new()
     return self
 end
 
+function WS:checkEvolution(weaponId, equippedPassives, weaponLevel)
+    if not self.lookup then self.lookup = dl.createLookup(dl.getWeapons(), "id") end
+    local wd = self.lookup[weaponId]
+    if not wd or not wd.evolution then return nil end
+    
+    if (weaponLevel or 1) < 5 then return nil end
+    
+    local required = wd.evolution.requiredPassive
+    local hasPassive = false
+    for _, pId in ipairs(equippedPassives or {}) do
+        if pId == required then
+            hasPassive = true
+            break
+        end
+    end
+    
+    if hasPassive then
+        return wd.evolution.id
+    end
+    
+    return nil
+end
+
 function WS:equipWeapon(weaponId)
     table.insert(self.equippedWeapons, weaponId)
     self.shootTimers[weaponId] = 0

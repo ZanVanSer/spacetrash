@@ -2,6 +2,9 @@ local WS = require "systems/weapon_system"
 local ShipVisuals = require "entities/ship_visuals"
 local Screen = require('systems.screen')
 local dl = require "systems/dataloader"
+local Fonts = require "ui/fonts"
+local ScreenShake = require "systems/screenshake"
+local Particles = require "systems/particles"
 
 local Player = {}
 Player.__index = Player
@@ -70,6 +73,13 @@ function Player.new(shipData)
     self.xp = 0
     self.level = 1
     self.xpToNext = 10
+
+    -- Evolution State
+    self.pendingEvolution = nil
+    self.evolutionAvailable = false
+    self.evoEffectTimer = 0
+    self.isEvolving = false
+
     return self
 end
 
@@ -80,12 +90,66 @@ end
 
 function Player:upgradeWeapon(id)
     if self.weaponLevels[id] then
-        self.weaponLevels[id] = math.min(8, self.weaponLevels[id] + 1)
+        self.weaponLevels[id] = math.min(5, self.weaponLevels[id] + 1)
+        
+        -- Check for evolution trigger when reaching max level (5)
+        if self.weaponLevels[id] == 5 then
+            local pList = {}
+            for pId, _ in pairs(self.passives) do table.insert(pList, pId) end
+            
+            local evolvedId = self.ws:checkEvolution(id, pList, 5)
+            if evolvedId then
+                self.pendingEvolution = { baseId = id, evolvedId = evolvedId }
+                self.evolutionAvailable = true
+            end
+        end
     else
         -- Equip new weapon
         self.ws:equipWeapon(id)
         self.weaponLevels[id] = 1
     end
+end
+
+function Player:evolveWeapon(baseId)
+    if not self.pendingEvolution or self.pendingEvolution.baseId ~= baseId then return end
+    
+    local evolvedId = self.pendingEvolution.evolvedId
+    
+    -- Replace in Weapon System
+    for i, id in ipairs(self.ws.equippedWeapons) do
+        if id == baseId then
+            self.ws.equippedWeapons[i] = evolvedId
+            -- Transfer timer for smooth transition
+            self.ws.shootTimers[evolvedId] = self.ws.shootTimers[baseId] or 0
+            self.ws.shootTimers[baseId] = nil
+            break
+        end
+    end
+    
+    -- Update level tracking
+    self.weaponLevels[baseId] = nil
+    self.weaponLevels[evolvedId] = 1 -- Evolved weapon starts at level 1
+    
+    -- Reset evolution trigger
+    self.pendingEvolution = nil
+    self.evolutionAvailable = false
+    
+    -- Trigger dramatic effects
+    self.evoEffectTimer = 1.5
+    self.isEvolving = true
+    ScreenShake.trigger(10, 1.0)
+    Particles.spawn(self.x, self.y, 40, "accent", 300, 4)
+    
+    -- Add expanding ring for emphasis
+    table.insert(Particles.rings, {
+        x = self.x,
+        y = self.y,
+        radius = 0,
+        maxRadius = 150,
+        life = 0.8,
+        maxLife = 0.8,
+        colorKey = "accent"
+    })
 end
 
 function Player:upgradePassive(id)
@@ -217,20 +281,54 @@ function Player:update(dt)
     
     -- Weapon System
     self.ws:update(dt, self.x, self.y, self.might, self.cooldown, self.area, self.amount, self.pierce)
+
+    -- Evolution Effects
+    if self.evoEffectTimer > 0 then
+        self.evoEffectTimer = self.evoEffectTimer - dt
+        if self.evoEffectTimer <= 0 then
+            self.isEvolving = false
+        end
+    end
 end
 
 function Player:draw()
     -- Draw ship using visual system
+    if self.isEvolving then
+        local flashAlpha = math.min(1, self.evoEffectTimer / 0.5)
+        love.graphics.setColor(0, 1, 1, flashAlpha)
+    end
     ShipVisuals.drawShip(self.shipId, self.x, self.y, 1.0, 0)
+    love.graphics.setColor(1, 1, 1, 1)
     
     -- Draw weapons
     self.ws:draw()
+
+    -- Evolution Notification
+    if self.evolutionAvailable then
+        love.graphics.setColor(1, 0.8, 0.2, 0.8 + math.sin(love.timer.getTime() * 10) * 0.2)
+        love.graphics.setFont(Fonts.getFont("small"))
+        love.graphics.printf("EVOLUTION AVAILABLE!", self.x - 100, self.y - 45, 200, "center")
+    end
+
+    -- Evolution Effect (Flash & Whiteout)
+    if self.evoEffectTimer > 0 then
+        -- Whiteout flash at start
+        if self.evoEffectTimer > 1.3 then
+            love.graphics.setColor(1, 1, 1, (self.evoEffectTimer - 1.3) / 0.2)
+            love.graphics.rectangle("fill", 0, 0, Screen.getVirtualWidth(), Screen.getVirtualHeight())
+        end
+
+        love.graphics.setColor(0, 1, 1, self.evoEffectTimer)
+        love.graphics.circle("line", self.x, self.y, 100 * (1 - (self.evoEffectTimer/1.5)))
+    end
 end
 
 function Player:getBullets() return self.ws:getBullets() end
 function Player:addWeapon(id) self.ws:equipWeapon(id) end
 
 function Player:takeDamage(amount)
+    if self.isEvolving then return end -- Invulnerable during evolution
+    
     -- Apply armor reduction (simple reduction, minimum 1 damage)
     local actualDamage = math.max(1, amount - (self.armor or 0))
     self.hp = self.hp - actualDamage
