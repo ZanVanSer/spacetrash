@@ -69,6 +69,11 @@ function Player.new(shipData)
     
     self.weaponLevels = { [shipData.startWeapon] = 1 }
     self.passives = {} -- { [id] = level }
+
+    -- Handle Starting Passive
+    if shipData.startingPassive then
+        self:addPassive(shipData.startingPassive)
+    end
     
     self.xp = 0
     self.level = 1

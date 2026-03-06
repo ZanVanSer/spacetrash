@@ -70,7 +70,7 @@ function EvolutionNotification.draw()
     
     -- Evolve Prompt
     Colors.setColor("accent", 0.7 + promptPulse * 0.3)
-    love.graphics.printf("[E] EVOLVE NOW", x, y + 140, w/2, "right")
+    love.graphics.printf("[Z] EVOLVE NOW", x, y + 140, w/2, "right")
     
     -- Dismiss Prompt
     Colors.setColor("danger", 0.7)
@@ -80,7 +80,7 @@ end
 function EvolutionNotification.keypressed(key)
     if not EvolutionNotification.active then return end
 
-    if key == 'e' then
+    if key == 'z' then
         EvolutionNotification.active = false
         if EvolutionNotification.callback then
             EvolutionNotification.callback()

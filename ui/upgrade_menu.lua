@@ -41,7 +41,7 @@ function UpgradeMenu:generateUpgrades()
                     rarity = w.rarity or 100
                 })
             end
-        elseif weaponCount < 4 then
+        elseif weaponCount < 4 and not w.isEvolution then
             table.insert(options, {
                 id = w.id,
                 type = "weapon",

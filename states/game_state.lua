@@ -2,6 +2,7 @@ local Player = require "entities/player"
 local Spawner = require "systems/enemy_spawner"
 local dl = require "systems/dataloader"
 local UpgradeMenu = require "ui/upgrade_menu"
+local Bullet = require "entities/bullet"
 local Boss = require "entities/boss"
 local Menu = require "ui/menu"
 local sm = require "states/statemanager"
@@ -18,6 +19,9 @@ local Fonts = require('ui/fonts')
 local HUD = require('ui/hud')
 local Telegraph = require('ui.attack_telegraph')
 local Colors = require('ui.colors')
+local EvolutionNotification = require('ui/evolution_notification')
+local UnlockNotification = require('ui/unlock_notification')
+
 local state = {}
 
 function state:enter(saveData, stageData, shipData)
@@ -205,6 +209,27 @@ function state:update(dt)
     self.particles.update(dt)
     self.damageNumbers.update(dt)
     self.telegraph:update(dt)
+    EvolutionNotification.update(dt)
+    UnlockNotification.update(dt)
+
+    -- Trigger Evolution UI if available
+    if self.player.evolutionAvailable and not EvolutionNotification.active then
+        local baseId = self.player.pendingEvolution.baseId
+        local evolvedId = self.player.pendingEvolution.evolvedId
+        
+        -- Get names for UI
+        local wLookup = dl.createLookup(dl.getWeapons(), "id")
+        local pLookup = dl.createLookup(dl.getPassives(), "id")
+        
+        local baseW = wLookup[baseId]
+        local evoW = wLookup[evolvedId]
+        local reqP = pLookup[evoW.requiredPassive or baseW.evolution.requiredPassive]
+        
+        EvolutionNotification.show(baseW.name, evoW.name, reqP.name, function()
+            self.player:evolveWeapon(baseId)
+        end)
+    end
+
     if self.screenFlash.active then
         self.screenFlash.elapsed = self.screenFlash.elapsed + dt
         if self.screenFlash.elapsed >= self.screenFlash.duration then
@@ -216,7 +241,7 @@ function state:update(dt)
         self.bossEntranceTimer = self.bossEntranceTimer - dt
     end
 
-    if self.isPaused or self.isPausedByPlayer or self.isVictory then return end
+    if self.isPaused or self.isPausedByPlayer or self.isVictory or EvolutionNotification.active then return end
 
     self.gameTime = self.gameTime + dt
     
@@ -439,6 +464,25 @@ function state:update(dt)
                         end
                     end
 
+                    -- Handle specialEffect field
+                    if b.weaponData.specialEffect == "split_on_hit" then
+                        for i = 1, 2 do
+                            local sData = {
+                                id = b.weaponData.id .. "_sub",
+                                damage = damage * 0.5,
+                                bulletSpeed = b.weaponData.bulletSpeed * 1.2,
+                                pattern = "straight",
+                                area = b.weaponData.area * 0.5,
+                                pierce = 0
+                            }
+                            local sub = Bullet.new(e.x, e.y, sData)
+                            sub.angle = math.random() * math.pi * 2
+                            sub.enemies = enemies
+                            sub.gameState = self
+                            table.insert(self.player.ws.bullets, sub)
+                        end
+                    end
+
                     -- Only break if not a cloud, whip, or wave (these can hit multiple enemies)
                     if b.weaponData.pattern ~= "cloud" and b.weaponData.pattern ~= "whip" and b.weaponData.pattern ~= "wave" then
                         -- Handle Pierce
@@ -585,6 +629,8 @@ function state:update(dt)
 end
 
 function state:keypressed(key)
+    if EvolutionNotification.keypressed(key) then return end
+
     if self.isVictory and self.victoryMenu then
         local selection = self.victoryMenu:keypressed(key)
         if selection == 1 then -- Retry
@@ -627,6 +673,17 @@ function state:keypressed(key)
             self.isPaused = false
             self.upgradeMenu = nil
         end
+    end
+
+    -- DEV DEBUG KEYS (Safe to remove after testing)
+    if key == "b" then
+        local weapons = {}
+        for id, _ in pairs(self.player.weaponLevels) do table.insert(weapons, id) end
+        for _, id in ipairs(weapons) do self.player:upgradeWeapon(id) end
+    elseif key == "n" then
+        local passives = {}
+        for id, _ in pairs(self.player.passives) do table.insert(passives, id) end
+        for _, id in ipairs(passives) do self.player:upgradePassive(id) end
     end
 end
 
@@ -794,6 +851,9 @@ function state:draw()
     end
 
     love.graphics.setColor(1, 1, 1, 1)
+
+    EvolutionNotification.draw()
+    UnlockNotification.draw()
 
     Screen.removeScale()
 end

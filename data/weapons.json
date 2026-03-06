@@ -219,6 +219,7 @@
     "amount": 3,
     "critMult": 2.0,
     "rarity": 0,
+    "specialEffect": "split_on_hit",
     "isEvolution": true
   },
   {

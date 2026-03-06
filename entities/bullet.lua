@@ -150,6 +150,10 @@ function Bullet:draw()
     end
 
     local drawShape = function()
+        if self.weaponData.id == "quantum_splitter_sub" then
+            love.graphics.polygon("fill", 0, -3, -1, 0, 0, 3, 1, 0)
+            return
+        end
         if self.weaponData.pattern == "mines" then
             love.graphics.circle("fill", 0, 0, 6)
             love.graphics.rectangle("fill", -8, -2, 16, 4)
@@ -188,6 +192,10 @@ function Bullet:draw()
 
     love.graphics.push()
     love.graphics.translate(self.x, self.y)
+    
+    -- Rotate based on angle
+    local drawAngle = (self.angle or -math.pi/2) + math.pi/2
+    love.graphics.rotate(drawAngle)
 
     -- Glow passes
     love.graphics.push()

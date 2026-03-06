@@ -75,7 +75,18 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
                                 area = (wd.area or 1.0) * (area or 1.0),
                                 pierce = (wd.pierce or 0) + (pierceBonus or 0),
                                 amount = finalAmount,
-                                special = wd.special
+                                special = wd.special,
+                                specialEffect = wd.specialEffect,
+                                chainRange = wd.chainRange,
+                                explosionRadius = wd.explosionRadius,
+                                explosionDamage = wd.explosionDamage,
+                                miniMissileCount = wd.miniMissileCount,
+                                miniMissileDamage = wd.miniMissileDamage,
+                                chainTargets = wd.chainTargets,
+                                spreadDamage = wd.spreadDamage,
+                                pullRadius = wd.pullRadius,
+                                burnDamage = wd.burnDamage,
+                                burnDuration = wd.burnDuration
                             }
                             local b = Bullet.new(playerX, playerY, bulletWeaponData)
                             b.orbitAngle = ((currentCount + i - 1) / finalAmount) * math.pi * 2
@@ -130,6 +141,17 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
                             pierce = (wd.pierce or 0) + (pierceBonus or 0),
                             amount = finalAmount,
                             special = wd.special,
+                            specialEffect = wd.specialEffect,
+                            chainRange = wd.chainRange,
+                            explosionRadius = wd.explosionRadius,
+                            explosionDamage = wd.explosionDamage,
+                            miniMissileCount = wd.miniMissileCount,
+                            miniMissileDamage = wd.miniMissileDamage,
+                            chainTargets = wd.chainTargets,
+                            spreadDamage = wd.spreadDamage,
+                            pullRadius = wd.pullRadius,
+                            burnDamage = wd.burnDamage,
+                            burnDuration = wd.burnDuration,
                             duration = wd.duration
                         }
                         local b = Bullet.new(playerX, playerY, bData)
@@ -167,7 +189,18 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
                         area = (wd.area or 1.0) * (area or 1.0),
                         pierce = (wd.pierce or 0) + (pierceBonus or 0),
                         amount = burst.count,
-                        special = wd.special
+                        special = wd.special,
+                        specialEffect = wd.specialEffect,
+                        chainRange = wd.chainRange,
+                        explosionRadius = wd.explosionRadius,
+                        explosionDamage = wd.explosionDamage,
+                        miniMissileCount = wd.miniMissileCount,
+                        miniMissileDamage = wd.miniMissileDamage,
+                        chainTargets = wd.chainTargets,
+                        spreadDamage = wd.spreadDamage,
+                        pullRadius = wd.pullRadius,
+                        burnDamage = wd.burnDamage,
+                        burnDuration = wd.burnDuration
                     }
                     local b = Bullet.new(playerX, playerY, bData)
                     table.insert(self.bullets, b)
