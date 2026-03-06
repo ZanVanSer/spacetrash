@@ -32,8 +32,9 @@ function SaveManager.getDefaultSave()
         unlockedShips = {"vanguard"},
         unlockedWeapons = {"plasma_lance"},
         unlockedPassives = {},
-        unlockedStages = {},
+        unlockedStages = {"nebula_sector"}, -- Start with first stage unlocked
         completedStages = {},
+        unlockedItems = {"vanguard", "plasma_lance"}, -- Internal set for Unlocks system
         statistics = {
             totalPlayTime = 0,
             totalRuns = 0,

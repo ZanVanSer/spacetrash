@@ -6,6 +6,7 @@ local Boss = require "entities/boss"
 local Menu = require "ui/menu"
 local sm = require "states/statemanager"
 local savemanager = require "systems/savemanager"
+local Unlocks = require "systems/unlocks"
 local Background = require "entities/background"
 local Screen = require('systems.screen')
 local Screenshake = require('systems.screenshake')
@@ -162,6 +163,41 @@ function state:saveProgress(isTerminal)
     end
 end
 
+function state:checkGameplayUnlocks()
+    if not self.currentSaveData then return end
+    
+    local newUnlocks = Unlocks.checkUnlocks(self.currentSaveData, self.runStatistics)
+    
+    if #newUnlocks > 0 then
+        -- Add to save data
+        for _, unlock in ipairs(newUnlocks) do
+            if unlock.type == "ship" then
+                self.currentSaveData.unlockedShips = self.currentSaveData.unlockedShips or {}
+                table.insert(self.currentSaveData.unlockedShips, unlock.id)
+            elseif unlock.type == "weapon" then
+                self.currentSaveData.unlockedWeapons = self.currentSaveData.unlockedWeapons or {}
+                table.insert(self.currentSaveData.unlockedWeapons, unlock.id)
+            elseif unlock.type == "passive" then
+                self.currentSaveData.unlockedPassives = self.currentSaveData.unlockedPassives or {}
+                table.insert(self.currentSaveData.unlockedPassives, unlock.id)
+            end
+            
+            -- Queue notification for later
+            self.runStatistics.queuedNotifications = self.runStatistics.queuedNotifications or {}
+            table.insert(self.runStatistics.queuedNotifications, "UNLOCKED: " .. unlock.name)
+        end
+        
+        -- Mark items as unlocked in the currentSaveData structure to prevent re-triggering
+        self.currentSaveData.unlockedItems = self.currentSaveData.unlockedItems or {}
+        for _, unlock in ipairs(newUnlocks) do
+            table.insert(self.currentSaveData.unlockedItems, unlock.id)
+        end
+        
+        -- Save immediately to persist the unlock
+        self:saveProgress(false)
+    end
+end
+
 function state:update(dt)
     -- Always update background, screenshake, and particles, even when paused
     self.background:update(dt)
@@ -228,6 +264,7 @@ function state:update(dt)
             self.enemiesKilled = self.enemiesKilled + 1
             self.runStatistics.kills = self.runStatistics.kills + 1
             self.runStatistics.bossesDefeated = self.runStatistics.bossesDefeated + 1
+            self:checkGameplayUnlocks()
             self.screenshake.trigger(10, 0.5)
             self.particles.enemyDeath(self.boss.x, self.boss.y)
             
@@ -264,6 +301,7 @@ function state:update(dt)
             end
             -- Mark Current Stage Completed
             addToSet(self.currentSaveData.completedStages, self.stageData.id)
+            self:checkGameplayUnlocks()
 
             self.victoryStats = {
                 timeSurvived = self.gameTime,
@@ -386,6 +424,7 @@ function state:update(dt)
                         e.xpGiven = true
                         self.enemiesKilled = self.enemiesKilled + 1
                         self.runStatistics.kills = self.runStatistics.kills + 1
+                        self:checkGameplayUnlocks()
                         self.screenshake.trigger(2, 0.1)
                         self.particles.enemyDeath(e.x, e.y)
                         self.particles.xpPickup(self.player.x, self.player.y)
@@ -497,6 +536,7 @@ function state:update(dt)
     if self.player.level > oldLevel then
         self.isPaused = true
         self.upgradeMenu = UpgradeMenu.new(self.player)
+        self:checkGameplayUnlocks()
     end
 
     -- Global Death Processing (Catch-all for AOE/Chains)
@@ -509,6 +549,7 @@ function state:update(dt)
             self.screenshake.trigger(2, 0.1)
             self.particles.enemyDeath(e.x, e.y)
             self.particles.xpPickup(self.player.x, self.player.y)
+            self:checkGameplayUnlocks()
         end
     end
 end

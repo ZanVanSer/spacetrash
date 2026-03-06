@@ -62,6 +62,17 @@ function Bullet:explode()
                     if self.gameState then
                         self.gameState.damageNumbers.spawn(e.x, e.y, damage, false)
                         self.gameState.runStatistics.damageDealt = self.gameState.runStatistics.damageDealt + damage
+                        
+                        if e.isDead and not e.xpGiven and self.gameState.player then
+                            self.gameState.player:addXP(e.xpValue)
+                            e.xpGiven = true
+                            self.gameState.enemiesKilled = self.gameState.enemiesKilled + 1
+                            self.gameState.runStatistics.kills = self.gameState.runStatistics.kills + 1
+                            self.gameState:checkGameplayUnlocks()
+                            self.gameState.screenshake.trigger(2, 0.1)
+                            self.gameState.particles.enemyDeath(e.x, e.y)
+                            self.gameState.particles.xpPickup(self.x, self.y)
+                        end
                     end
                 end
             end

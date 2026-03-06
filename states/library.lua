@@ -38,15 +38,34 @@ function state:enter(saveData)
     self.menu = Menu.new(self.categories)
     self.selectedCategory = 1
     
+    local allWeapons = DataLoader.getWeapons() or {}
+    self.totalBaseWeapons = 0
+    self.totalEvolutions = 0
+    for _, w in ipairs(allWeapons) do
+        if w.isEvolution then self.totalEvolutions = self.totalEvolutions + 1
+        else self.totalBaseWeapons = self.totalBaseWeapons + 1 end
+    end
+    
     self.totalShips = #(DataLoader.getShips() or {})
-    self.totalWeapons = #(DataLoader.getWeapons() or {})
     self.totalPassives = #(DataLoader.getPassives() or {})
     self.totalEnemies = #(DataLoader.getEnemies() or {})
     self.totalBosses = #(DataLoader.getBosses() or {})
     
+    local unlockedBase = 0
+    local unlockedEvo = 0
+    local weaponLookup = DataLoader.createLookup(allWeapons, "id")
+    for _, id in ipairs(self.saveData.unlockedWeapons or {}) do
+        local w = weaponLookup[id]
+        if w then
+            if w.isEvolution then unlockedEvo = unlockedEvo + 1
+            else unlockedBase = unlockedBase + 1 end
+        end
+    end
+
     self.unlockedCounts = {
         Ships = #(self.saveData.unlockedShips or {}),
-        Weapons = #(self.saveData.unlockedWeapons or {}),
+        WeaponsBase = unlockedBase,
+        WeaponsEvo = unlockedEvo,
         Passives = #(self.saveData.unlockedPassives or {}),
         Enemies = #(self.saveData.encounteredEnemies or {}),
         Bosses = #(self.saveData.encounteredBosses or {})
@@ -122,30 +141,55 @@ function state:draw()
         else
             local unlocked = self.unlockedCounts[category] or 0
             local total = 0
-            if category == "Ships" then total = self.totalShips
-            elseif category == "Weapons" then total = self.totalWeapons
-            elseif category == "Passives" then total = self.totalPassives
-            elseif category == "Enemies" then total = self.totalEnemies
-            elseif category == "Bosses" then total = self.totalBosses
+            local labelOverride = nil
+            
+            if category == "Ships" then 
+                total = self.totalShips
+            elseif category == "Weapons" then 
+                unlocked = self.unlockedCounts.WeaponsBase + self.unlockedCounts.WeaponsEvo
+                total = self.totalBaseWeapons + self.totalEvolutions
+                labelOverride = string.format("WEAPONS [%d/%d BASE + %d/%d EVO]", 
+                    self.unlockedCounts.WeaponsBase, self.totalBaseWeapons,
+                    self.unlockedCounts.WeaponsEvo, self.totalEvolutions)
+            elseif category == "Passives" then 
+                total = self.totalPassives
+            elseif category == "Enemies" then 
+                total = self.totalEnemies
+            elseif category == "Bosses" then 
+                total = self.totalBosses
             end
             
             local percent = (total > 0) and (unlocked / total) or 0
-            local labelX = screenWidth / 2 - 200
+            local labelX = screenWidth / 2 - 250
+            local labelText = labelOverride or (category:upper() .. " [" .. unlocked .. "/" .. total .. "]")
+            
             if isSelected then
                 Colors.setColor("accent")
-                love.graphics.print("> " .. category:upper() .. " [" .. unlocked .. "/" .. total .. "]", labelX, y)
+                love.graphics.print("> " .. labelText, labelX, y)
             else
                 Colors.setColor("dim")
-                love.graphics.print(category:upper() .. " [" .. unlocked .. "/" .. total .. "]", labelX + 25, y)
+                love.graphics.print(labelText, labelX + 25, y)
             end
             
-            local barW, barH, barX, barY = 150, 12, screenWidth / 2 + 50, y + 4
-            love.graphics.setColor(0.05, 0.05, 0.05, 1)
+            local barW, barH, barX, barY = 150, 12, screenWidth / 2 + 100, y + 4
+            love.graphics.setColor(0.05, 0.1, 0.12, 1)
             love.graphics.rectangle("fill", barX, barY, barW, barH, 2)
-            if percent >= 1 then Colors.setColor("health") else Colors.setColor("accent") end
+            
+            if percent >= 1 then 
+                Colors.setColor("health") -- Green
+            else 
+                Colors.setColor("accent") -- Cyan (usually)
+            end
+            
             love.graphics.rectangle("fill", barX, barY, barW * percent, barH, 2)
             love.graphics.setColor(1, 1, 1, 0.1)
             love.graphics.rectangle("line", barX, barY, barW, barH, 2)
+            
+            -- Percentage
+            love.graphics.setFont(Fonts.getFont("tiny"))
+            Colors.setColor("white", 0.7)
+            love.graphics.print(string.format("%d%%", math.floor(percent * 100)), barX + barW + 10, barY - 2)
+            love.graphics.setFont(Fonts.getFont("normal"))
         end
     end
     
