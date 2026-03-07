@@ -97,6 +97,43 @@ function EnemyVisuals.swarm_bee()
     love.graphics.polygon("line", points)
 end
 
+function EnemyVisuals.heavy_assault()
+    local t = love.timer.getTime()
+    
+    -- Body: 40x30 rectangle (centered)
+    -- Darker fill
+    love.graphics.setColor(0.25, 0, 0, 0.9)
+    love.graphics.rectangle("fill", -20, -15, 40, 30)
+    
+    -- Border: 2px thick danger red
+    love.graphics.setLineWidth(2)
+    Colors.setColor("danger", 1)
+    love.graphics.rectangle("line", -20, -15, 40, 30)
+    
+    -- Armor plating details (panel lines)
+    love.graphics.setLineWidth(1)
+    love.graphics.line(-10, -15, -10, 15)
+    love.graphics.line(10, -15, 10, 15)
+    love.graphics.line(-20, 0, 20, 0)
+    
+    -- Twin gun turrets on top (two small circles)
+    love.graphics.circle("fill", -10, 5, 4)
+    love.graphics.circle("fill", 10, 5, 4)
+    -- Turret outlines
+    Colors.setColor("danger", 1)
+    love.graphics.circle("line", -10, 5, 4)
+    love.graphics.circle("line", 10, 5, 4)
+    
+    -- Engine exhausts at back (glowing)
+    local pulse = (math.sin(t * 12) + 1) / 2
+    love.graphics.setColor(1, 0.4, 0, 0.4 + pulse * 0.6)
+    love.graphics.circle("fill", -12, -15, 5)
+    love.graphics.circle("fill", 12, -15, 5)
+    love.graphics.setColor(1, 0.8, 0, 1)
+    love.graphics.circle("fill", -12, -15, 2)
+    love.graphics.circle("fill", 12, -15, 2)
+end
+
 function EnemyVisuals.drawEnemy(enemyId, x, y, scale, rotation)
     love.graphics.push()
     love.graphics.translate(x, y)
@@ -111,6 +148,8 @@ function EnemyVisuals.drawEnemy(enemyId, x, y, scale, rotation)
         EnemyVisuals.bomber()
     elseif enemyId == "swarm_bee" then
         EnemyVisuals.swarm_bee()
+    elseif enemyId == "heavy_assault" then
+        EnemyVisuals.heavy_assault()
     else
         -- Default fallback
         Colors.setColor("danger", 1)
