@@ -5,12 +5,12 @@
     "description": "Survive the asteroid field and defeat the guardian",
     "difficulty": 1,
     
-    "enemies": ["basic_drone", "zigzag_fighter", "bomber", "swarm_bee"],
+    "enemies": ["basic_drone", "zigzag_fighter", "bomber", "swarm_bee", "heavy_assault", "elite_fighter"],
     "enemySpawnRate": 1.0,
     "maxEnemiesOnScreen": 30,
     
-    "boss": "asteroid_boss",
-    "survivalTime": 500,
+    "boss": "storm_herald",
+    "survivalTime": 30,
     
     "background": "asteroid_belt",
     "music": "battle_theme_1",
