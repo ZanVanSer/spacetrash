@@ -50,5 +50,18 @@
     "shootInterval": 2.5,
     "bulletSpeed": 150,
     "bulletDamage": 5
+  },
+  {
+    "id": "heavy_assault",
+    "name": "Heavy Assault",
+    "hp": 50,
+    "speed": 60,
+    "xp": 5,
+    "behavior": "straight_down",
+    "radius": 20,
+    "shootPattern": "burst",
+    "shootInterval": 3.5,
+    "bulletSpeed": 180,
+    "bulletDamage": 12
   }
 ]
