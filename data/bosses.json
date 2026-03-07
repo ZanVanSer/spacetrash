@@ -102,5 +102,57 @@
     
     "bulletSpeed": 220,
     "bulletDamage": 12
+  },
+  {
+    "id": "storm_herald",
+    "name": "Storm Herald",
+    "maxHealth": 700,
+    "radius": 42,
+    
+    "phases": [
+      {
+        "healthPercent": 1.0,
+        "behavior": "side_to_side",
+        "movementSpeed": 85,
+        "patterns": ["attack_spread", "attack_aimed"],
+        "shootInterval": 2.0,
+        "patternDuration": 5.0
+      },
+      {
+        "healthPercent": 0.6,
+        "behavior": "side_to_side",
+        "movementSpeed": 110,
+        "patterns": ["attack_spiral", "attack_burst"],
+        "shootInterval": 1.5,
+        "patternDuration": 4.0,
+        "specialAttack": {
+          "trigger": "once",
+          "healthPercent": 0.55,
+          "type": "screen_clear",
+          "directions": 12,
+          "telegraphDuration": 1.0,
+          "pattern": "attack_straight"
+        }
+      },
+      {
+        "healthPercent": 0.3,
+        "behavior": "aggressive",
+        "movementSpeed": 140,
+        "patterns": ["attack_burst", "attack_aimed", "attack_spiral"],
+        "shootInterval": 1.0,
+        "patternDuration": 3.0,
+        "specialAttack": {
+          "trigger": "repeat",
+          "interval": 8.0,
+          "type": "spiral_barrage",
+          "duration": 3.0,
+          "burstCount": 12,
+          "pattern": "attack_spiral"
+        }
+      }
+    ],
+    
+    "bulletSpeed": 210,
+    "bulletDamage": 13
   }
 ]

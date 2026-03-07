@@ -331,6 +331,106 @@ function BossVisuals.void_destroyer(flashTimer, overlayAlpha, aimAngle, chargeLe
     end
 end
 
+function BossVisuals.storm_herald(flashTimer, overlayAlpha, aimAngle, chargeLevel, healthPercent, isSpecialAttacking)
+    local t = love.timer.getTime()
+    local damageTier = 0
+    if healthPercent <= 0.33 then damageTier = 2
+    elseif healthPercent <= 0.66 then damageTier = 1 end
+    
+    local outerRadius = 70
+    local innerRadius = 30
+    local totalPoints = 5
+    local activePoints = totalPoints - damageTier
+    
+    -- Function to get star points
+    local function getStarPoints(count)
+        local pts = {}
+        for i = 0, count * 2 - 1 do
+            local ang = (i * math.pi / totalPoints) - math.pi/2
+            local r = (i % 2 == 0) and outerRadius or innerRadius
+            table.insert(pts, math.cos(ang) * r)
+            table.insert(pts, math.sin(ang) * r)
+        end
+        -- If broken, close back to center or inner radius
+        if count < totalPoints then
+            table.insert(pts, 0)
+            table.insert(pts, 0)
+        end
+        return pts
+    end
+
+    local points = getStarPoints(activePoints)
+
+    if flashTimer and flashTimer > 0 and overlayAlpha and overlayAlpha > 0 then
+        love.graphics.setColor(1, 1, 1, overlayAlpha)
+        love.graphics.polygon("fill", points)
+        return
+    end
+
+    -- Glow
+    local bodyFn = function() love.graphics.polygon("fill", points) end
+    drawGlow("danger", bodyFn, 1.2, 1.1, isSpecialAttacking and 1.5 or 1)
+
+    -- Fill: dark red
+    love.graphics.setColor(0.12, 0, 0, 0.9)
+    love.graphics.polygon("fill", points)
+
+    -- Border: bright danger red
+    love.graphics.setLineWidth(2)
+    Colors.setColor("danger", 1)
+    love.graphics.polygon("line", points)
+
+    -- Lightning between tips (random flickers)
+    if math.random() > 0.7 then
+        love.graphics.setLineWidth(1)
+        Colors.setColor("accent", 0.8) -- Cyan/Alien feel
+        for i = 0, activePoints - 2 do
+            local a1 = (i * 2 * math.pi / totalPoints) - math.pi/2
+            local a2 = ((i + 1) * 2 * math.pi / totalPoints) - math.pi/2
+            local x1, y1 = math.cos(a1) * outerRadius, math.sin(a1) * outerRadius
+            local x2, y2 = math.cos(a2) * outerRadius, math.sin(a2) * outerRadius
+            
+            -- Jagged line (midpoint displacement)
+            local mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+            local dx, dy = x2 - x1, y2 - y1
+            local dist = math.sqrt(dx*dx + dy*dy)
+            local nx, ny = -dy/dist, dx/dist
+            local offset = (math.random() - 0.5) * 20
+            mx, my = mx + nx * offset, my + ny * offset
+            
+            love.graphics.line(x1, y1, mx, my, x2, y2)
+        end
+    end
+
+    -- Central core
+    local coreRadius = 15
+    local pulseSpeed = isSpecialAttacking and 15 or (5 + (1 - healthPercent) * 10)
+    local pulse = (math.sin(t * pulseSpeed) + 1) / 2
+    
+    -- Core color based on phase
+    if healthPercent > 0.66 then
+        Colors.setColor("danger", 0.4 + pulse * 0.4) -- Red
+    elseif healthPercent > 0.33 then
+        Colors.setColor("xp", 0.4 + pulse * 0.4)     -- Orange/Gold
+    else
+        Colors.setColor("accent", 0.4 + pulse * 0.4) -- Cyan/White hot
+    end
+    
+    -- Charging glow
+    if chargeLevel and chargeLevel > 0 then
+        local chargeSize = coreRadius + chargeLevel * 10
+        love.graphics.circle("fill", 0, 0, chargeSize)
+    end
+    
+    love.graphics.circle("fill", 0, 0, coreRadius)
+    love.graphics.setColor(1, 1, 1, 0.8)
+    love.graphics.circle("fill", 0, 0, coreRadius * 0.4)
+
+    if isSpecialAttacking then
+        drawSpecialParticles(t, 20, 80)
+    end
+end
+
 function BossVisuals.default(flashTimer, overlayAlpha, aimAngle, chargeLevel, healthPercent, isSpecialAttacking)
     local points = {0, 40, -40, -30, 40, -30}
 

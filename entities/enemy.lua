@@ -18,6 +18,12 @@ function Enemy.new(x, y, enemyData)
     self.isDead = false
     self.radius = enemyData.radius or 15
     
+    -- Shield System
+    self.hasShield = enemyData.hasShield or false
+    self.shieldHealth = enemyData.shieldHealth or 0
+    self.maxShieldHealth = enemyData.shieldHealth or 0
+    self.shieldFlash = 0
+
     -- Burning State
     self.burnStacks = {}
     self.isBurning = false
@@ -47,6 +53,11 @@ end
 function Enemy:update(dt, playerX, playerY)
     local behavior = require("behaviors/" .. self.behavior)
     behavior.update(self, dt)
+
+    -- Update shield flash
+    if self.shieldFlash and self.shieldFlash > 0 then
+        self.shieldFlash = self.shieldFlash - dt
+    end
 
     -- Apply Pull Force
     if self.pullX ~= 0 or self.pullY ~= 0 then
@@ -156,7 +167,14 @@ function Enemy:draw()
         -- Rotation handled by visuals usually, but we can add a slight skew here
     end
     
-    EnemyVisuals.drawEnemy(self.enemyData.id, 0, 0, 1.0, 0)
+    EnemyVisuals.drawEnemy(self.enemyData.id, 0, 0, 1.0, 0, self.shieldHealth, self.shootTimer, self.shootInterval)
+    
+    -- Shield Flash
+    if self.shieldFlash and self.shieldFlash > 0 then
+        Colors.setColor("accent", self.shieldFlash * 0.5)
+        love.graphics.circle("fill", 0, 0, self.radius + 5)
+    end
+    
     love.graphics.pop()
     
     -- Burn Visuals
@@ -170,13 +188,24 @@ function Enemy:draw()
         end
     end
 
+    -- Bars
+    local barWidth = self.radius * 2
+    local barHeight = 4
+    local bx = self.x - self.radius
+    local by = self.y - self.radius - 10
+    
+    -- Shield Bar
+    if self.hasShield and self.shieldHealth > 0 then
+        love.graphics.setColor(0, 0, 0, 0.5)
+        love.graphics.rectangle("fill", bx, by - 6, barWidth, barHeight)
+        
+        local shieldPercent = math.max(0, self.shieldHealth / self.maxShieldHealth)
+        Colors.setColor("accent", 1)
+        love.graphics.rectangle("fill", bx, by - 6, barWidth * shieldPercent, barHeight)
+    end
+
     -- HP Bar if damaged
     if self.hp < self.maxHp then
-        local barWidth = self.radius * 2
-        local barHeight = 4
-        local bx = self.x - self.radius
-        local by = self.y - self.radius - 10
-        
         love.graphics.setColor(0, 0, 0, 0.5)
         love.graphics.rectangle("fill", bx, by, barWidth, barHeight)
         
@@ -200,7 +229,18 @@ function Enemy:getContactDamage()
 end
 
 function Enemy:takeDamage(amount)
-    self.hp = self.hp - amount
+    if self.hasShield and self.shieldHealth > 0 then
+        self.shieldHealth = self.shieldHealth - amount
+        self.shieldFlash = 0.2 -- Trigger flash
+        if self.shieldHealth < 0 then
+            local excess = math.abs(self.shieldHealth)
+            self.shieldHealth = 0
+            self.hp = self.hp - excess
+        end
+    else
+        self.hp = self.hp - amount
+    end
+    
     if self.hp <= 0 then self.isDead = true end
 end
 
