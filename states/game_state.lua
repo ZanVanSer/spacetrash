@@ -21,6 +21,7 @@ local Telegraph = require('ui.attack_telegraph')
 local Colors = require('ui.colors')
 local EvolutionNotification = require('ui/evolution_notification')
 local UnlockNotification = require('ui/unlock_notification')
+local DifficultyScaler = require('systems.difficulty_scaler')
 
 local state = {}
 
@@ -76,7 +77,8 @@ function state:enter(saveData, stageData, shipData)
         self.backgroundTint = {1, 0.7, 0.4} -- Strong fire tint
     end
     
-    self.enemySpawner = Spawner.new(self.stageEnemies, self.enemySpawnInterval)
+    DifficultyScaler.init(self.stageData)
+    self.enemySpawner = Spawner.new(self.stageEnemies, self.enemySpawnInterval, DifficultyScaler)
     
     -- Run statistics
     self.runStatistics = {
@@ -244,6 +246,7 @@ function state:update(dt)
     if self.isPaused or self.isPausedByPlayer or self.isVictory or EvolutionNotification.active then return end
 
     self.gameTime = self.gameTime + dt
+    DifficultyScaler.update(dt)
     
     -- Track run statistics
     self.runStatistics.runTime = self.runStatistics.runTime + dt
