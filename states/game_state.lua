@@ -36,7 +36,7 @@ function state:enter(saveData, stageData, shipData)
     self.hud = HUD.new()
     self.screenshake = Screenshake
     self.particles = Particles
-    self.damageNumbers = DamageNumbers
+    self.damageNumbers = DamageNumbers.new()
     self.telegraph = Telegraph.new()
     self.screenFlash = {
         active = false,
@@ -230,7 +230,7 @@ function state:update(dt)
     self.background:update(dt)
     self.screenshake.update(dt)
     self.particles.update(dt)
-    self.damageNumbers.update(dt)
+    self.damageNumbers:update(dt)
     self.telegraph:update(dt)
     EvolutionNotification.update(dt)
     UnlockNotification.update(dt)
@@ -407,8 +407,15 @@ function state:update(dt)
                     end
                     
                     local damage = b.weaponData.damage
+                    local isCrit = false
+                    -- Simple crit check if weaponData has critChance
+                    if b.weaponData.critChance and math.random() < b.weaponData.critChance then
+                        isCrit = true
+                        damage = damage * (b.weaponData.critMult or 2)
+                    end
+                    
                     e:takeDamage(damage)
-                    self.damageNumbers.spawn(e.x, e.y, damage, false)
+                    self.damageNumbers:spawn(e.x, e.y - 20, damage, isCrit)
                     self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
                     
                     b.hitEnemies[e] = true
@@ -820,7 +827,7 @@ function state:draw()
     love.graphics.setColor(1, 1, 1, 1)
 
     self.particles.draw()
-    self.damageNumbers.draw()
+    self.damageNumbers:draw()
     self.telegraph:draw()
     
     love.graphics.pop()
