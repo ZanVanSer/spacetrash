@@ -41,7 +41,13 @@ function SaveManager.getDefaultSave()
             totalKills = 0,
             bossesDefeated = 0,
             totalDamageDealt = 0,
-            highestLevel = 0
+            highestLevel = 0,
+            -- New difficulty stats
+            longestRun = 0,
+            maxEliteKills = 0,
+            maxHealthMultiplier = 1.0,
+            maxDamageMultiplier = 1.0,
+            maxThreatLevel = "LOW"
         }
     }
 end

@@ -1,6 +1,7 @@
 local json = require("systems/json")
 local Screenshake = require("systems/screenshake")
 local Particles = require("systems/particles")
+local DifficultyScaler = require("systems/difficulty_scaler")
 
 local Settings = {}
 
@@ -21,7 +22,8 @@ function Settings.getDefaults()
         },
         gameplay = {
             screenShake = true,
-            particles = true
+            particles = true,
+            enemyScaling = true
         }
     }
 end
@@ -116,6 +118,9 @@ function Settings.apply(settings)
     -- 3. Gameplay Settings
     Screenshake.enabled = settings.gameplay.screenShake
     Particles.enabled = settings.gameplay.particles
+    if DifficultyScaler then
+        DifficultyScaler.scalingEnabled = settings.gameplay.enemyScaling
+    end
 end
 
 return Settings
