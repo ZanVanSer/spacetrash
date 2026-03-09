@@ -5,12 +5,16 @@ local Screenshake = require('systems.screenshake')
 local BossVisuals = require('entities.boss_visuals')
 local Colors = require('ui/colors')
 local SpecialAttacks = require('systems/special_attacks')
+local DifficultyScaler = require('systems.difficulty_scaler')
 local Boss = {}
 Boss.__index = Boss
 
 function Boss.new(x, y, bossData)
     local self = setmetatable({}, Boss)
-    self.bossData = bossData or {
+    
+    -- Create a local copy of bossData to avoid modifying the original data
+    self.bossData = {}
+    local sourceData = bossData or {
         id = "unknown",
         name = "Unknown Entity",
         maxHealth = 500,
@@ -19,13 +23,24 @@ function Boss.new(x, y, bossData)
         bulletSpeed = 200,
         bulletDamage = 10
     }
+    for k, v in pairs(sourceData) do self.bossData[k] = v end
+
     self.x = x or Screen.getVirtualWidth() / 2
     self.targetY = y or 80
     self.y = -100 -- Start above screen
     
-    -- Stats from bossData
+    -- Stats from bossData with scaling
     self.maxHealth = self.bossData.maxHealth or 500
+    if DifficultyScaler and DifficultyScaler.getHealthMultiplier then
+        self.maxHealth = self.maxHealth * DifficultyScaler.getHealthMultiplier()
+    end
     self.health = self.maxHealth
+    
+    -- Scale bullet damage in bossData for pattern usage
+    if DifficultyScaler and DifficultyScaler.getDamageMultiplier then
+        self.bossData.bulletDamage = (self.bossData.bulletDamage or 10) * DifficultyScaler.getDamageMultiplier()
+    end
+
     self.radius = self.bossData.radius or 40
     
     -- Validation: Phases

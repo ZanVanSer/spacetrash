@@ -76,7 +76,11 @@ function state:draw()
         { title = "FLIGHT LOGS", color = "accent", items = { { label = "Total Runs", value = self.stats.totalRuns or 0 }, { label = "Flight Time", value = string.format("%dh %02dm", math.floor((self.stats.totalPlayTime or 0) / 3600), math.floor(((self.stats.totalPlayTime or 0) % 3600) / 60)) }, { label = "Highest Rank", value = "Lvl " .. (self.stats.highestLevel or 0) } } },
         { title = "COMBAT DATA", color = "danger", items = { { label = "Neutralizations", value = self.stats.totalKills or 0 }, { label = "Damage Output", value = math.floor((self.stats.totalDamageDealt or 0)) }, { label = "Priority Targets", value = self.stats.bossesDefeated or 0 } } },
         { title = "PREFERENCES", color = "xp", items = { { label = "Favorite Ship", value = self.stats.favoriteShip or "Vanguard" }, { label = "Main Armament", value = self.stats.favoriteWeapon or "Basic Laser" }, { label = "Target Rival", value = self.stats.mostKilledEnemy or "Drone" } } },
-        { title = "RECORDS", color = "health", items = { { label = "Fastest Boss", value = self.stats.fastestBossKill and (self.stats.fastestBossKill .. "s") or "N/A" }, { label = "Longest Flight", value = self.stats.longestRun and (math.floor(self.stats.longestRun / 60) .. "m") or "N/A" }, { label = "Scrap Assets", value = self.stats.totalXp or 0 } } }
+        { title = "RECORDS", color = "health", items = { 
+            { label = "Peak Difficulty", value = string.format("x%.1f HP, x%.1f DMG", self.stats.maxHealthMultiplier or 1.0, self.stats.maxDamageMultiplier or 1.0) }, 
+            { label = "Longest Flight", value = string.format("%02d:%02d", math.floor((self.stats.longestRun or 0) / 60), math.floor((self.stats.longestRun or 0) % 60)) }, 
+            { label = "Elite Kills", value = self.stats.maxEliteKills or 0 } 
+        } }
     }
     
     local startX = (screenWidth - (panelW * 2 + margin)) / 2

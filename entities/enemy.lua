@@ -6,7 +6,7 @@ local Colors = require('ui/colors')
 local Enemy = {}
 Enemy.__index = Enemy
 
-function Enemy.new(x, y, enemyData)
+function Enemy.new(x, y, enemyData, scaler)
     local self = setmetatable({}, Enemy)
     self.x, self.y = x, y
     self.enemyData = enemyData
@@ -17,6 +17,7 @@ function Enemy.new(x, y, enemyData)
     self.xpValue = enemyData.xp
     self.isDead = false
     self.radius = enemyData.radius or 15
+    self.scaler = scaler
     
     -- Shield System
     self.hasShield = enemyData.hasShield or false
@@ -102,10 +103,17 @@ function Enemy:update(dt, playerX, playerY)
             local baseSpeed = self.enemyData.bulletSpeed or 200
             local speed = baseSpeed * (0.9 + math.random() * 0.2)
             
+            -- Apply damage scaling
+            local baseDamage = self.enemyData.bulletDamage or 10
+            local scaledDamage = baseDamage
+            if self.scaler and self.scaler.getDamageMultiplier then
+                scaledDamage = baseDamage * self.scaler.getDamageMultiplier()
+            end
+            
             local bulletData = {
                 pattern = self.shootPattern,
                 speed = speed,
-                damage = self.enemyData.bulletDamage or 10
+                damage = scaledDamage
             }
 
             if pattern.createBullets then
@@ -167,7 +175,7 @@ function Enemy:draw()
         -- Rotation handled by visuals usually, but we can add a slight skew here
     end
     
-    EnemyVisuals.drawEnemy(self.enemyData.id, 0, 0, 1.0, 0, self.shieldHealth, self.shootTimer, self.shootInterval)
+    EnemyVisuals.drawEnemy(self.enemyData.id, 0, 0, 1.0, 0, self.shieldHealth, self.shootTimer, self.shootInterval, self.isElite)
     
     -- Shield Flash
     if self.shieldFlash and self.shieldFlash > 0 then

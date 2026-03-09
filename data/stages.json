@@ -4,13 +4,19 @@
     "name": "Asteroid Belt",
     "description": "Survive the asteroid field and defeat the guardian",
     "difficulty": 1,
-    
+    "scaling": {
+      "healthCurve": 1.5,
+      "damageCurve": 0.4,
+      "spawnCurve": 0.5,
+      "eliteChanceStart": 180,
+      "eliteChanceMax": 0.2
+    },
     "enemies": ["basic_drone", "zigzag_fighter", "bomber", "swarm_bee", "heavy_assault", "elite_fighter"],
     "enemySpawnRate": 1.0,
     "maxEnemiesOnScreen": 30,
     
     "boss": "storm_herald",
-    "survivalTime": 30,
+    "survivalTime": 600,
     
     "background": "asteroid_belt",
     "music": "battle_theme_1",
@@ -29,7 +35,13 @@
     "name": "Asteroid Belt 2",
     "description": "survive again",
     "difficulty": 2,
-    
+    "scaling": {
+      "healthCurve": 2.0,
+      "damageCurve": 0.5,
+      "spawnCurve": 0.6,
+      "eliteChanceStart": 180,
+      "eliteChanceMax": 0.3
+    },
     "enemies": ["basic_drone", "zigzag_fighter", "bomber", "swarm_bee"],
     "enemySpawnRate": 1.0,
     "maxEnemiesOnScreen": 15,
@@ -54,7 +66,13 @@
     "name": "Asteroid Belt 3",
     "description": "lock test",
     "difficulty": 1,
-    
+    "scaling": {
+      "healthCurve": 2.5,
+      "damageCurve": 0.7,
+      "spawnCurve": 0.8,
+      "eliteChanceStart": 120,
+      "eliteChanceMax": 0.4
+    },
     "enemies": ["basic_drone"],
     "enemySpawnRate": 2.0,
     "maxEnemiesOnScreen": 10,

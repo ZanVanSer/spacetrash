@@ -88,8 +88,68 @@ function HUD:draw(player, gameState)
     love.graphics.circle("fill", dotX, 35, 2)
   end
 
+  -- 3.5 Threat Level Display
+  local threatX, threatY = 10, 75
+  local threatW, threatH = 200, 45
+  local gameTime = gameState.gameTime
+  
+  local threatLevel = "LOW"
+  local threatColor = Colors.COLORS.health
+  local pulse = 1.0
+  
+  if gameTime < 120 then
+    threatLevel = "LOW"
+    threatColor = Colors.COLORS.health
+  elseif gameTime < 240 then
+    threatLevel = "MODERATE"
+    threatColor = Colors.COLORS.xp
+  elseif gameTime < 360 then
+    threatLevel = "HIGH"
+    threatColor = {1, 0.5, 0, 1} -- Orange
+  elseif gameTime < 480 then
+    threatLevel = "CRITICAL"
+    threatColor = Colors.COLORS.danger
+  else
+    threatLevel = "EXTREME"
+    threatColor = Colors.COLORS.danger
+    pulse = 0.7 + math.abs(math.sin(love.timer.getTime() * 10)) * 0.3
+  end
+
+  -- Border
+  Colors.setColor("accent", 0.3)
+  love.graphics.rectangle("line", threatX, threatY, threatW, threatH)
+  
+  -- Label
+  Colors.setColor("dim")
+  love.graphics.setFont(Fonts.getFont("tiny"))
+  love.graphics.print("THREAT LEVEL", threatX + 5, threatY + 4)
+  
+  -- Level Name
+  love.graphics.setColor(threatColor[1], threatColor[2], threatColor[3], (threatColor[4] or 1) * pulse)
+  love.graphics.setFont(Fonts.getFont("small"))
+  love.graphics.print(threatLevel, threatX + 80, threatY + 2)
+  
+  local DifficultyScaler = require('systems.difficulty_scaler')
+  local hMult = DifficultyScaler.getHealthMultiplier()
+  Colors.setColor("dim")
+  love.graphics.print(string.format("(x%.1f)", hMult), threatX + 150, threatY + 2)
+
+  -- Danger Meter
+  local meterX, meterY = threatX + 10, threatY + 22
+  local meterW, meterH = 180, 12
+  local meterFill = math.min(1.0, gameTime / 600) -- Fills over 10 minutes
+  
+  love.graphics.setColor(0, 0, 0, 0.5)
+  love.graphics.rectangle("fill", meterX, meterY, meterW, meterH)
+  
+  love.graphics.setColor(threatColor[1], threatColor[2], threatColor[3], (threatColor[4] or 1) * 0.8)
+  love.graphics.rectangle("fill", meterX, meterY, meterW * meterFill, meterH)
+  
+  Colors.setColor("accent", 0.5)
+  love.graphics.rectangle("line", meterX, meterY, meterW, meterH)
+
   -- 4. System Integrity Box
-  local boxX, boxY = 10, 70
+  local boxX, boxY = 10, 130
   local boxW, boxH = 200, 65
 
   -- Border
@@ -108,7 +168,7 @@ function HUD:draw(player, gameState)
   love.graphics.print("REGEN: " .. string.format("%.1f HP/s", player.recovery), boxX + 10, boxY + 45)
 
   -- 5. XP Progress Box
-  local xpBoxX, xpBoxY = 10, 150
+  local xpBoxX, xpBoxY = 10, 205
   local xpBoxW, xpBoxH = 200, 70
 
   -- Border
@@ -130,9 +190,9 @@ function HUD:draw(player, gameState)
   love.graphics.printf(string.format("XP: %d/%d", math.floor(player.xp), player.xpToNext), xpBoxX, xpBoxY + 55, xpBoxW, "center")
 
   -- 6. Weapons display box
-  local wBoxX, wBoxY = 10, 240
+  local wBoxX, wBoxY = 10, 285
   local wBoxW = 200
-  local slotH = 30
+  local slotH = 28
   local wBoxH = 4 * slotH + 8
 
   -- Border
@@ -149,11 +209,11 @@ function HUD:draw(player, gameState)
       local name = wd and wd.name:upper() or "UNKNOWN"
       
       -- Draw Icon
-      WeaponIcons.drawWeaponIcon(weaponId, wBoxX + 20, slotY + 12, 1.0)
+      WeaponIcons.drawWeaponIcon(weaponId, wBoxX + 20, slotY + 11, 0.9)
       
       Colors.setColor("accent")
       love.graphics.setFont(Fonts.getFont("small"))
-      love.graphics.print(name, wBoxX + 40, slotY + 2)
+      love.graphics.print(name, wBoxX + 40, slotY + 1)
       
       -- Stars/Level (Dynamic)
       local level = player.weaponLevels[weaponId] or 1
@@ -161,28 +221,28 @@ function HUD:draw(player, gameState)
       for j = 1, 5 do
           stars = stars .. (j <= level and "*" or "-")
       end
-      love.graphics.print(stars, wBoxX + 40, slotY + 14)
+      love.graphics.print(stars, wBoxX + 40, slotY + 12)
     else
       -- Generic empty slot icon
       Colors.setColor("dim", 0.3)
-      love.graphics.rectangle("line", wBoxX + 12, slotY + 4, 16, 16)
+      love.graphics.rectangle("line", wBoxX + 12, slotY + 4, 14, 14)
       
       Colors.setColor("dim", 0.5)
       love.graphics.setFont(Fonts.getFont("small"))
-      love.graphics.print("-- EMPTY --", wBoxX + 40, slotY + 6)
+      love.graphics.print("-- EMPTY --", wBoxX + 40, slotY + 4)
     end
     
     -- Slot divider
     if i < 4 then
       Colors.setColor("dim", 0.1)
-      love.graphics.line(wBoxX + 5, slotY + slotH - 2, wBoxX + wBoxW - 5, slotY + slotH - 2)
+      love.graphics.line(wBoxX + 5, slotY + slotH - 1, wBoxX + wBoxW - 5, slotY + slotH - 1)
     end
   end
 
   -- 7. Passives display box
-  local pBoxX, pBoxY = 10, 375
+  local pBoxX, pBoxY = 10, 410
   local pBoxW = 200
-  local pSlotH = 22
+  local pSlotH = 20
   local pBoxH = 4 * pSlotH + 8
 
   -- Border
@@ -205,7 +265,7 @@ function HUD:draw(player, gameState)
       local name = pd and pd.name:upper() or "UNKNOWN"
       
       -- Draw Icon
-      PassiveIcons.drawPassiveIcon(passive.id, pBoxX + 18, slotY + 10, 1.0)
+      PassiveIcons.drawPassiveIcon(passive.id, pBoxX + 18, slotY + 10, 0.9)
       
       Colors.setColor("dim")
       love.graphics.setFont(Fonts.getFont("small"))
@@ -213,7 +273,7 @@ function HUD:draw(player, gameState)
     else
       -- Generic empty slot icon
       Colors.setColor("dim", 0.2)
-      love.graphics.rectangle("line", wBoxX + 12, slotY + 4, 14, 14)
+      love.graphics.rectangle("line", wBoxX + 12, slotY + 4, 12, 12)
       
       Colors.setColor("dim", 0.4)
       love.graphics.setFont(Fonts.getFont("small"))
@@ -222,9 +282,9 @@ function HUD:draw(player, gameState)
   end
 
   -- 8. Ship Stats Box
-  local sBoxX, sBoxY = 10, 475
+  local sBoxX, sBoxY = 10, 498
   local sBoxW = 200
-  local statStep = 12
+  local statStep = 10
 
   local stats = {
     { label = "ARMOR", val = string.format("%d", player.armor) },
@@ -232,8 +292,7 @@ function HUD:draw(player, gameState)
     { label = "SPEED", val = string.format("%d%%", (player.speed / 200) * 100) },
     { label = "AREA",  val = string.format("%d%%", player.area * 100) },
     { label = "CDR",   val = string.format("%d%%", (1 - player.cooldown) * 100) },
-    { label = "AMOUNT",val = string.format("%d", player.amount) },
-    { label = "CRIT",  val = "0%" }
+    { label = "AMOUNT",val = string.format("%d", player.amount) }
   }
 
   local sBoxH = #stats * statStep + 8

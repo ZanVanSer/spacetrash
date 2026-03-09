@@ -35,7 +35,8 @@ function SettingsMenu:enter()
             name = "Gameplay",
             options = {
                 { name = "Screen Shake", key = "screenShake", category = "gameplay", values = {true, false} },
-                { name = "Particles", key = "particles", category = "gameplay", values = {true, false} }
+                { name = "Particles", key = "particles", category = "gameplay", values = {true, false} },
+                { name = "Enemy Scaling", key = "enemyScaling", category = "gameplay", values = {true, false} }
             }
         }
     }

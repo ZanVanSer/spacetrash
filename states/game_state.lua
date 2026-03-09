@@ -21,6 +21,7 @@ local Telegraph = require('ui.attack_telegraph')
 local Colors = require('ui.colors')
 local EvolutionNotification = require('ui/evolution_notification')
 local UnlockNotification = require('ui/unlock_notification')
+local DifficultyScaler = require('systems.difficulty_scaler')
 
 local state = {}
 
@@ -76,15 +77,20 @@ function state:enter(saveData, stageData, shipData)
         self.backgroundTint = {1, 0.7, 0.4} -- Strong fire tint
     end
     
-    self.enemySpawner = Spawner.new(self.stageEnemies, self.enemySpawnInterval)
+    DifficultyScaler.init(self.stageData)
+    self.enemySpawner = Spawner.new(self.stageEnemies, self.enemySpawnInterval, DifficultyScaler)
     
     -- Run statistics
     self.runStatistics = {
         kills = 0,
+        eliteKills = 0,
         damageDealt = 0,
         runTime = 0,
         highestLevel = 1,
-        bossesDefeated = 0
+        bossesDefeated = 0,
+        maxHealthMultiplier = 1.0,
+        maxDamageMultiplier = 1.0,
+        maxThreatLevel = "LOW"
     }
 end
 
@@ -137,7 +143,7 @@ end
 
 function state:saveProgress(isTerminal)
     if not self.currentSaveData then return end
-    
+
     if isTerminal then
         -- Ensure statistics table exists
         if not self.currentSaveData.statistics then
@@ -147,7 +153,12 @@ function state:saveProgress(isTerminal)
                 totalKills = 0,
                 bossesDefeated = 0,
                 totalDamageDealt = 0,
-                highestLevel = 0
+                highestLevel = 0,
+                longestRun = 0,
+                maxEliteKills = 0,
+                maxHealthMultiplier = 1.0,
+                maxDamageMultiplier = 1.0,
+                maxThreatLevel = "LOW"
             }
         end
 
@@ -159,6 +170,19 @@ function state:saveProgress(isTerminal)
         stats.bossesDefeated = (stats.bossesDefeated or 0) + self.runStatistics.bossesDefeated
         stats.highestLevel = math.max(stats.highestLevel or 0, self.runStatistics.highestLevel)
 
+        -- Update persistent difficulty records
+        stats.longestRun = math.max(stats.longestRun or 0, self.runStatistics.runTime)
+        stats.maxEliteKills = math.max(stats.maxEliteKills or 0, self.runStatistics.eliteKills)
+        stats.maxHealthMultiplier = math.max(stats.maxHealthMultiplier or 1.0, self.runStatistics.maxHealthMultiplier)
+        stats.maxDamageMultiplier = math.max(stats.maxDamageMultiplier or 1.0, self.runStatistics.maxDamageMultiplier)
+
+        local threatOrder = { LOW = 1, MODERATE = 2, HIGH = 3, CRITICAL = 4, EXTREME = 5 }
+        local currentMax = stats.maxThreatLevel or "LOW"
+        local runMax = self.runStatistics.maxThreatLevel or "LOW"
+        if (threatOrder[runMax] or 0) > (threatOrder[currentMax] or 0) then
+            stats.maxThreatLevel = runMax
+        end
+
         -- Use the global currentSaveSlot if not explicitly stored
         local slot = self.currentSaveSlot or _G.currentSaveSlot
         if slot then
@@ -166,7 +190,6 @@ function state:saveProgress(isTerminal)
         end
     end
 end
-
 function state:checkGameplayUnlocks()
     if not self.currentSaveData then return end
     
@@ -244,9 +267,25 @@ function state:update(dt)
     if self.isPaused or self.isPausedByPlayer or self.isVictory or EvolutionNotification.active then return end
 
     self.gameTime = self.gameTime + dt
-    
+    DifficultyScaler.update(dt)
+
     -- Track run statistics
     self.runStatistics.runTime = self.runStatistics.runTime + dt
+    self.runStatistics.maxHealthMultiplier = math.max(self.runStatistics.maxHealthMultiplier or 1.0, DifficultyScaler.getHealthMultiplier())
+    self.runStatistics.maxDamageMultiplier = math.max(self.runStatistics.maxDamageMultiplier or 1.0, DifficultyScaler.getDamageMultiplier())
+
+    local runMaxThreat = "LOW"
+    if self.gameTime >= 480 then runMaxThreat = "EXTREME"
+    elseif self.gameTime >= 360 then runMaxThreat = "CRITICAL"
+    elseif self.gameTime >= 240 then runMaxThreat = "HIGH"
+    elseif self.gameTime >= 120 then runMaxThreat = "MODERATE"
+    end
+    
+    local threatOrder = { LOW = 1, MODERATE = 2, HIGH = 3, CRITICAL = 4, EXTREME = 5 }
+    if (threatOrder[runMaxThreat] or 0) > (threatOrder[self.runStatistics.maxThreatLevel or "LOW"] or 0) then
+        self.runStatistics.maxThreatLevel = runMaxThreat
+    end
+
     if self.player.level > self.runStatistics.highestLevel then
         self.runStatistics.highestLevel = self.player.level
     end
@@ -516,6 +555,9 @@ function state:update(dt)
                         e.xpGiven = true
                         self.enemiesKilled = self.enemiesKilled + 1
                         self.runStatistics.kills = self.runStatistics.kills + 1
+                        if e.isElite then
+                            self.runStatistics.eliteKills = (self.runStatistics.eliteKills or 0) + 1
+                        end
                         
                         -- Grey Goo Growth logic
                         if b.weaponData.specialEffect == "consume_and_grow" then
@@ -648,6 +690,9 @@ function state:update(dt)
             e.xpGiven = true
             self.enemiesKilled = self.enemiesKilled + 1
             self.runStatistics.kills = self.runStatistics.kills + 1
+            if e.isElite then
+                self.runStatistics.eliteKills = (self.runStatistics.eliteKills or 0) + 1
+            end
             self.screenshake.trigger(2, 0.1)
             self.particles.enemyDeath(e.x, e.y)
             self.particles.xpPickup(self.player.x, self.player.y)
