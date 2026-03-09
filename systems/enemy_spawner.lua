@@ -9,6 +9,7 @@ function Spawner.new(enemyList, spawnInterval, scaler)
     local self = setmetatable({
         enemies = {},
         spawnTimer = 0,
+        baseSpawnInterval = spawnInterval or 2,
         spawnInterval = spawnInterval or 2,
         enemyList = enemyList or {"drone"},
         active = true,
@@ -30,6 +31,13 @@ end
 
 function Spawner:update(dt, playerX, playerY)
     if self.active then
+        -- Calculate scaled interval
+        local scaledInterval = self.baseSpawnInterval
+        if self.scaler and self.scaler.getSpawnRateMultiplier then
+            scaledInterval = self.baseSpawnInterval / self.scaler.getSpawnRateMultiplier()
+        end
+        self.spawnInterval = scaledInterval
+
         self.spawnTimer = self.spawnTimer + dt
         if self.spawnTimer >= self.spawnInterval then
             if #self.enemyDataList > 0 then
