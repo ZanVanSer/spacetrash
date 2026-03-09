@@ -15,6 +15,7 @@ local Particles = require('systems.particles')
 local Scanlines = require('ui.scanlines')
 local DamageNumbers = require('ui.damage_numbers')
 local XPOrb = require('entities.xp_orb')
+local ComboCounter = require('ui.combo_counter')
 local Layout = require('ui/layout')
 local Fonts = require('ui/fonts')
 local HUD = require('ui/hud')
@@ -40,6 +41,7 @@ function state:enter(saveData, stageData, shipData)
     self.particles = Particles
     self.damageNumbers = DamageNumbers.new()
     self.xpOrbs = {}
+    self.combo = ComboCounter.new()
     self.telegraph = Telegraph.new()
     self.screenFlash = {
         active = false,
@@ -241,6 +243,7 @@ function state:update(dt)
     self.screenshake.update(dt)
     self.particles.update(dt)
     self.damageNumbers:update(dt)
+    self.combo:update(dt)
 
     -- Update XP Orbs
     for i = #self.xpOrbs, 1, -1 do
@@ -474,8 +477,18 @@ function state:update(dt)
                                         self.particles.lightningChain(currentSource.x, currentSource.y, nearest.x, nearest.y, "accent")
                                         currentSource = nearest
                                         if nearest.isDead and not nearest.xpGiven then
-                                            local orb = XPOrb.new(nearest.x, nearest.y, nearest.xpValue)
+                                            local xpValue = nearest.xpValue
+                                            if self.combo.comboCount >= 50 then
+                                                xpValue = math.floor(xpValue * 1.5)
+                                            elseif self.combo.comboCount >= 25 then
+                                                xpValue = math.floor(xpValue * 1.25)
+                                            elseif self.combo.comboCount >= 10 then
+                                                xpValue = math.floor(xpValue * 1.1)
+                                            end
+                                            
+                                            local orb = XPOrb.new(nearest.x, nearest.y, xpValue)
                                             table.insert(self.xpOrbs, orb)
+                                            self.combo:onKill(nearest.x, nearest.y)
                                             nearest.xpGiven = true
                                             self.enemiesKilled = self.enemiesKilled + 1
                                             self.runStatistics.kills = self.runStatistics.kills + 1
@@ -584,8 +597,19 @@ function state:update(dt)
                         end
                         
                         if e.isDead and not e.xpGiven then
-                            local orb = XPOrb.new(e.x, e.y, e.xpValue)
+                            local xpValue = e.xpValue
+                            -- Bonus XP for high combos
+                            if self.combo.comboCount >= 50 then
+                                xpValue = math.floor(xpValue * 1.5)
+                            elseif self.combo.comboCount >= 25 then
+                                xpValue = math.floor(xpValue * 1.25)
+                            elseif self.combo.comboCount >= 10 then
+                                xpValue = math.floor(xpValue * 1.1)
+                            end
+
+                            local orb = XPOrb.new(e.x, e.y, xpValue)
                             table.insert(self.xpOrbs, orb)
+                            self.combo:onKill(e.x, e.y)
                             e.xpGiven = true
                             self.enemiesKilled = self.enemiesKilled + 1
                             self.runStatistics.kills = self.runStatistics.kills + 1
@@ -657,6 +681,7 @@ function state:update(dt)
             if not e.isDead then
                 if checkCircleCollision(self.player.x, self.player.y, self.player.radius, e.x, e.y, e.radius) then
                     self.player:takeDamage(e:getContactDamage())
+                    self.combo:onPlayerHit()
                     e.isDead = true
                     self.screenshake.trigger(8, 0.2)
                     self.particles.playerHit(self.player.x, self.player.y)
@@ -668,6 +693,7 @@ function state:update(dt)
                     if not eb.isDead then
                         if checkCircleCollision(eb.x, eb.y, eb.radius or 6, self.player.x, self.player.y, self.player.radius) then
                             self.player:takeDamage(eb.patternData.damage or 5)
+                            self.combo:onPlayerHit()
                             eb.isDead = true
                             self.particles.playerHit(self.player.x, self.player.y)
                             self.screenshake.trigger(6, 0.15)
@@ -682,6 +708,7 @@ function state:update(dt)
             -- Player-Boss Body Contact Collision
             if checkCircleCollision(self.player.x, self.player.y, self.player.radius, self.boss.x, self.boss.y, self.boss.radius) then
                 self.player:takeDamage(self.boss:getContactDamage() * dt * 60)
+                self.combo:onPlayerHit()
                 self.screenshake.trigger(10, 0.1)
                 self.particles.playerHit(self.player.x, self.player.y)
             end
@@ -691,6 +718,7 @@ function state:update(dt)
                 if not bb.isDead then
                     if checkCircleCollision(bb.x, bb.y, bb.radius or 8, self.player.x, self.player.y, self.player.radius) then
                         self.player:takeDamage(bb.patternData.damage or 10)
+                        self.combo:onPlayerHit()
                         bb.isDead = true
                         self.screenshake.trigger(8, 0.2)
                         self.particles.playerHit(self.player.x, self.player.y)
@@ -714,9 +742,20 @@ function state:update(dt)
         -- Global Death Processing (Catch-all for AOE/Chains)
         for _, e in ipairs(enemies) do
             if e.isDead and not e.xpGiven then
-                local orb = XPOrb.new(e.x, e.y, e.xpValue)
+                local xpValue = e.xpValue
+                if self.combo.comboCount >= 50 then
+                    xpValue = math.floor(xpValue * 1.5)
+                elseif self.combo.comboCount >= 25 then
+                    xpValue = math.floor(xpValue * 1.25)
+                elseif self.combo.comboCount >= 10 then
+                    xpValue = math.floor(xpValue * 1.1)
+                end
+
+                local orb = XPOrb.new(e.x, e.y, xpValue)
                 table.insert(self.xpOrbs, orb)
+                self.combo:onKill(e.x, e.y)
                 e.xpGiven = true
+
                 self.enemiesKilled = self.enemiesKilled + 1
                 self.runStatistics.kills = self.runStatistics.kills + 1
                 if e.isElite then
@@ -896,6 +935,7 @@ function state:draw()
     end
 
     self.damageNumbers:draw()
+    self.combo:draw()
     self.telegraph:draw()
     
     love.graphics.pop()
