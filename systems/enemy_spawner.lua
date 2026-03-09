@@ -54,9 +54,10 @@ function Spawner:update(dt, playerX, playerY)
                 
                 -- Elite enemy logic
                 local isElite = false
-                if self.scaler and self.scaler.elapsedTime > 180 then
-                    local minutesPast3 = (self.scaler.elapsedTime - 180) / 180
-                    local eliteChance = math.min(0.25, 0.05 + minutesPast3 * 0.10)
+                if self.scaler and self.scaler.elapsedTime > self.scaler.eliteChanceStart then
+                    local startTime = self.scaler.eliteChanceStart
+                    local minutesPastStart = (self.scaler.elapsedTime - startTime) / 180
+                    local eliteChance = math.min(self.scaler.eliteChanceMax, 0.05 + minutesPastStart * 0.10)
                     if love.math.random() < eliteChance then
                         isElite = true
                     end

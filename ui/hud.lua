@@ -129,8 +129,8 @@ function HUD:draw(player, gameState)
   love.graphics.setFont(Fonts.getFont("small"))
   love.graphics.print(threatLevel, threatX + 80, threatY + 2)
   
-  -- Multiplier (Optional/Extra)
-  local hMult = 1.0 + (gameTime / 120) * 0.5
+  local DifficultyScaler = require('systems.difficulty_scaler')
+  local hMult = DifficultyScaler.getHealthMultiplier()
   Colors.setColor("dim")
   love.graphics.print(string.format("(x%.1f)", hMult), threatX + 150, threatY + 2)
 
