@@ -10,7 +10,7 @@
     "maxEnemiesOnScreen": 30,
     
     "boss": "storm_herald",
-    "survivalTime": 30,
+    "survivalTime": 300,
     
     "background": "asteroid_belt",
     "music": "battle_theme_1",
