@@ -47,7 +47,7 @@
     "cooldown": 0.9,
     "area": 1.1,
     "amount": 0,
-    "startWeapon": "basic_laser",
+    "startWeapon": "gravity_mines",
     "unlockCondition": "default"
   },
   {

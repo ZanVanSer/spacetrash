@@ -25,12 +25,17 @@ end
 ---Spawn a new floating damage number
 ---@param x number The x position (virtual coordinates)
 ---@param y number The y position (virtual coordinates)
----@param damage number The damage amount
+---@param damage number|string The damage amount or custom text
 ---@param isCrit boolean Whether this is a critical hit
 function DamageNumbers:spawn(x, y, damage, isCrit)
-    local text = tostring(math.floor(damage))
-    if isCrit then
-        text = text .. "!"
+    local text = ""
+    if type(damage) == "string" then
+        text = damage
+    else
+        text = tostring(math.floor(damage))
+        if isCrit then
+            text = text .. "!"
+        end
     end
 
     local number = {

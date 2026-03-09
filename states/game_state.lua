@@ -34,6 +34,7 @@ function state:enter(saveData, stageData, shipData)
     self.shipData = shipData or self.shipData
     
     self.player = Player.new(self.shipData or dl.getShips()[1])
+    self.player.gameState = self
     self.hud = HUD.new()
     self.screenshake = Screenshake
     self.particles = Particles

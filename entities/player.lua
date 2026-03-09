@@ -85,6 +85,10 @@ function Player.new(shipData)
     self.evoEffectTimer = 0
     self.isEvolving = false
 
+    -- Damage Feedback & Invulnerability
+    self.invulnTimer = 0
+    self.damageFlashTimer = 0
+
     return self
 end
 
@@ -294,14 +298,36 @@ function Player:update(dt)
             self.isEvolving = false
         end
     end
+
+    -- Damage Feedback & Invulnerability Timers
+    if self.invulnTimer > 0 then
+        self.invulnTimer = self.invulnTimer - dt
+    end
+    if self.damageFlashTimer > 0 then
+        self.damageFlashTimer = self.damageFlashTimer - dt
+    end
 end
 
 function Player:draw()
     -- Draw ship using visual system
+    local alpha = 1.0
+    if self.invulnTimer > 0 then
+        -- Blink on/off during invulnerability (10Hz)
+        if math.floor(love.timer.getTime() * 20) % 2 == 0 then
+            alpha = 0.3
+        end
+    end
+
     if self.isEvolving then
         local flashAlpha = math.min(1, self.evoEffectTimer / 0.5)
         love.graphics.setColor(0, 1, 1, flashAlpha)
+    elseif self.damageFlashTimer > 0 then
+        -- Flash red briefly
+        love.graphics.setColor(1, 0, 0, alpha)
+    else
+        love.graphics.setColor(1, 1, 1, alpha)
     end
+    
     ShipVisuals.drawShip(self.shipId, self.x, self.y, 1.0, 0)
     love.graphics.setColor(1, 1, 1, 1)
     
@@ -332,11 +358,37 @@ function Player:getBullets() return self.ws:getBullets() end
 function Player:addWeapon(id) self.ws:equipWeapon(id) end
 
 function Player:takeDamage(amount)
-    if self.isEvolving then return end -- Invulnerable during evolution
+    if self.isEvolving or self.invulnTimer > 0 then return end
     
     -- Apply armor reduction (simple reduction, minimum 1 damage)
     local actualDamage = math.max(1, amount - (self.armor or 0))
     self.hp = self.hp - actualDamage
+
+    -- 1. Temporary Invulnerability (0.5 seconds)
+    self.invulnTimer = 0.5
+    self.damageFlashTimer = 0.2
+
+    -- 2. Visual Feedback
+    -- Screen shake
+    ScreenShake.trigger(6, 0.3)
+    
+    -- Particle burst (red particles)
+    Particles.spawn(self.x, self.y, 15, "danger", 150, 2)
+
+    -- GameState interactions (if available)
+    if self.gameState then
+        -- Screen border flashes red
+        if self.gameState.flashScreen then
+            self.gameState:flashScreen("danger", 0.2, 0.4)
+        end
+        
+        -- Floating damage number: "-10 HP"
+        if self.gameState.damageNumbers and self.gameState.damageNumbers.spawn then
+            self.gameState.damageNumbers:spawn(self.x, self.y - 30, "-" .. math.floor(actualDamage) .. " HP", false)
+        end
+    end
+
+    -- 3. Sound trigger point (Sound.play("player_hit"))
 end
 
 return Player
