@@ -52,9 +52,29 @@ function Spawner:update(dt, playerX, playerY)
                     spawnData.hp = (data.hp or 10) * self.scaler.getHealthMultiplier()
                 end
                 
+                -- Elite enemy logic
+                local isElite = false
+                if self.scaler and self.scaler.elapsedTime > 180 then
+                    local minutesPast3 = (self.scaler.elapsedTime - 180) / 180
+                    local eliteChance = math.min(0.25, 0.05 + minutesPast3 * 0.10)
+                    if love.math.random() < eliteChance then
+                        isElite = true
+                    end
+                end
+
+                if isElite then
+                    spawnData.isElite = true
+                    spawnData.hp = spawnData.hp * 1.5
+                    spawnData.bulletDamage = (spawnData.bulletDamage or 10) * 1.3
+                    spawnData.speed = (spawnData.speed or 100) * 1.2
+                    spawnData.xp = (spawnData.xp or 5) * 2.0
+                end
+
                 -- Spawn within game viewport (220 to 800) with buffer
                 local x = love.math.random(240, Screen.getVirtualWidth() - 20)
-                table.insert(self.enemies, Enemy.new(x, -20, spawnData, self.scaler))
+                local newEnemy = Enemy.new(x, -20, spawnData, self.scaler)
+                if isElite then newEnemy.isElite = true end
+                table.insert(self.enemies, newEnemy)
             end
             self.spawnTimer = 0
         end

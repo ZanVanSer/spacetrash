@@ -175,7 +175,7 @@ function Enemy:draw()
         -- Rotation handled by visuals usually, but we can add a slight skew here
     end
     
-    EnemyVisuals.drawEnemy(self.enemyData.id, 0, 0, 1.0, 0, self.shieldHealth, self.shootTimer, self.shootInterval)
+    EnemyVisuals.drawEnemy(self.enemyData.id, 0, 0, 1.0, 0, self.shieldHealth, self.shootTimer, self.shootInterval, self.isElite)
     
     -- Shield Flash
     if self.shieldFlash and self.shieldFlash > 0 then
