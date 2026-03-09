@@ -94,6 +94,12 @@ function state:enter(saveData, stageData, shipData)
         maxDamageMultiplier = 1.0,
         maxThreatLevel = "LOW"
     }
+
+    self.levelUpEffect = {
+        timer = 0,
+        level = 1,
+        alpha = 0
+    }
 end
 
 function state:flashScreen(color, duration, intensity)
@@ -724,9 +730,42 @@ function state:update(dt)
     end
 
     if self.player.level > oldLevel then
+        -- Dramatic Level Up Sequence
+        self.levelUpEffect.timer = 2.0
+        self.levelUpEffect.level = self.player.level
+        self.levelUpEffect.alpha = 1.0
+        
+        -- 1. Screen flash white (0.3 seconds)
+        self:flashScreen({1, 1, 1, 1}, 0.3, 0.8)
+        
+        -- 2. Particle burst from player (30+ particles)
+        self.particles.spawn(self.player.x, self.player.y, 40, "accent", 200, 3)
+        
+        -- 3. Screen shake
+        self.screenshake.trigger(8, 0.5)
+        
+        -- 4. Player moment - briefly pause enemy spawning
+        if self.enemySpawner then
+            self.enemySpawner.active = false
+            -- We'll resume it after the timer in the update loop below
+        end
+
         self.isPaused = true
         self.upgradeMenu = UpgradeMenu.new(self.player)
         self:checkGameplayUnlocks()
+    end
+
+    -- Update Level Up Effect
+    if self.levelUpEffect.timer > 0 then
+        self.levelUpEffect.timer = self.levelUpEffect.timer - dt
+        if self.levelUpEffect.timer <= 1.5 then
+            self.levelUpEffect.alpha = math.max(0, self.levelUpEffect.timer / 1.5)
+        end
+        
+        -- Resume spawner after brief pause
+        if self.levelUpEffect.timer <= 1.5 and self.enemySpawner and not self.bossSpawned then
+            self.enemySpawner.active = true
+        end
     end
 end
 
@@ -880,6 +919,26 @@ function state:draw()
 
     if self.isPaused and self.upgradeMenu then
         self.upgradeMenu:draw()
+    end
+
+    -- Draw LEVEL UP! Effect
+    if self.levelUpEffect.timer > 0 and self.levelUpEffect.alpha > 0 then
+        local alpha = self.levelUpEffect.alpha
+        local glow = 0.5 + math.sin(love.timer.getTime() * 10) * 0.2
+        
+        love.graphics.setFont(Fonts.getFont("huge"))
+        -- Outer Glow
+        Colors.setColor("accent", alpha * 0.3 * glow)
+        love.graphics.printf("LEVEL UP!", hudW, vh * 0.35 - 2, vw - hudW, "center")
+        love.graphics.printf("LEVEL UP!", hudW, vh * 0.35 + 2, vw - hudW, "center")
+        
+        -- Main Text
+        Colors.setColor("accent", alpha)
+        love.graphics.printf("LEVEL UP!", hudW, vh * 0.35, vw - hudW, "center")
+        
+        -- Level Text
+        love.graphics.setFont(Fonts.getFont("large"))
+        love.graphics.printf("SYSTEM LEVEL " .. self.levelUpEffect.level, hudW, vh * 0.45, vw - hudW, "center")
     end
 
     if self.isVictory then
