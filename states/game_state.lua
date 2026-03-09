@@ -467,7 +467,7 @@ function state:update(dt)
                                     if nearest then
                                         local chainDamage = math.floor(damage * 0.6)
                                         nearest:takeDamage(chainDamage)
-                                        self.damageNumbers.spawn(nearest.x, nearest.y, chainDamage, false)
+                                        self.damageNumbers:spawn(nearest.x, nearest.y, chainDamage, false)
                                         self.runStatistics.damageDealt = self.runStatistics.damageDealt + chainDamage
                                         b.hitEnemies[nearest] = true
                                         self.particles.lightningChain(currentSource.x, currentSource.y, nearest.x, nearest.y, "accent")
@@ -491,7 +491,7 @@ function state:update(dt)
                                         local dx, dy = nextE.x - e.x, nextE.y - e.y
                                         if dx*dx + dy*dy < expArea*expArea then
                                             nextE:takeDamage(expDamage)
-                                            self.damageNumbers.spawn(nextE.x, nextE.y, expDamage, false)
+                                            self.damageNumbers:spawn(nextE.x, nextE.y, expDamage, false)
                                             self.runStatistics.damageDealt = self.runStatistics.damageDealt + expDamage
                                         end
                                     end
@@ -630,7 +630,7 @@ function state:update(dt)
                     else
                         local damage = b.weaponData.damage
                         self.boss:takeDamage(damage)
-                        self.damageNumbers.spawn(b.x, b.y, damage, false)
+                        self.damageNumbers:spawn(b.x, b.y, damage, false)
                         self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
 
                         b.hitEnemies[self.boss] = true

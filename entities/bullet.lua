@@ -61,7 +61,7 @@ function Bullet:explode()
                     e:takeDamage(damage)
 
                     if self.gameState then
-                        self.gameState.damageNumbers.spawn(e.x, e.y, damage, false)
+                        self.gameState.damageNumbers:spawn(e.x, e.y, damage, false)
                         self.gameState.runStatistics.damageDealt = self.gameState.runStatistics.damageDealt + damage
                         
                         if e.isDead and not e.xpGiven and self.gameState.player then
