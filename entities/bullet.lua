@@ -15,6 +15,7 @@ function Bullet.new(x, y, weaponData)
     self.isExploded = false
     self.hitEnemies = {} 
     self.hitResetTimer = 0
+    self.trail = {}
     
     -- Pattern initialization
     if weaponData.pattern == "cloud" then
@@ -114,6 +115,19 @@ function Bullet:update(dt)
             self.isDead = true
         end
     end
+
+    -- Update trail
+    if not self.isDead then
+        table.insert(self.trail, 1, {x = self.x, y = self.y, angle = self.angle})
+        local maxTrail = 5
+        if self.weaponData.bulletSpeed then
+            -- Faster bullets get longer trails for better motion blur feel
+            maxTrail = math.floor(math.min(10, 3 + self.weaponData.bulletSpeed / 100))
+        end
+        while #self.trail > maxTrail do
+            table.remove(self.trail)
+        end
+    end
 end
 
 function Bullet:draw()
@@ -192,6 +206,26 @@ function Bullet:draw()
 
     -- Special case for wave: skip standard glow passes since it's huge
     if self.weaponData.pattern == "wave" then return end
+
+    -- Draw Trail
+    if #self.trail > 1 and self.weaponData.pattern ~= "cloud" then
+        for i = 2, #self.trail do
+            local pos = self.trail[i]
+            local progress = (i - 1) / (#self.trail - 1)
+            local alpha = (1 - progress) * 0.3
+            local scale = 1 - progress * 0.4
+            
+            love.graphics.push()
+            love.graphics.translate(pos.x, pos.y)
+            local tAngle = (pos.angle or self.angle or -math.pi/2) + math.pi/2
+            love.graphics.rotate(tAngle)
+            love.graphics.scale(scale, scale)
+            
+            Colors.setColor("accent", alpha)
+            drawShape()
+            love.graphics.pop()
+        end
+    end
 
     love.graphics.push()
     love.graphics.translate(self.x, self.y)
