@@ -4,6 +4,7 @@ local Colors = require("ui/colors")
 local Fonts = require("ui/fonts")
 local Screen = require("systems/screen")
 local sm = require("states/statemanager")
+local AudioManager = require("systems/audio_manager")
 
 local SettingsMenu = {}
 
@@ -78,6 +79,7 @@ end
 function SettingsMenu:keypressed(key)
     if self.isResetting then
         if key == "y" then
+            AudioManager.playSound("ui.select")
             self.currentSettings = Settings.getDefaults()
             Settings.save(self.currentSettings)
             Settings.apply(self.currentSettings)
@@ -86,6 +88,7 @@ function SettingsMenu:keypressed(key)
             self.isResetting = false
             self.saveMessageTimer = 2.0
         elseif key == "n" or key == "x" or key == "escape" then
+            AudioManager.playSound("ui.back")
             self.isResetting = false
         end
         return
@@ -93,12 +96,15 @@ function SettingsMenu:keypressed(key)
 
     if self.showConfirm then
         if key == "up" then
+            AudioManager.playSound("ui.navigate")
             self.confirmSelection = self.confirmSelection - 1
             if self.confirmSelection < 1 then self.confirmSelection = #self.confirmOptions end
         elseif key == "down" then
+            AudioManager.playSound("ui.navigate")
             self.confirmSelection = self.confirmSelection + 1
             if self.confirmSelection > #self.confirmOptions then self.confirmSelection = 1 end
         elseif key == "z" or key == "return" then
+            AudioManager.playSound("ui.select")
             if self.confirmSelection == 1 then -- Apply
                 Settings.save(self.currentSettings)
                 Settings.apply(self.currentSettings)
@@ -110,12 +116,14 @@ function SettingsMenu:keypressed(key)
                 self.showConfirm = false
             end
         elseif key == "x" or key == "escape" then
+            AudioManager.playSound("ui.back")
             self.showConfirm = false
         end
         return
     end
 
     if key == "r" then
+        AudioManager.playSound("ui.select")
         self.isResetting = true
         return
     end
@@ -124,16 +132,19 @@ function SettingsMenu:keypressed(key)
     local numOptions = #section.options
 
     if key == "up" then
+        AudioManager.playSound("ui.navigate")
         self.selectionRow = self.selectionRow - 1
         if self.selectionRow < 0 then
             self.selectionRow = numOptions + 1
         end
     elseif key == "down" then
+        AudioManager.playSound("ui.navigate")
         self.selectionRow = self.selectionRow + 1
         if self.selectionRow > numOptions + 1 then
             self.selectionRow = 0
         end
     elseif key == "left" then
+        AudioManager.playSound("ui.navigate")
         if self.selectionRow == 0 or self.selectionRow == numOptions + 1 then
             self.selectedSection = self.selectedSection - 1
             if self.selectedSection < 1 then self.selectedSection = #self.sections end
@@ -142,6 +153,7 @@ function SettingsMenu:keypressed(key)
             self:changeValue(-1)
         end
     elseif key == "right" then
+        AudioManager.playSound("ui.navigate")
         if self.selectionRow == 0 or self.selectionRow == numOptions + 1 then
             self.selectedSection = self.selectedSection + 1
             if self.selectedSection > #self.sections then self.selectedSection = 1 end
@@ -150,6 +162,7 @@ function SettingsMenu:keypressed(key)
             self:changeValue(1)
         end
     elseif key == "z" or key == "return" then
+        AudioManager.playSound("ui.select")
         if self.selectionRow == numOptions + 1 then
             if self.needsApply then
                 self.showConfirm = true
@@ -168,6 +181,7 @@ function SettingsMenu:keypressed(key)
             end
         end
     elseif key == "x" or key == "escape" then
+        AudioManager.playSound("ui.back")
         if self.needsApply then
             self.showConfirm = true
             self.confirmSelection = 1

@@ -3,6 +3,7 @@ local stateManager = require "states/statemanager"
 local ShipVisuals = require "entities/ship_visuals"
 local Screen = require('systems.screen')
 local Fonts = require('ui/fonts')
+local AudioManager = require('systems/audio_manager')
 
 local state = {}
 
@@ -52,12 +53,14 @@ end
 function state:keypressed(key)
     if not self.allShips or #self.allShips == 0 then
         if key == "x" then
+            AudioManager.playSound("ui.back")
             stateManager.switch('stage_select', self.saveData)
         end
         return
     end
 
     if key == "left" then
+        AudioManager.playSound("ui.navigate")
         self.lastSelectedIndex = self.selectedIndex
         self.selectedIndex = self.selectedIndex - 1
         if self.selectedIndex < 1 then
@@ -66,6 +69,7 @@ function state:keypressed(key)
         self.transitionTimer = self.transitionDuration
         self.slideDir = -1
     elseif key == "right" then
+        AudioManager.playSound("ui.navigate")
         self.lastSelectedIndex = self.selectedIndex
         self.selectedIndex = self.selectedIndex + 1
         if self.selectedIndex > #self.allShips then
@@ -76,7 +80,10 @@ function state:keypressed(key)
     elseif key == "z" then
         local selectedShip = self.allShips[self.selectedIndex]
         if self:isShipUnlocked(selectedShip) then
+            AudioManager.playSound("ui.select")
             stateManager.switch('game', self.saveData, self.stageData, selectedShip)
+        else
+            AudioManager.playSound("ui.back") -- Feedback for locked
         end
     elseif key == "r" then
         local unlockedShips = {}
@@ -86,10 +93,12 @@ function state:keypressed(key)
             end
         end
         if #unlockedShips > 0 then
+            AudioManager.playSound("ui.select")
             local randomShip = unlockedShips[love.math.random(#unlockedShips)]
             stateManager.switch('game', self.saveData, self.stageData, randomShip)
         end
     elseif key == "x" then
+        AudioManager.playSound("ui.back")
         stateManager.switch('stage_select', self.saveData)
     end
 end

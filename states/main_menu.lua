@@ -12,17 +12,26 @@ function state:enter()
 end
 
 function state:keypressed(key)
+    if key == "up" or key == "down" then
+        AudioManager.playSound("ui.navigate")
+    end
+
     local selection = self.menu:keypressed(key)
-    if selection == 1 then
-        sm.switch("save_select")
-    elseif selection == 2 then
-        sm.switch("settings_menu")
-    elseif selection == 3 then
-        -- Get current save data (or slot 1 as default for meta-progression view)
-        local saveData = _G.currentSaveData or savemanager.loadSave(1)
-        sm.switch("library", saveData)
-    elseif selection == 4 then
-        love.event.quit()
+    if selection and selection > 0 then
+        AudioManager.playSound("ui.select")
+        if selection == 1 then
+            sm.switch("save_select")
+        elseif selection == 2 then
+            sm.switch("settings_menu")
+        elseif selection == 3 then
+            -- Get current save data (or slot 1 as default for meta-progression view)
+            local saveData = _G.currentSaveData or savemanager.loadSave(1)
+            sm.switch("library", saveData)
+        elseif selection == 4 then
+            love.event.quit()
+        end
+    elseif selection == -1 then
+        AudioManager.playSound("ui.back")
     end
 end
 

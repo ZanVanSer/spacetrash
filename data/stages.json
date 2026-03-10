@@ -16,7 +16,7 @@
     "maxEnemiesOnScreen": 30,
     
     "boss": "Asteroid Guardian",
-    "survivalTime": 10,
+    "survivalTime": 600,
     
     "background": "asteroid_belt",
     "music": "battle_theme_1",

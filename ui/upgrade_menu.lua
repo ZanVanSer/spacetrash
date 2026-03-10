@@ -4,6 +4,7 @@ local PassiveIcons = require('ui.passive_icons')
 local Colors = require('ui.colors')
 local Fonts = require('ui.fonts')
 local dl = require('systems/dataloader')
+local AudioManager = require('systems/audio_manager')
 
 local UpgradeMenu = {}
 UpgradeMenu.__index = UpgradeMenu
@@ -14,6 +15,7 @@ function UpgradeMenu.new(player)
   self.selectedIndex = 1
   self.timer = 0
   self.upgrades = self:generateUpgrades()
+  AudioManager.playSound("ui.upgrade_appear")
   return self
 end
 
@@ -122,12 +124,15 @@ end
 
 function UpgradeMenu:keypressed(key)
   if key == 'up' then
+    AudioManager.playSound("ui.navigate")
     self.selectedIndex = self.selectedIndex - 1
     if self.selectedIndex < 1 then self.selectedIndex = #self.upgrades end
   elseif key == 'down' then
+    AudioManager.playSound("ui.navigate")
     self.selectedIndex = self.selectedIndex + 1
     if self.selectedIndex > #self.upgrades then self.selectedIndex = 1 end
   elseif key == 'z' or key == 'return' then
+    AudioManager.playSound("ui.upgrade_select")
     return self.upgrades[self.selectedIndex]
   end
   return nil
