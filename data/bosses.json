@@ -69,7 +69,7 @@
   {
     "id": "void_destroyer",
     "name": "Void Destroyer",
-    "maxHealth": 600,
+    "maxHealth": 2500,
     "radius": 45,
     "baseSpeed": 60,
     
@@ -106,7 +106,7 @@
   {
     "id": "storm_herald",
     "name": "Storm Herald",
-    "maxHealth": 700,
+    "maxHealth": 3000,
     "radius": 42,
     
     "phases": [

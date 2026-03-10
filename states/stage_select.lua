@@ -4,6 +4,7 @@ local savemanager = require "systems/savemanager"
 local Menu = require "ui/menu"
 local Screen = require('systems.screen')
 local Fonts = require('ui/fonts')
+local AudioManager = require('systems/audio_manager')
 
 local state = {}
 
@@ -62,25 +63,33 @@ function state:keypressed(key)
     local oldX, oldY = self.gridX, self.gridY
     
     if key == "left" then
+        AudioManager.playSound("ui.navigate")
         self.gridX = self.gridX - 1
         if self.gridX < 1 then self.gridX = self.cols end
     elseif key == "right" then
+        AudioManager.playSound("ui.navigate")
         self.gridX = self.gridX + 1
         if self.gridX > self.cols then self.gridX = 1 end
     elseif key == "up" then
+        AudioManager.playSound("ui.navigate")
         self.gridY = self.gridY - 1
         if self.gridY < 1 then self.gridY = self.rows end
     elseif key == "down" then
+        AudioManager.playSound("ui.navigate")
         self.gridY = self.gridY + 1
         if self.gridY > self.rows then self.gridY = 1 end
     elseif key == "z" then
         local selectedStage = self.stages[self.selectedIndex]
         if selectedStage and self:isUnlocked(selectedStage) then
+            AudioManager.playSound("ui.select")
             print("Selected Stage: " .. selectedStage.name)
             sm.switch("ship_select", self.saveData, selectedStage)
+        else
+            AudioManager.playSound("ui.back") -- Feedback for locked
         end
         return
     elseif key == "x" then
+        AudioManager.playSound("ui.back")
         sm.switch("save_select")
         return
     else

@@ -11,11 +11,11 @@
       "eliteChanceStart": 180,
       "eliteChanceMax": 0.2
     },
-    "enemies": ["basic_drone", "zigzag_fighter", "bomber", "swarm_bee", "heavy_assault", "elite_fighter"],
+    "enemies": ["basic_drone", "zigzag_fighter", "bomber", "swarm_bee", "elite_fighter"],
     "enemySpawnRate": 1.0,
     "maxEnemiesOnScreen": 30,
     
-    "boss": "storm_herald",
+    "boss": "Asteroid Guardian",
     "survivalTime": 600,
     
     "background": "asteroid_belt",
@@ -42,12 +42,12 @@
       "eliteChanceStart": 180,
       "eliteChanceMax": 0.3
     },
-    "enemies": ["basic_drone", "zigzag_fighter", "bomber", "swarm_bee"],
+    "enemies": ["basic_drone", "zigzag_fighter", "bomber", "swarm_bee", "heavy_assault", "elite_fighter"],
     "enemySpawnRate": 1.0,
     "maxEnemiesOnScreen": 15,
     
     "boss": "void_destroyer",
-    "survivalTime": 10,
+    "survivalTime": 600,
     
     "background": "space_complete",
     "music": "battle_theme_1",
@@ -73,12 +73,12 @@
       "eliteChanceStart": 120,
       "eliteChanceMax": 0.4
     },
-    "enemies": ["basic_drone"],
+    "enemies": ["basic_drone", "zigzag_fighter", "bomber", "swarm_bee", "heavy_assault", "elite_fighter"],
     "enemySpawnRate": 2.0,
     "maxEnemiesOnScreen": 10,
     
-    "boss": "asteroid_boss",
-    "survivalTime": 10,
+    "boss": "storm_herald",
+    "survivalTime": 600,
     
     "background": "space_complete",
     "music": "battle_theme_1",
@@ -89,7 +89,7 @@
       "unlockStage": "stage_5"
     },
     
-    "unlockCondition": "stage_4",
+    "unlockCondition": "stage_1",
     "thumbnail": "stage1_thumb.png",
     "completed": false
   }

@@ -5,6 +5,7 @@ local Fonts = require "ui/fonts"
 local Colors = require "ui/colors"
 local DataLoader = require "systems/dataloader"
 local Scanlines = require "ui/scanlines"
+local AudioManager = require "systems/audio_manager"
 
 local state = {}
 
@@ -78,18 +79,26 @@ function state:update(dt)
 end
 
 function state:keypressed(key)
+    if key == "up" or key == "down" then
+        AudioManager.playSound("ui.navigate")
+    end
+
     local selection = self.menu:keypressed(key)
     self.selectedCategory = self.menu.selectedIndex
     
     if selection == -1 or (key == "x" or key == "escape") then
+        AudioManager.playSound("ui.back")
         sm.switch("main_menu")
-    elseif selection == 1 then sm.switch("library_ships", self.saveData)
-    elseif selection == 2 then sm.switch("library_weapons", self.saveData)
-    elseif selection == 3 then sm.switch("library_passives", self.saveData)
-    elseif selection == 4 then sm.switch("library_enemies", self.saveData)
-    elseif selection == 5 then sm.switch("library_bosses", self.saveData)
-    elseif selection == 6 then sm.switch("library_save_select", self.saveData)
-    elseif selection == 7 then sm.switch("main_menu")
+    elseif selection and selection > 0 then
+        AudioManager.playSound("ui.select")
+        if selection == 1 then sm.switch("library_ships", self.saveData)
+        elseif selection == 2 then sm.switch("library_weapons", self.saveData)
+        elseif selection == 3 then sm.switch("library_passives", self.saveData)
+        elseif selection == 4 then sm.switch("library_enemies", self.saveData)
+        elseif selection == 5 then sm.switch("library_bosses", self.saveData)
+        elseif selection == 6 then sm.switch("library_save_select", self.saveData)
+        elseif selection == 7 then sm.switch("main_menu")
+        end
     end
 end
 
