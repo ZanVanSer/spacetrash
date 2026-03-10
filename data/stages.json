@@ -89,7 +89,7 @@
       "unlockStage": "stage_5"
     },
     
-    "unlockCondition": "stage_4",
+    "unlockCondition": "stage_1",
     "thumbnail": "stage1_thumb.png",
     "completed": false
   }

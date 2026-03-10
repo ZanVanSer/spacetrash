@@ -6,10 +6,15 @@ local AudioManager = {
   currentMusic = nil,
   musicVolume = 1.0,
   sfxVolume = 1.0,
-  masterVolume = 1.0
+  masterVolume = 1.0,
+  pendingMusicName = nil,
+  delayTimer = 0,
+  fadeTimer = 0,
+  fadeDuration = 1.0
 }
 
 function AudioManager.init()
+-- ... (rest of init remains the same)
   -- Load settings
   local settingsData = Settings.load()
   AudioManager.masterVolume = settingsData.audio.masterVolume or 1.0
@@ -47,21 +52,44 @@ function AudioManager.init()
   end
 end
 
-function AudioManager.playMusic(musicName)
+function AudioManager.update(dt)
+  if AudioManager.delayTimer > 0 then
+    AudioManager.delayTimer = AudioManager.delayTimer - dt
+    if AudioManager.delayTimer <= 0 then
+      local music = AudioManager.music[AudioManager.pendingMusicName]
+      if music then
+        music:setVolume(0)
+        music:play()
+        AudioManager.currentMusic = music
+        AudioManager.fadeTimer = 0
+      end
+      AudioManager.pendingMusicName = nil
+    end
+  elseif AudioManager.currentMusic and AudioManager.fadeTimer < AudioManager.fadeDuration then
+    AudioManager.fadeTimer = math.min(AudioManager.fadeDuration, AudioManager.fadeTimer + dt)
+    local volume = (AudioManager.fadeTimer / AudioManager.fadeDuration) * AudioManager.musicVolume * AudioManager.masterVolume
+    AudioManager.currentMusic:setVolume(volume)
+  end
+end
+
+function AudioManager.playMusic(musicName, delay, fadeDuration)
   local music = AudioManager.music[musicName]
   if not music then return end
 
-  if AudioManager.currentMusic == music and music:isPlaying() then
+  if (AudioManager.currentMusic == music and music:isPlaying()) or 
+     (AudioManager.pendingMusicName == musicName and AudioManager.delayTimer > 0) then
     return
   end
 
   if AudioManager.currentMusic then
     AudioManager.currentMusic:stop()
+    AudioManager.currentMusic = nil
   end
 
-  music:setVolume(AudioManager.musicVolume * AudioManager.masterVolume)
-  music:play()
-  AudioManager.currentMusic = music
+  AudioManager.pendingMusicName = musicName
+  AudioManager.delayTimer = delay or 0.5
+  AudioManager.fadeDuration = fadeDuration or 1.0
+  AudioManager.fadeTimer = 0
 end
 
 function AudioManager.playSound(soundName)

@@ -8,6 +8,7 @@ local Menu = require "ui/menu"
 local sm = require "states/statemanager"
 local savemanager = require "systems/savemanager"
 local Unlocks = require "systems/unlocks"
+local AudioManager = require "systems/audio_manager"
 local Background = require "entities/background"
 local Screen = require('systems.screen')
 local Screenshake = require('systems.screenshake')
@@ -103,6 +104,15 @@ function state:enter(saveData, stageData, shipData)
         level = 1,
         alpha = 0
     }
+
+    -- Play Stage Music
+    if self.stageData.id == "stage_1" then
+        AudioManager.playMusic("stage1")
+    elseif self.stageData.id == "stage_2" then
+        AudioManager.playMusic("stage2")
+    elseif self.stageData.id == "stage_3" then
+        AudioManager.playMusic("stage3")
+    end
 end
 
 function state:flashScreen(color, duration, intensity)

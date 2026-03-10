@@ -49,6 +49,7 @@ function love.load()
 end
 
 function love.update(dt)
+    AudioManager.update(dt)
     sm.update(dt)
 end
 
