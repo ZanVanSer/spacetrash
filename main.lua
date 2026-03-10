@@ -1,8 +1,17 @@
 local sm = require "states/statemanager"
 local dl = require "systems/dataloader"
 local Settings = require "systems/settings"
+local AudioManager = require "systems/audio_manager"
 
 function love.load()
+    -- Initialize AudioManager
+    local status, err = pcall(function()
+        AudioManager.init()
+    end)
+    if not status then
+        print("WARNING: Failed to initialize AudioManager: " .. tostring(err))
+    end
+
     -- Load and Apply Settings
     local currentSettings = Settings.load()
     -- On first run, ensure settings file exists
@@ -10,6 +19,13 @@ function love.load()
         Settings.save(currentSettings)
     end
     Settings.apply(currentSettings)
+
+    -- Apply AudioManager volumes from settings
+    if status and currentSettings.audio then
+        AudioManager.setMasterVolume(currentSettings.audio.masterVolume or 1.0)
+        AudioManager.setMusicVolume(currentSettings.audio.musicVolume or 1.0)
+        AudioManager.setSfxVolume(currentSettings.audio.sfxVolume or 1.0)
+    end
 
     -- Register all states
     sm.register("main_menu", require "states/main_menu")
