@@ -3,10 +3,12 @@ local Menu = require "ui/menu"
 local Screen = require('systems.screen')
 local Fonts = require('ui/fonts')
 local savemanager = require "systems/savemanager"
+local AudioManager = require "systems/audio_manager"
 local state = {}
 
 function state:enter()
     self.menu = Menu.new({"Start Game", "Settings", "Library", "Exit"})
+    AudioManager.playMusic("menu")
 end
 
 function state:keypressed(key)

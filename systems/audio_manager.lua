@@ -48,16 +48,20 @@ function AudioManager.init()
 end
 
 function AudioManager.playMusic(musicName)
+  local music = AudioManager.music[musicName]
+  if not music then return end
+
+  if AudioManager.currentMusic == music and music:isPlaying() then
+    return
+  end
+
   if AudioManager.currentMusic then
     AudioManager.currentMusic:stop()
   end
 
-  local music = AudioManager.music[musicName]
-  if music then
-    music:setVolume(AudioManager.musicVolume * AudioManager.masterVolume)
-    music:play()
-    AudioManager.currentMusic = music
-  end
+  music:setVolume(AudioManager.musicVolume * AudioManager.masterVolume)
+  music:play()
+  AudioManager.currentMusic = music
 end
 
 function AudioManager.playSound(soundName)
