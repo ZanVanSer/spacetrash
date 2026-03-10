@@ -339,6 +339,7 @@ function state:update(dt)
             self.screenshake.trigger(15, 1.0)
             self.particles.bossHit(self.boss.x, self.boss.y)
             self.bossEntranceTimer = 2.0
+            AudioManager.playMusic("boss", 0.1, 1.0) -- Quick delay then fade in
         end
 
         self.player:update(dt)
@@ -369,6 +370,12 @@ function state:update(dt)
                 self:checkGameplayUnlocks()
                 self.screenshake.trigger(10, 0.5)
                 self.particles.enemyDeath(self.boss.x, self.boss.y)
+                
+                -- Play Stage Music again (victory feel)
+                local stageMusic = "stage1"
+                if self.stageData.id == "stage_2" then stageMusic = "stage2"
+                elseif self.stageData.id == "stage_3" then stageMusic = "stage3" end
+                AudioManager.playMusic(stageMusic, 2.0, 2.0) -- Long delay and fade for victory
                 
                 -- Apply Rewards
                 local rewards = self.stageData.rewards or {}
