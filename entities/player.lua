@@ -9,13 +9,14 @@ local Particles = require "systems/particles"
 local Player = {}
 Player.__index = Player
 
-function Player.new(shipData)
+function Player.new(shipData, audioManager)
     local self = setmetatable({}, Player)
     self.x = (Screen.getVirtualWidth() + 220) / 2
     self.y = Screen.getVirtualHeight() / 2
     
     -- Store Ship ID for drawing
     self.shipId = shipData.id
+    self.audioManager = audioManager
     
     -- Base Stats (Backup for recalculation)
     self.baseStats = {
@@ -64,7 +65,7 @@ function Player.new(shipData)
     self.critMult = self.baseStats.critMult
     
     self.radius = 15
-    self.ws = WS.new()
+    self.ws = WS.new(audioManager)
     self.ws:equipWeapon(shipData.startWeapon)
     
     self.weaponLevels = { [shipData.startWeapon] = 1 }

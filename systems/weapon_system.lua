@@ -1,17 +1,52 @@
 local Bullet = require "entities/bullet"
 local dl = require "systems/dataloader"
 
+local WEAPON_SOUNDS = {
+  -- Base weapons
+  plasma_lance = { name = "weapons.plasma_lance", vol = 1.0 },
+  missile_swarm = { name = "weapons.missile_swarm", vol = 1.0 },
+  arc_conductor = { name = "weapons.arc_conductor", vol = 0.6 }, -- Lower volume for rapid fire
+  scatter_blaster = { name = "weapons.scatter_blaster", vol = 1.0 },
+  orbital_drones = { name = "weapons.orbital_drones", vol = 0.6 }, -- Lower volume for rapid fire
+  gravity_mines = { name = "weapons.gravity_mines_drop", vol = 1.0 },
+  railgun = { name = "weapons.railgun", vol = 1.2 }, -- Higher volume for impact
+  nanite_swarm = nil,  -- No sound file for this weapon
+  photon_whip = { name = "weapons.photon_whip", vol = 0.8 },
+  pulse_wave = { name = "weapons.pulse_wave", vol = 1.2 }, -- Higher volume for impact
+  
+  -- Evolved weapons (use base weapon sounds)
+  quantum_splitter = { name = "weapons.plasma_lance", vol = 1.0 },
+  apocalypse_barrage = { name = "weapons.missile_swarm", vol = 1.0 },
+  tesla_storm = { name = "weapons.arc_conductor", vol = 0.6 },
+  shrapnel_cannon = { name = "weapons.scatter_blaster", vol = 1.0 },
+  sentinel_network = { name = "weapons.orbital_drones", vol = 0.6 },
+  singularity_engine = { name = "weapons.gravity_mines_drop", vol = 1.0 },
+  annihilator_cannon = { name = "weapons.railgun", vol = 1.2 },
+  grey_goo_protocol = nil,  -- Uses nanite_swarm (no sound)
+  solar_flare = { name = "weapons.photon_whip", vol = 0.8 },
+  electromagnetic_cataclysm = { name = "weapons.pulse_wave", vol = 1.2 }
+}
+
 local WS = {}
 WS.__index = WS
 
-function WS.new()
+function WS.new(audioManager)
     local self = setmetatable({
         equippedWeapons = {},
         bullets = {},
         shootTimers = {},
-        bursts = {}
+        bursts = {},
+        audioManager = audioManager
     }, WS)
     return self
+end
+
+function WS:getWeaponSound(weaponId)
+  local data = WEAPON_SOUNDS[weaponId]
+  if data then
+    return data.name, data.vol
+  end
+  return nil
 end
 
 function WS:checkEvolution(weaponId, equippedPassives, weaponLevel)
@@ -58,6 +93,8 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
                 -- This ensures Amount 1 ship + Amount 1 weapon = 1 projectile
                 local finalAmount = math.max(1, weaponAmount + (amountBonus or 1) - 1)
                 
+                local soundName, soundVol = self:getWeaponSound(id)
+
                 if wd.pattern == "orbital" or wd.pattern == "whip" then
                     local currentCount = 0
                     for _, b in ipairs(self.bullets) do
@@ -65,6 +102,11 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
                     end
                     
                     if currentCount < finalAmount then
+                        -- Play weapon sound
+                        if soundName and self.audioManager then
+                            self.audioManager.playSound(soundName, soundVol)
+                        end
+
                         local toSpawn = finalAmount - currentCount
                         for i = 1, toSpawn do
                             local bulletWeaponData = {
@@ -102,6 +144,7 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
                             interval = 0.25 
                         }
                     end
+                    self.shootTimers[id] = 0
                 elseif wd.pattern == "mines" then
                     local exists = false
                     for _, b in ipairs(self.bullets) do
@@ -110,6 +153,11 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
                     if exists then
                         self.shootTimers[id] = 0
                     else
+                        -- Play weapon sound
+                        if soundName and self.audioManager then
+                            self.audioManager.playSound(soundName, soundVol)
+                        end
+
                         for i = 1, finalAmount do
                             local bData = {
                                 id = id,
@@ -131,6 +179,11 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
                     end
                 else
                     -- Regular patterns
+                    -- Play weapon sound
+                    if soundName and self.audioManager then
+                        self.audioManager.playSound(soundName, soundVol)
+                    end
+
                     for i = 1, finalAmount do
                         local bData = {
                             id = id,
@@ -181,6 +234,11 @@ function WS:update(dt, playerX, playerY, might, cooldown, area, amountBonus, pie
             if burst.timer >= burst.interval then
                 local wd = self.lookup[id]
                 if wd then
+                    local soundName, soundVol = self:getWeaponSound(id)
+                    if soundName and self.audioManager then
+                        self.audioManager.playSound(soundName, soundVol)
+                    end
+
                     local bData = {
                         id = id,
                         damage = wd.damage * (might or 1.0),

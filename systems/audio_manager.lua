@@ -3,6 +3,7 @@ local Settings = require("systems.settings")
 local AudioManager = {
   music = {},
   sounds = {},
+  soundCooldowns = {},
   currentMusic = nil,
   musicVolume = 1.0,
   sfxVolume = 1.0,
@@ -14,7 +15,6 @@ local AudioManager = {
 }
 
 function AudioManager.init()
--- ... (rest of init remains the same)
   -- Load settings
   local settingsData = Settings.load()
   AudioManager.masterVolume = settingsData.audio.masterVolume or 1.0
@@ -37,9 +37,27 @@ function AudioManager.init()
     end
   end
 
-  -- Load sounds
-  local soundCategories = { "impact", "player", "ui", "weapons" }
-  for _, category in ipairs(soundCategories) do
+  -- Load weapon sounds
+  AudioManager.sounds.weapons = {}
+  AudioManager.sounds.weapons.plasma_lance = love.audio.newSource("assets/sounds/weapons/weapon_plasma_lance.ogg", "static")
+  AudioManager.sounds.weapons.missile_swarm = love.audio.newSource("assets/sounds/weapons/weapon_missile_swarm.ogg", "static")
+  AudioManager.sounds.weapons.arc_conductor = love.audio.newSource("assets/sounds/weapons/weapon_arc_conductor.ogg", "static")
+  AudioManager.sounds.weapons.orbital_drones = love.audio.newSource("assets/sounds/weapons/weapon_orbital_drones.ogg", "static")
+  AudioManager.sounds.weapons.gravity_mines_drop = love.audio.newSource("assets/sounds/weapons/weapon_gravity_mines_drop.ogg", "static")
+  AudioManager.sounds.weapons.gravity_mines_explosion = love.audio.newSource("assets/sounds/weapons/weapon_gravity_mines_explosion.ogg", "static")
+  AudioManager.sounds.weapons.photon_whip = love.audio.newSource("assets/sounds/weapons/weapon_photon_whip.ogg", "static")
+  AudioManager.sounds.weapons.pulse_wave = love.audio.newSource("assets/sounds/weapons/weapon_pulse_wave.ogg", "static")
+  AudioManager.sounds.weapons.railgun = love.audio.newSource("assets/sounds/weapons/weapon_railgun.ogg", "static")
+  AudioManager.sounds.weapons.scatter_blaster = love.audio.newSource("assets/sounds/weapons/weapon_scatter_blaster.ogg", "static")
+
+  -- Load impact sounds
+  AudioManager.sounds.impact = {}
+  AudioManager.sounds.impact.hit = love.audio.newSource("assets/sounds/impact/impact_hit.ogg", "static")
+  AudioManager.sounds.impact.explosion = love.audio.newSource("assets/sounds/impact/impact_explosion.ogg", "static")
+
+  -- Load other sounds dynamically
+  local otherCategories = { "player", "ui" }
+  for _, category in ipairs(otherCategories) do
     AudioManager.sounds[category] = {}
     local files = love.filesystem.getDirectoryItems("assets/sounds/" .. category)
     for _, file in ipairs(files) do
@@ -92,10 +110,22 @@ function AudioManager.playMusic(musicName, delay, fadeDuration)
   AudioManager.fadeTimer = 0
 end
 
-function AudioManager.playSound(soundName)
+function AudioManager.playSound(soundName, volumeMultiplier)
   -- soundName can be "category.name"
   local category, name = soundName:match("([^%.]+)%.([^%.]+)")
+  
+  -- Apply cooldown to non-weapon sounds to prevent spam
+  if category ~= "weapons" then
+    local currentTime = love.timer.getTime()
+    local lastPlayTime = AudioManager.soundCooldowns[soundName] or 0
+    if currentTime - lastPlayTime < 0.05 then
+      return
+    end
+    AudioManager.soundCooldowns[soundName] = currentTime
+  end
+
   local source
+  local volMult = volumeMultiplier or 1.0
   
   if category and name then
     if AudioManager.sounds[category] then
@@ -108,7 +138,7 @@ function AudioManager.playSound(soundName)
 
   if source then
     local clone = source:clone()
-    clone:setVolume(AudioManager.sfxVolume * AudioManager.masterVolume)
+    clone:setVolume(AudioManager.sfxVolume * AudioManager.masterVolume * volMult)
     clone:play()
   end
 end

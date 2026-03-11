@@ -48,6 +48,20 @@ function Bullet:explode()
     self.isDead = true
 
     Particles.explosion(self.x, self.y, self.weaponData.area or 1.0)
+    
+    -- Play explosion sounds
+    local sm = require("states/statemanager")
+    local player = sm.current and sm.current.player
+    if player and player.ws and player.ws.audioManager then
+        local soundName, soundVol = player.ws:getWeaponSound(self.weaponData.id)
+        
+        player.ws.audioManager.playSound("impact.explosion")
+        
+        -- Special sound for gravity mines/singularity engine
+        if self.weaponData.id:find("gravity_mines") or self.weaponData.id:find("singularity_engine") then
+            player.ws.audioManager.playSound("weapons.gravity_mines_explosion", soundVol)
+        end
+    end
 
     -- AOE Damage
     if self.enemies then

@@ -35,7 +35,7 @@ function state:enter(saveData, stageData, shipData)
     self.stageData = stageData or self.stageData or {}
     self.shipData = shipData or self.shipData
     
-    self.player = Player.new(self.shipData or dl.getShips()[1])
+    self.player = Player.new(self.shipData or dl.getShips()[1], AudioManager)
     self.player.gameState = self
     self.hud = HUD.new()
     self.screenshake = Screenshake
@@ -52,6 +52,7 @@ function state:enter(saveData, stageData, shipData)
         intensity = 0
     }
     self.wasBossSpecialAttacking = false
+    self.lastImpactSoundTime = 0
     
     self.isPaused = false
     self.upgradeMenu = nil
@@ -463,6 +464,21 @@ function state:update(dt)
                         self.damageNumbers:spawn(e.x, e.y - 20, damage, isCrit)
                         self.runStatistics.damageDealt = self.runStatistics.damageDealt + damage
                         
+                        -- Play impact sound with cooldown
+                        local currentTime = love.timer.getTime()
+                        if currentTime - self.lastImpactSoundTime >= 0.05 then
+                            AudioManager.playSound("impact.hit")
+                            self.lastImpactSoundTime = currentTime
+                        end
+
+                        -- Play sound for Photon Whip (and evolved Solar Flare) on hit
+                        if b.weaponData.pattern == "whip" then
+                            local soundName, soundVol = self.player.ws:getWeaponSound(b.weaponData.id)
+                            if soundName and AudioManager then
+                                AudioManager.playSound(soundName, soundVol)
+                            end
+                        end
+
                         b.hitEnemies[e] = true
                         
                         -- Handle Special Behaviors
@@ -517,6 +533,7 @@ function state:update(dt)
                                 local expDamage = math.floor(damage * 1.5)
                                 local expArea = 40 * (b.weaponData.area or 1.0)
                                 self.particles.explosion(e.x, e.y, b.weaponData.area or 1.0)
+                                if AudioManager then AudioManager.playSound("impact.explosion") end
                                 for _, nextE in ipairs(enemies) do
                                     if not nextE.isDead and nextE ~= e then
                                         local dx, dy = nextE.x - e.x, nextE.y - e.y
@@ -560,6 +577,7 @@ function state:update(dt)
                             elseif s == "burning_trails" then
                                 e:applyBurn(10, 3.0)
                             elseif s == "black_holes" then
+                                if AudioManager then AudioManager.playSound("impact.explosion") end
                                 -- Pull effect is handled in pattern/player_mines.lua usually,
                                 -- but we can add immediate crush damage here
                                 e:takeDamage(damage * 0.5)
