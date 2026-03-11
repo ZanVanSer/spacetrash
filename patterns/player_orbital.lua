@@ -75,6 +75,12 @@ return {
                 b.angle = facingAngle
                 table.insert(player.ws.bullets, b)
                 
+                -- Play weapon sound
+                local soundName, soundVol = player.ws:getWeaponSound(bullet.weaponData.id)
+                if soundName and player.ws.audioManager then
+                    player.ws.audioManager.playSound(soundName, soundVol)
+                end
+                
                 bullet.fireTimer = cooldown
             end
         end

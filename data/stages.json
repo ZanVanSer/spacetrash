@@ -43,13 +43,13 @@
       "eliteChanceMax": 0.3
     },
     "enemies": ["basic_drone", "zigzag_fighter", "bomber", "swarm_bee", "heavy_assault", "elite_fighter"],
-    "enemySpawnRate": 1.0,
+    "enemySpawnRate": 0.8,
     "maxEnemiesOnScreen": 15,
     
     "boss": "void_destroyer",
     "survivalTime": 600,
     
-    "background": "space_complete",
+    "background": "deep_space",
     "music": "battle_theme_1",
     
     "rewards": {
@@ -74,13 +74,13 @@
       "eliteChanceMax": 0.4
     },
     "enemies": ["basic_drone", "zigzag_fighter", "bomber", "swarm_bee", "heavy_assault", "elite_fighter"],
-    "enemySpawnRate": 2.0,
+    "enemySpawnRate": 0.6,
     "maxEnemiesOnScreen": 10,
     
     "boss": "storm_herald",
     "survivalTime": 600,
     
-    "background": "space_complete",
+    "background": "solar_core",
     "music": "battle_theme_1",
     
     "rewards": {
