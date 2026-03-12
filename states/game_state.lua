@@ -971,7 +971,7 @@ function state:draw()
     self.telegraph:draw()
     
     love.graphics.pop()
-
+    
     -- HUD
     self.hud:draw(self.player, self)
 

@@ -256,16 +256,28 @@ function state:draw()
         love.graphics.printf(ship.class or "Unknown Class", contentX, currY, panelWidth - 60, "center")
         currY = currY + 45
         
-        -- Description
+        -- Description - wrap with max lines to prevent overflow
         love.graphics.setColor(unlocked and {0.8, 0.8, 0.9} or {0.3, 0.3, 0.3})
         love.graphics.setFont(mainFont)
-        love.graphics.printf(ship.description or "", contentX, currY, panelWidth - 60, "left")
-        currY = currY + 80
+        local descWidth = panelWidth - 60
+        local descText = ship.description or ""
+        local maxDescLines = 3
+        local descHeight = mainFont:getHeight() * maxDescLines
+        -- Use simple truncation if text is too long
+        if mainFont:getWidth(descText) > descWidth * maxDescLines then
+            -- Try wrapping first
+            local wrapped = mainFont:getWrap(descText, descWidth)
+            if type(wrapped) == "table" then
+                descText = table.concat(wrapped, "\n", 1, maxDescLines)
+            end
+        end
+        love.graphics.printf(descText, contentX, currY, descWidth, "left")
+        currY = currY + descHeight + 15
         
         -- Divider
         love.graphics.setColor(1, 1, 1, 0.1)
         love.graphics.line(contentX, currY, panelX + panelWidth - 30, currY)
-        currY = currY + 20
+        currY = currY + 15
         
         -- Stats Table
         local function drawStat(label, value, color)
@@ -278,8 +290,14 @@ function state:draw()
             else
                 love.graphics.setColor(0.3, 0.3, 0.3)
             end
-            love.graphics.print(tostring(value), contentX + 160, currY - 3)
-            currY = currY + 26
+            -- Truncate value if too wide for container
+            local maxValueWidth = panelWidth - 220  -- Reserve space for label
+            local valueStr = tostring(value)
+            if mainFont:getWidth(valueStr) > maxValueWidth then
+                valueStr = Fonts.truncateText(valueStr, maxValueWidth, mainFont)
+            end
+            love.graphics.print(valueStr, contentX + 160, currY - 3)
+            currY = currY + 20
         end
         
         drawStat("Max Health", ship.maxHealth, {1, 0.4, 0.4})
@@ -292,7 +310,7 @@ function state:draw()
         drawStat("Area", math.floor((ship.area or 1) * 100) .. "%", {1, 0.9, 0.5})
         drawStat("Amount", "+" .. (ship.amount or 0), {0.5, 1, 0.5})
         
-        currY = currY + 10
+        currY = currY + 5
         drawStat("Starting Weapon", (ship.startWeapon or "Unknown"):gsub("_", " "):gsub("^%l", string.upper), {1, 1, 0.6})
         
     else
