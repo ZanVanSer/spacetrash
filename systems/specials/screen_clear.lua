@@ -79,8 +79,8 @@ function ScreenClear.execute(attackData, source, telegraph)
                     radius = 6
                 }
                 
-                if source.bullets then
-                    table.insert(source.bullets, EnemyBullet.new(source.x, source.y, bData))
+                if source.enemyBullets then
+                    table.insert(source.enemyBullets, EnemyBullet.new(source.x, source.y, bData))
                 end
             end
             
