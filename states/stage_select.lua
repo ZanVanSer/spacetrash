@@ -266,11 +266,13 @@ function state:draw()
         local _, lines = titleFont:getWrap(selectedStage.name:upper(), infoWidth - 50)
         currY = currY + titleFont:getHeight() * #lines + 15
         
-        -- Description
+        -- Description - wrap and calculate proper height
         love.graphics.setFont(mainFont)
         love.graphics.setColor(0.8, 0.8, 0.9)
-        love.graphics.printf(selectedStage.description, contentX, currY, infoWidth - 50, "left")
-        currY = currY + 70
+        local descWidth = infoWidth - 50
+        local _, descLines = mainFont:getWrap(selectedStage.description, descWidth)
+        love.graphics.printf(selectedStage.description, contentX, currY, descWidth, "left")
+        currY = currY + mainFont:getHeight() * #descLines + 15
         
         -- Stats Section
         love.graphics.setLineWidth(1)
@@ -284,7 +286,13 @@ function state:draw()
             love.graphics.print(label .. ":", contentX, currY)
             love.graphics.setFont(mainFont)
             love.graphics.setColor(unpack(color or {1, 1, 1}))
-            love.graphics.print(value, contentX + 110, currY - 3)
+            -- Truncate value if too wide for container
+            local maxValueWidth = infoWidth - 160  -- Reserve space for label
+            local truncatedValue = value
+            if mainFont:getWidth(value) > maxValueWidth then
+                truncatedValue = Fonts.truncateText(value, maxValueWidth, mainFont)
+            end
+            love.graphics.print(truncatedValue, contentX + 110, currY - 3)
             currY = currY + 30
         end
         

@@ -1,4 +1,5 @@
 local ShipVisuals = {}
+local Screen = require('systems.screen')
 
 -- Color Palette
 local CYAN = {0, 1, 0.8}

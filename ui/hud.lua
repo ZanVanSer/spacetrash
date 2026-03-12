@@ -212,7 +212,13 @@ function HUD:draw(player, gameState)
       WeaponIcons.drawWeaponIcon(weaponId, wBoxX + 20, slotY + 11, 0.9)
       
       Colors.setColor("accent")
-      love.graphics.setFont(Fonts.getFont("small"))
+      local smallFont = Fonts.getFont("small")
+      love.graphics.setFont(smallFont)
+      -- Truncate name if too wide for slot
+      local maxNameWidth = wBoxW - 45  -- Reserve space for icon + padding
+      if smallFont:getWidth(name) > maxNameWidth then
+        name = Fonts.truncateText(name, maxNameWidth, smallFont)
+      end
       love.graphics.print(name, wBoxX + 40, slotY + 1)
       
       -- Stars/Level (Dynamic)
@@ -263,13 +269,20 @@ function HUD:draw(player, gameState)
     if passive then
       local pd = self.passiveLookup[passive.id]
       local name = pd and pd.name:upper() or "UNKNOWN"
+      local nameWithLevel = name .. " LV" .. passive.level
       
       -- Draw Icon
       PassiveIcons.drawPassiveIcon(passive.id, pBoxX + 18, slotY + 10, 0.9)
       
       Colors.setColor("dim")
-      love.graphics.setFont(Fonts.getFont("small"))
-      love.graphics.print(name .. " LV" .. passive.level, pBoxX + 35, slotY + 2)
+      local smallFont = Fonts.getFont("small")
+      love.graphics.setFont(smallFont)
+      -- Truncate name if too wide for slot
+      local maxNameWidth = pBoxW - 40  -- Reserve space for icon + padding
+      if smallFont:getWidth(nameWithLevel) > maxNameWidth then
+        nameWithLevel = Fonts.truncateText(nameWithLevel, maxNameWidth, smallFont)
+      end
+      love.graphics.print(nameWithLevel, pBoxX + 35, slotY + 2)
     else
       -- Generic empty slot icon
       Colors.setColor("dim", 0.2)
