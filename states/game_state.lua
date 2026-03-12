@@ -84,8 +84,9 @@ function state:enter(saveData, stageData, shipData)
         self.backgroundTint = {1, 0.7, 0.4} -- Strong fire tint
     end
     
+    self.enemyBullets = {}
     DifficultyScaler.init(self.stageData)
-    self.enemySpawner = Spawner.new(self.stageEnemies, self.enemySpawnInterval, DifficultyScaler)
+    self.enemySpawner = Spawner.new(self.stageEnemies, self.enemySpawnInterval, DifficultyScaler, self.enemyBullets)
     
     -- Run statistics
     self.runStatistics = {
@@ -334,7 +335,7 @@ function state:update(dt)
         if self.gameTime >= self.bossSpawnTime and not self.bossSpawned then
             local bossLookup = dl.createLookup(dl.getBosses(), "id")
             local bossData = bossLookup[self.stageBoss] or dl.getBosses()[1]
-            self.boss = Boss.new(Layout.centerX(), 80, bossData)
+            self.boss = Boss.new(Layout.centerX(), 80, bossData, self.enemyBullets)
             self.bossSpawned = true
             self.enemySpawner:stop()
             self.screenshake.trigger(15, 1.0)
@@ -346,6 +347,25 @@ function state:update(dt)
         self.player:update(dt)
         self.enemySpawner:update(dt, self.player.x, self.player.y)
         
+        -- Update Enemy Bullets
+        for i = #self.enemyBullets, 1, -1 do
+            local eb = self.enemyBullets[i]
+            eb:update(dt)
+            if eb.isDead then
+                table.remove(self.enemyBullets, i)
+            else
+                -- Check for collision with player
+                if checkCircleCollision(eb.x, eb.y, eb.radius or 6, self.player.x, self.player.y, self.player.radius) then
+                    self.player:takeDamage(eb.patternData.damage or 5)
+                    self.combo:onPlayerHit()
+                    eb.isDead = true
+                    self.particles.playerHit(self.player.x, self.player.y)
+                    self.screenshake.trigger(6, 0.15)
+                    table.remove(self.enemyBullets, i)
+                end
+            end
+        end
+
         if self.boss then
             self.boss:update(dt, self.player.x, self.player.y, self.telegraph)
             
@@ -721,24 +741,10 @@ function state:update(dt)
                     self.screenshake.trigger(8, 0.2)
                     self.particles.playerHit(self.player.x, self.player.y)
                 end
-
-                -- Enemy Bullet-Player Collisions
-                local eBullets = e:getBullets()
-                for _, eb in ipairs(eBullets) do
-                    if not eb.isDead then
-                        if checkCircleCollision(eb.x, eb.y, eb.radius or 6, self.player.x, self.player.y, self.player.radius) then
-                            self.player:takeDamage(eb.patternData.damage or 5)
-                            self.combo:onPlayerHit()
-                            eb.isDead = true
-                            self.particles.playerHit(self.player.x, self.player.y)
-                            self.screenshake.trigger(6, 0.15)
-                        end
-                    end
-                end
             end
         end
 
-        -- Boss Bullet-Player Collisions
+        -- Boss Player Body Contact Collision
         if self.boss and not self.boss.isDead then
             -- Player-Boss Body Contact Collision
             if checkCircleCollision(self.player.x, self.player.y, self.player.radius, self.boss.x, self.boss.y, self.boss.radius) then
@@ -746,19 +752,6 @@ function state:update(dt)
                 self.combo:onPlayerHit()
                 self.screenshake.trigger(10, 0.1)
                 self.particles.playerHit(self.player.x, self.player.y)
-            end
-
-            local bBullets = self.boss:getBullets()
-            for _, bb in ipairs(bBullets) do
-                if not bb.isDead then
-                    if checkCircleCollision(bb.x, bb.y, bb.radius or 8, self.player.x, self.player.y, self.player.radius) then
-                        self.player:takeDamage(bb.patternData.damage or 10)
-                        self.combo:onPlayerHit()
-                        bb.isDead = true
-                        self.screenshake.trigger(8, 0.2)
-                        self.particles.playerHit(self.player.x, self.player.y)
-                    end
-                end
             end
         end
 
@@ -936,6 +929,10 @@ function state:draw()
     -- Apply background tint for game elements
     love.graphics.setColor(self.backgroundTint[1], self.backgroundTint[2], self.backgroundTint[3], 1.0)
     self.enemySpawner:draw()
+    
+    for _, eb in ipairs(self.enemyBullets) do
+        eb:draw()
+    end
     
     if self.boss then
         self.boss:draw()

@@ -85,14 +85,14 @@ function SpiralBarrage.execute(attackData, source, telegraph)
             if pattern.createBullets then
                 local newBulletsData = pattern.createBullets(ox, oy, bulletData, tx, ty)
                 for _, bData in ipairs(newBulletsData) do
-                    -- source must have a 'bullets' table to store active projectiles
-                    if source.bullets then
-                        table.insert(source.bullets, EnemyBullet.new(bData.x, bData.y, bData))
+                    -- source must have a 'enemyBullets' table to store active projectiles
+                    if source.enemyBullets then
+                        table.insert(source.enemyBullets, EnemyBullet.new(bData.x, bData.y, bData))
                     end
                 end
             else
-                if source.bullets then
-                    table.insert(source.bullets, EnemyBullet.new(ox, oy, bulletData))
+                if source.enemyBullets then
+                    table.insert(source.enemyBullets, EnemyBullet.new(ox, oy, bulletData))
                 end
             end
 

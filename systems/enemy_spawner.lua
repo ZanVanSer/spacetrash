@@ -5,9 +5,10 @@ local Screen = require('systems.screen')
 local Spawner = {}
 Spawner.__index = Spawner
 
-function Spawner.new(enemyList, spawnInterval, scaler)
+function Spawner.new(enemyList, spawnInterval, scaler, enemyBullets)
     local self = setmetatable({
         enemies = {},
+        enemyBullets = enemyBullets or {},
         spawnTimer = 0,
         baseSpawnInterval = spawnInterval or 2,
         spawnInterval = spawnInterval or 2,
@@ -73,7 +74,7 @@ function Spawner:update(dt, playerX, playerY)
 
                 -- Spawn within game viewport (220 to 800) with buffer
                 local x = love.math.random(240, Screen.getVirtualWidth() - 20)
-                local newEnemy = Enemy.new(x, -20, spawnData, self.scaler)
+                local newEnemy = Enemy.new(x, -20, spawnData, self.scaler, self.enemyBullets)
                 if isElite then newEnemy.isElite = true end
                 table.insert(self.enemies, newEnemy)
             end

@@ -9,8 +9,9 @@ local DifficultyScaler = require('systems.difficulty_scaler')
 local Boss = {}
 Boss.__index = Boss
 
-function Boss.new(x, y, bossData)
+function Boss.new(x, y, bossData, enemyBullets)
     local self = setmetatable({}, Boss)
+    self.enemyBullets = enemyBullets or {}
     
     -- Create a local copy of bossData to avoid modifying the original data
     self.bossData = {}
@@ -97,7 +98,6 @@ function Boss.new(x, y, bossData)
     
     self.direction = 1
     self.isDead = false
-    self.bullets = {}
     self.flashTimer = 0
     self.rotation = 0
     self.isTransitioning = false
@@ -178,7 +178,7 @@ local function firePattern(self, currentPattern, playerX, playerY, targetX, targ
             bData.delay = (i - 1) * 0.1
             bData.isDead = false
             bData.radius = 6
-            table.insert(self.bullets, EnemyBullet.new(bData.x, bData.y, bData))
+            table.insert(self.enemyBullets, EnemyBullet.new(bData.x, bData.y, bData))
         end
         return
     end
@@ -190,12 +190,12 @@ local function firePattern(self, currentPattern, playerX, playerY, targetX, targ
         local py = targetY or playerY or (self.y + 100)
         local newBulletsData = pattern.createBullets(ox, oy, bulletData, px, py)
         for _, bData in ipairs(newBulletsData) do
-            table.insert(self.bullets, EnemyBullet.new(bData.x, bData.y, bData))
+            table.insert(self.enemyBullets, EnemyBullet.new(bData.x, bData.y, bData))
         end
     else
         local ox = originX or self.x
         local oy = originY or self.y
-        table.insert(self.bullets, EnemyBullet.new(ox, oy, bulletData))
+        table.insert(self.enemyBullets, EnemyBullet.new(ox, oy, bulletData))
     end
 end
 
@@ -519,15 +519,6 @@ function Boss:update(dt, playerX, playerY, telegraph)
         end
     end
 
-    -- Update bullets
-    for i = #self.bullets, 1, -1 do
-        local b = self.bullets[i]
-        b:update(dt)
-        if b.isDead then
-            table.remove(self.bullets, i)
-        end
-    end
-
     self.prevHpPercent = self.health / self.maxHealth
     self.isSpecialAttacking = self.isExecutingSpecial and self.activeSpecial ~= nil
 end
@@ -548,10 +539,6 @@ function Boss:takeDamage(amount)
     end
 end
 
-function Boss:getBullets()
-    return self.bullets
-end
-
 function Boss:draw()
     if self.isDead then return end
 
@@ -570,11 +557,6 @@ function Boss:draw()
         self.health / self.maxHealth,
         self.isSpecialAttacking
     )
-
-    -- Draw Bullets
-    for _, b in ipairs(self.bullets) do
-        b:draw()
-    end
 end
 
 return Boss

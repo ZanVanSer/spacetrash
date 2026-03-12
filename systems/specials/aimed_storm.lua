@@ -107,8 +107,8 @@ function AimedStorm.execute(attackData, source, telegraph)
                     if pattern.createBullets then
                         local bullets = pattern.createBullets(source.x, source.y, bulletData, target.x, target.y)
                         for _, bData in ipairs(bullets) do
-                            if source.bullets then
-                                table.insert(source.bullets, EnemyBullet.new(bData.x, bData.y, bData))
+                            if source.enemyBullets then
+                                table.insert(source.enemyBullets, EnemyBullet.new(bData.x, bData.y, bData))
                             end
                         end
                     else
@@ -116,8 +116,8 @@ function AimedStorm.execute(attackData, source, telegraph)
                         local angle = math.atan2(target.y - source.y, target.x - source.x)
                         bulletData.vx = math.cos(angle) * state.bulletSpeed
                         bulletData.vy = math.sin(angle) * state.bulletSpeed
-                        if source.bullets then
-                            table.insert(source.bullets, EnemyBullet.new(source.x, source.y, bulletData))
+                        if source.enemyBullets then
+                            table.insert(source.enemyBullets, EnemyBullet.new(source.x, source.y, bulletData))
                         end
                     end
                 end

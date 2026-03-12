@@ -6,7 +6,7 @@ local Colors = require('ui/colors')
 local Enemy = {}
 Enemy.__index = Enemy
 
-function Enemy.new(x, y, enemyData, scaler)
+function Enemy.new(x, y, enemyData, scaler, enemyBullets)
     local self = setmetatable({}, Enemy)
     self.x, self.y = x, y
     self.enemyData = enemyData
@@ -18,6 +18,7 @@ function Enemy.new(x, y, enemyData, scaler)
     self.isDead = false
     self.radius = enemyData.radius or 15
     self.scaler = scaler
+    self.enemyBullets = enemyBullets or {}
     
     -- Shield System
     self.hasShield = enemyData.hasShield or false
@@ -38,7 +39,6 @@ function Enemy.new(x, y, enemyData, scaler)
     self.shootTimer = 0
     self.shootInterval = enemyData.shootInterval or 3
     self.shootPattern = enemyData.shootPattern
-    self.bullets = {}
     
     return self
 end
@@ -122,25 +122,16 @@ function Enemy:update(dt, playerX, playerY)
                 
                 local newBulletsData = pattern.createBullets(self.x, self.y, bulletData, px, py)
                 for _, bData in ipairs(newBulletsData) do
-                    table.insert(self.bullets, EnemyBullet.new(bData.x, bData.y, bData))
+                    table.insert(self.enemyBullets, EnemyBullet.new(bData.x, bData.y, bData))
                 end
             else
-                table.insert(self.bullets, EnemyBullet.new(self.x, self.y, bulletData))
+                table.insert(self.enemyBullets, EnemyBullet.new(self.x, self.y, bulletData))
             end
             
             -- Muzzle flash effect: Brief flash at enemy position when bullet spawns
             Particles.spawn(self.x, self.y, 6, "danger", 120, 2)
             
             self.shootTimer = 0
-        end
-    end
-
-    -- Update bullets
-    for i = #self.bullets, 1, -1 do
-        local b = self.bullets[i]
-        b:update(dt)
-        if b.isDead then
-            table.remove(self.bullets, i)
         end
     end
 
@@ -221,15 +212,6 @@ function Enemy:draw()
         love.graphics.setColor(1, 0, 0)
         love.graphics.rectangle("fill", bx, by, barWidth * hpPercent, barHeight)
     end
-
-    -- Draw all bullets
-    for _, b in ipairs(self.bullets) do
-        b:draw()
-    end
-end
-
-function Enemy:getBullets()
-    return self.bullets
 end
 
 function Enemy:getContactDamage()
